@@ -4,7 +4,7 @@ public with sharing class CreateBulkInstallationRecordsController {
     }
     /*, String type, String vessel, String org, Invoice_Account__c, Client__c*/
     @AuraEnabled
-    public static List<InstallationWrapper> createRecords(String quoteId, String quoteGrpId, Integer count)
+    public static List<InstallationWrapper> createRecords(String quoteId, String quoteGrpId, Integer count, String delvContact, String invAcc, String client)
     {
         try
         {
@@ -18,11 +18,11 @@ public with sharing class CreateBulkInstallationRecordsController {
             {
                 /* Installation_Type__c = type, Vessel_Name__c = vessel, Organisation_Name__c = org*/
                 instList.add(new Installation__c(Contract_Customer__c = qlg.SBQQ__Quote__r.SBQQ__Account__c, Quote__c = qlg.SBQQ__Quote__c, Quote_Line_Group__c = quoteGrpId,
-                Installation_Order_Status__c = 'Draft'));
+                Installation_Order_Status__c = 'Draft', Client__c = client, Delivery_Contact__c = delvContact, Invoice_Account__c = invAcc));
             }
             insert instList;
             System.debug('instList --> ' + instList);
-            List<Installation__c> installList = [SELECT Id, Name, Delivery_Contact__c, Client__c, Invoice_Account__c, Contract_Customer__c, Contract_Customer__r.Name, Installation_Type__c, Vessel_Name__c, Vessel_Name__r.Name, Organisation_Name__c, Organisation_Name__r.Name FROM Installation__c WHERE Id IN :instList];
+            List<Installation__c> installList = [SELECT Id, Name, Delivery_Contact__c, Delivery_Contact__r.Name, Client__c, Client__r.Name, Invoice_Account__c, Invoice_Account__r.Name, Contract_Customer__c, Contract_Customer__r.Name, Installation_Type__c, Vessel_Name__c, Vessel_Name__r.Name, Organisation_Name__c, Organisation_Name__r.Name FROM Installation__c WHERE Id IN :instList];
             //return installList;
             for(Installation__c inst : installList)
             {
