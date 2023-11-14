@@ -1,0 +1,66 @@
+<template>
+    <lightning-record-edit-form object-api-name="Installation__c" onsubmit={handleUpdateInstallation}>
+        <template if:true={isModalOpen}>
+            <!-- Modal/Popup Box LWC starts here -->
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <!-- Modal/Popup Box LWC header here -->
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeModal}>
+                            <lightning-icon icon-name="utility:close"
+                                alternative-text="close"
+                                variant="inverse"
+                                size="small" ></lightning-icon>
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                        <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Modal/PopUp Box header LWC</h2>
+                    </header>
+                    <!-- Modal/Popup Box LWC body starts here -->
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                        <lightning-messages> </lightning-messages>
+                        <lightning-input-field field-name="Installation_Type__c" onchange={onInstallationTypeChange} value={instType}></lightning-input-field>
+                        <template if:true={vesType}>
+                            <lightning-input-field field-name="Vessel_Name__c"></lightning-input-field>
+                        </template>
+                        <template if:true={orgType}>
+                            <lightning-input-field field-name="Organisation_Name__c"></lightning-input-field>
+                        </template>
+                        <lightning-input-field field-name="Delivery_Contact__c"></lightning-input-field>
+                        <lightning-input-field field-name="Invoice_Account__c"></lightning-input-field>
+                        <lightning-input-field field-name="Client__c"></lightning-input-field>
+                    </div>
+                    <!-- Modal/Popup Box LWC footer starts here -->
+                    <footer class="slds-modal__footer">
+                        <!--button class="slds-button slds-button_neutral" onclick={closeModal} title="Cancel">Cancel</button-->
+                        <lightning-button label="Cancel" variant="neutral" onclick={closeModal} title="Cancel"></lightning-button>
+                        <lightning-button type="submit" label="Update" variant="brand" ></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+    </lightning-record-edit-form>
+    <div style="width:40%">
+        <c-custom-look-up-l-w-c label="Quote Line Group" selected-icon-name="standard:quote" object-label="Quote Line Group"
+            object-api-name="SBQQ__QuoteLineGroup__c" field-api-name="Name" parent-field-api-name="SBQQ__Quote__c"
+            other-field-api-name="" parent-record-id={recordId} onvalueselected={handleValueSelectedOnAccount}>
+        </c-custom-look-up-l-w-c>
+    </div>
+    <lightning-input style="width: 40%;" label="No. of records to create(max 100)" max="100" type="number" name="Record Count" min="1" step="1" value={count} onchange={handleCountChange}></lightning-input>
+    <template if:true={disableSave}>
+        <p style="color: red"><b>Only {remainingQty} records can be created on the above Quote Line Group</b></p>
+    </template>
+    <div class="slds-var-m-top_medium">
+        <lightning-button variant="brand" onclick={handleSubmit} label="Save" disabled={disableSave}>
+        </lightning-button>
+    </div>
+    <br/>
+    <lightning-datatable key-field="id" data={data} show-row-number-column
+                        row-number-offset={rowOffset}
+                        suppress-bottom-bar
+                        columns={columns}>
+    </lightning-datatable>
+    <br/>
+    <lightning-button onclick={updateRecords} label="Update Installation Type">
+    </lightning-button>
+</template>

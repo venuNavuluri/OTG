@@ -1,0 +1,44 @@
+<template>
+    <lightning-card title="All Related Files">
+        <!--h1>All Related Files</h1-->
+        <ul class="slds-m-around_medium">
+            <template for:each={fileRecordList} for:item="fileObjWrap">
+                <div key={fileObjWrap.objName}>
+                    <h1>
+                        <b><u>{fileObjWrap.objName}</u></b>
+                    </h1>
+                    <template for:each={fileObjWrap.fileList} for:item="file">
+                        <li key={file.Id}>
+                            <lightning-card>
+                                <!--lightning-button-menu style="padding-left: 90%;" alternative-text="Show menu">
+                                    <lightning-menu-item style="padding-left: 90%;" value="Open" label="Open"></lightning-menu-item>
+                                </lightning-button-menu-->
+                                <lightning-layout>
+                                    <lightning-layout-item padding="around-small">
+                                        <div class="header-column">
+                                            <p style="padding-top: 20%;">
+                                                <lightning-icon icon-name="doctype:gdoc" size="small" title="File"></lightning-icon>
+                                            </p>
+                                            <!--p class="field-title" title="Field 1">Field 1</p>
+                                            <p>Name</p-->
+                                        </div>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item padding="around-small">
+                                        <div class="header-column">
+                                            <p>
+                                                <lightning-formatted-url style="padding-left: 5%;font-size: 12px;font-weight: bold;" value={file.url} label={file.Title} target="_blank" ></lightning-formatted-url>
+                                            </p>
+                                            <p>{file.fileDate} | {file.fileSize} | {file.fileType}</p>
+                                            <!--p class="field-title" title="Field 1">Field 1</p>
+                                            <p>Name</p-->
+                                        </div>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </lightning-card>
+                        </li>
+                    </template>
+                </div>
+            </template>
+        </ul>
+    </lightning-card>
+</template>

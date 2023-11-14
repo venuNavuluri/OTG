@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>CreateOrderMessage</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>CreateOrderMessage</shortDescription>
+        <value>Are you sure, you want to order the Quote ?</value>
+    </labels>
+    <labels>
+        <fullName>CreateOrderSuccessMsg</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>CreateOrderSuccessMsg</shortDescription>
+        <value>Quote Ordered Successfully</value>
+    </labels>
+    <labels>
+        <fullName>ToEmail</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>ToEmail</shortDescription>
+        <value>Venu.Navuluri_EXT@oceantg.com</value>
+    </labels>
+    <labels>
+        <fullName>Upload_Installations_Error_Message</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Upload Installations Error Message</shortDescription>
+        <value>Error creating installations, please reach out to Technical Support Team.</value>
+    </labels>
+    <labels>
+        <fullName>Upload_Installations_Success_Message</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Upload Installations Success Message</shortDescription>
+        <value>records have been created successfully, you will receive an email for any failed records with the Vessel IMO</value>
+    </labels>
+</CustomLabels>

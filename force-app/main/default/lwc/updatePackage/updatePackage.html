@@ -1,0 +1,31 @@
+<template>
+    <lightning-record-edit-form object-api-name={objectApiName} record-id={recordId} onsuccess={updatePackage} >
+    <!--div class="slds-modal__container"-->
+        <!-- modal header start -->
+        <header class="slds-modal__header">
+            <!--button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={hideModalBox}>
+            <lightning-icon icon-name="utility:close"
+                alternative-text="close"
+                variant="inverse"
+                size="small" ></lightning-icon>
+            <span class="slds-assistive-text">Close</span>
+            </button-->
+            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Update Package</h2>
+        </header>
+    
+        <!-- modal body start -->
+        <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+            <!--lightning-input-field field-name={packageApiName} value={packageValue}> </lightning-input-field-->
+            <lightning-radio-group name="radioGroup" label="Select Package" options={packageOptions} onchange={handleSelected} value={selectedPackage} type="radio"></lightning-radio-group>
+            <lightning-datatable if:true={showInstallations} key-field="id" data={installations} columns={columns}></lightning-datatable>
+        </div>
+
+        <!-- modal footer start-->
+        <footer class="slds-modal__footer">
+            <lightning-button variant="brand" label="Save" onclick={savePackageInfo}>
+            </lightning-button>
+            <!--button class="slds-button slds-button_neutral" onclick={hideModalBox}>Cancel</button-->
+        </footer>
+    <!--/div-->
+    </lightning-record-edit-form>
+</template>

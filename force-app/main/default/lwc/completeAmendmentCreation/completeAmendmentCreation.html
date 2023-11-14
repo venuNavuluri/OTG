@@ -1,0 +1,8 @@
+<template>
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+    <template if:true={isError}>
+        <p>Error occurred while completing Amendment creation. Please contact techincal support team.</p>
+    </template>
+</template>
