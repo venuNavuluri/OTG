@@ -1,0 +1,15 @@
+<template>
+  <div  style="width: 100%;padding:3%;">
+    <template if:true={isConverting}>
+      <lightning-spinner 
+        alternative-text="Loading" 
+        size="medium"
+        variant="brand"
+        style="position: relative; margin:50%;"
+      ></lightning-spinner>
+    </template>
+    <template if:false={isConverting}>
+      <button class="slds-button slds-button_brand" style="width:100%" onclick={convertLead} ><b>Convert To Opportunity</b></button>
+    </template>
+  </div>
+</template>

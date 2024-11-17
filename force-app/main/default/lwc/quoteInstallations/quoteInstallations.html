@@ -55,18 +55,28 @@
                                         data-qgid={eachQuoteGroup.Id} data-index={indexVar} data-qgindex={qgIndexVar}
                                         onchange={handleFieldChange}>
                                     </lightning-input-field>
+                                    <template if:true={installation.dupId}>
+                                       <span style="color:red"> <b>Error: Duplicate Vessel/Org ID from existing Installations</b></span>
+                                    </template>
                                 </div>
                                 <div class="slds-col slds-size_2-of-6  slds-p-right_small" lwc:else>
                                     <lightning-input-field variant="label-stacked" field-name="Organisation_Name__c"
                                         data-qgid={eachQuoteGroup.Id} data-index={indexVar} data-qgindex={qgIndexVar}
                                         onchange={handleFieldChange}>
                                     </lightning-input-field>
+                                      <template if:true={installation.dupId}>
+                                       <span style="color:red"> <b>Error: Duplicate Vessel/Org ID from existing Installations</b></span>
+                                    </template>
                                 </div>
                                 <div class="slds-col slds-size_2-of-6  slds-p-right_small">
-                                    <lightning-input-field variant="label-stacked" field-name="Invoice_Account__c"
+                                    <!--<lightning-input-field variant="label-stacked" field-name="Invoice_Account__c"
                                         value={installation.Invoice_Account__c} data-qgid={eachQuoteGroup.Id}
                                         data-index={indexVar} data-qgindex={qgIndexVar} onchange={handleFieldChange}>
-                                    </lightning-input-field>
+                                    </lightning-input-field>-->
+                                    <lightning-record-picker label="Invoice Account" object-api-name="Account" placeholder="Search Invoice Accounts..." filter={filter} 
+                                        value={installation.Invoice_Account__c} data-qgid={eachQuoteGroup.Id} data-fieldname="Invoice_Account__c"
+                                        data-index={indexVar} data-qgindex={qgIndexVar} onchange={handleFieldChange}>
+                                    </lightning-record-picker>
                                 </div>
                                 <div class="slds-col slds-size_2-of-6  slds-p-right_small">
                                     <lightning-input-field variant="label-stacked" field-name="Client__c"
@@ -86,7 +96,7 @@
                                         <div class="slds-form-element__control">
                                             <lightning-button variant="brand" onclick={handleSave} data-index={indexVar}
                                                 data-qgindex={qgIndexVar} data-qgid={eachQuoteGroup.Id}
-                                                id="stacked-input-id-01" label="Create">
+                                                id="stacked-input-id-01" label="Create"  disabled={installation.disButton}>
                                             </lightning-button>
                                         </div>
                                     </div>
@@ -140,6 +150,43 @@
                             </section>
                             <div class="slds-backdrop slds-backdrop_open"></div>
                         </lightning-record-edit-form>
+                    </template>
+                    <template if:true={showChangePackage}>
+                        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                            <div class="slds-modal__container">
+                                
+                                <!-- Modal/Popup Box LWC header here -->
+                                <header class="slds-modal__header">
+                                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeChangePackage}>
+                                        <lightning-icon icon-name="utility:close"
+                                            alternative-text="close"
+                                            variant="inverse"
+                                            size="small" ></lightning-icon>
+                                        <span class="slds-assistive-text">Close</span>
+                                    </button>
+                                    <h2 id="modal-heading-001" class="slds-text-heading_medium slds-hyphenate">Change Package</h2>
+                                </header>
+                                <!-- Modal/Popup Box LWC body starts here -->
+                                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-01">
+                                    <template if:true={renderChangePackage}>
+                                        <lightning-radio-group name="radioGroup" label="Select Package" options={packageOptions} onchange={handleSelected} value={selectedPackage} type="radio"></lightning-radio-group>
+                                        <lightning-datatable onrowselection={handleRowSelection} if:true={showInstallations} data-id="ChangePackTable" key-field="id" data={installations} columns={instColumns}></lightning-datatable>
+                                    </template>
+                                    <template if:false={renderChangePackage} >
+                                        <p><b>
+                                            You can change package as there is only one Package linked to the quote.
+                                        </b></p>
+                                    </template>
+                                </div>
+                                <!-- Modal/Popup Box LWC footer starts here -->
+                                <footer class="slds-modal__footer">
+                                    <lightning-button label="Cancel" variant="neutral" onclick={closeChangePackage} title="Cancel"></lightning-button>
+                                    <lightning-button if:true={renderChangePackage} label="Change" onclick={savePackageInfo} variant="brand" ></lightning-button>
+                                </footer>
+                                
+                            </div>
+                        </section>
+                        <div class="slds-backdrop slds-backdrop_open"></div>
                     </template>
                 </div>
             </div>

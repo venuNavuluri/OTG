@@ -7,14 +7,14 @@
                 <lightning-icon icon-name="utility:switch" alternative-text="button icon" size="x-small"
                     class="slds-section__title-action-icon slds-button__icon_left"></lightning-icon>
                 <span class="slds-truncate" title={label}><strong>{label}</strong></span>
-                <div class="slds-p-left_xx-large">
-                    <span class="slds-truncate slds-p-left_xx-large" >&nbsp;&nbsp;<strong>No of Installations</strong> : {noOfInstallations}</span>
+                <div class="">
+                    <span class="slds-truncate slds-p-left_xx-large" ><!--&nbsp;&nbsp;--><strong>No of Installations</strong> : {noOfInstallations}</span>
                     <span class="slds-truncate" >&nbsp;&nbsp;<strong>Remaining Installations</strong> : {remainingInstallations}</span>
                 </div>
-                <div class="slds-p-right_xx-large">
-                    <span class="slds-truncate slds-p-right_xx-large" >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <div class="slds-p-right_small">
+                    <span class="slds-truncate slds-p-left_xx-large" ><!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-->
                         <strong>Installation Price</strong> :&nbsp;{currencyCode}&nbsp;{installationPrice}</span>
-                    <span class="slds-truncate slds-p-right_xx-large" >&nbsp;&nbsp;<strong>User Price</strong> :&nbsp;{currencyCode}&nbsp;{userPrice}</span>
+                    <span class="slds-truncate slds-p-left_xx-large" >&nbsp;&nbsp;<strong>User Price</strong> :&nbsp;{currencyCode}&nbsp;{userPrice}</span>
                 </div>
             </button>
         </h3>

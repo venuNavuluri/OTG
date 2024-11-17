@@ -1,0 +1,35 @@
+<template>
+    <lightning-quick-action-panel header="Confirm">
+        <lightning-radio-group
+            label="Are you sure, you want to Terminate the Installation ?"
+            options={options}
+            value={tValue}
+            onchange={onSelected}
+            required>
+        </lightning-radio-group>
+        <br/>
+        <template if:true={showDetails}>
+            <lightning-record-edit-form object-api-name="Installation__c">
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_2-of-6 slds-p-right_small">
+                        <lightning-input-field variant="label-stacked" field-name="Termination_End_Date__c" onchange={handleFieldChange}>
+                        </lightning-input-field>
+                        <template if:true={error}>
+                            <span style="color:red"> <b>{message}</b></span>
+                        </template>
+                    </div>
+                    <div class="slds-col slds-size_2-of-6 slds-p-right_small"></div>
+                    <div class="slds-col slds-size_2-of-6 slds-p-right_small"></div>
+                    <div class="slds-col slds-size_2-of-6  slds-p-right_small">
+                        <lightning-input-field variant="label-stacked" field-name="Termination_Reason__c" onchange={handleFieldChange}>
+                        </lightning-input-field>
+                    </div>
+                </div>
+            </lightning-record-edit-form>
+        </template>
+        <div slot="footer">
+            <lightning-button variant="neutral" label="Cancel" title="Cancel" onclick={cancel} class="slds-m-left_x-small"></lightning-button>
+            <lightning-button variant="brand" label="Save" title="Save" onclick={handleSave} class="slds-m-left_x-small"></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

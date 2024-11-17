@@ -1,0 +1,60 @@
+<!--
+  @description       : 
+  @author            : Jasdeep Bahra
+  @group             : 
+  @last modified on  : 09-02-2024
+  @last modified by  : Venu Navuluri
+  ================ Added the "Marine Regulations" value in Products Picklist field ========
+  @last modified on : 25-06-2024
+  @last modified by : Akash Dhole
+-->
+<template>
+  <template if:true={showSpinner}>
+    <div class="exampleHolder">
+      <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+    </div>
+  </template>
+    <article class="slds-card" style="border-style: none;">
+      <template if:false={isMobile}>
+        <div class="slds-m-around_medium">
+            <div class="slds-grid slds-form__row">
+              <lightning-input name="firstName" label="First Name" type="text" data-name="firstName" required="true" onchange={fieldChange} style="min-width: 40%;margin-left: -4px;padding-right: 0.5%;" class="slds-col slds-m-bottom_x-small" pattern="[a-zA-Z]+"></lightning-input>
+              <lightning-input label="Last Name" type="text" data-name="lastName" required="true" onchange={fieldChange} style="min-width: 40%;padding-left: 0.5%;margin-right: -4px;" class="slds-col slds-m-bottom_x-small"></lightning-input>
+            </div>
+        </div>
+        <lightning-input label="Job Title" type="text" data-name="jobTitle" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input type="tel" label="Phone" data-name="phone" name="phone" required="true" pattern="[0-9]+\s{0,1}[0-9]+" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input label="Work Email" data-name="email" type="email" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <!--lightning-combobox name="companyType" data-name="companyType" label="Company Type" placeholder="Select Company Type" options={customerTypes} onchange={fieldChange} ></lightning-combobox-->
+        <lightning-input label="Full Company Name" type="text" data-name="companyName" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input label="Website" type="text" data-name="website" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <!--lightning-checkbox-group name="products" onchange={handleChange} label="What product range are you interested in?" options={productRange} value={value} required></lightning-checkbox-group-->
+        <lightning-input label="Message" type="text" data-name="message" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input label="Where did you hear about us ?" type="text" data-name="hearAboutUs" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+      </template>
+        
+        <template if:true={isMobile}>
+          <div class="slds-m-around_medium">
+            <lightning-input name="firstName" label="First Name" type="text" data-name="firstName" required="true" onchange={fieldChange} class="slds-col slds-m-bottom_x-small" pattern="[a-zA-Z]+"></lightning-input>
+            <lightning-input label="Last Name" type="text" data-name="lastName" required="true" onchange={fieldChange} class="slds-col slds-m-bottom_x-small"></lightning-input>
+            <lightning-input label="Job Title" type="text" data-name="jobTitle" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+            <lightning-input type="tel" label="Phone" data-name="phone" name="phone" required="true" pattern="[0-9]+\s{0,1}[0-9]+" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+            <lightning-input label="Work Email" data-name="email" type="email" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+            <!--lightning-combobox name="companyType" data-name="companyType" label="Company Type" placeholder="Select Company Type" options={customerTypes} onchange={fieldChange} ></lightning-combobox-->
+            <lightning-input label="Full Company Name" type="text" data-name="companyName" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+            <lightning-input label="Website" type="text" data-name="website" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+            <!--lightning-checkbox-group name="products" onchange={handleChange} label="What product range are you interested in?" options={productRange} value={value} required></lightning-checkbox-group-->
+            <lightning-input label="Message" type="text" data-name="message" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+            <lightning-input label="Where did you hear about us ?" type="text" data-name="hearAboutUs" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+          </div>
+        </template>
+        
+        <lightning-button
+          label="Submit"
+          variant="brand"
+          onclick={submitLead}
+          class="submitButton"
+          style="padding-left: 41%;"
+        ></lightning-button>
+    </article>
+  </template>

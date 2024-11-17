@@ -1,0 +1,16 @@
+<template>
+    <lightning-card title="Related Leads">
+        <template if:true={leads}>
+            <lightning-datatable
+                class="wrapped-header-datatable"
+                data={leadsWithLinks}
+                columns={columns}
+                key-field="Id"
+                min-column-width="100">
+            </lightning-datatable>
+        </template>
+        <template if:false={leads}>
+            <p>No related leads found.</p>
+        </template>
+    </lightning-card>
+</template>

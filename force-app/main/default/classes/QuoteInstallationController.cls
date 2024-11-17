@@ -6,6 +6,167 @@ public class QuoteInstallationController {
         public SBQQ__QuoteLineGroup__c qlg;
         @AuraEnabled
         public Package__c pack;
+        @AuraEnabled
+        public Decimal userPrice;
+        @AuraEnabled
+        public Decimal installationPrice;
+    }
+
+    @AuraEnabled
+    public static string createInstallations(String conVerId, String qtId, String qlgId)
+    {
+        try
+        {
+            ContentVersion conVer = [SELECT Id, VersionData FROM ContentVersion WHERE Id = :conVerId];
+            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__SalesRep__r.Email FROM SBQQ__QuoteLineGroup__c WHERE Id = :qlgId]);
+            String st = conVer.VersionData.toString();
+            System.debug('conVer --> ' + conVer.VersionData.toString());
+            System.debug('st --> ' + st);
+            Map<String, String> vesIMORecMap = new Map<String, String>();
+            List<String> invAccNameList = new List<String>();
+            Integer i = 0;
+            for(String rec : st.split('\n'))
+            {
+                if(i != 0)
+                {
+                    String str;
+                    if(st.split('\n').size() != (i + 1))
+                    {
+                        str = rec.subString(0, rec.length() - 1);
+                    }
+                    else
+                    {
+                        str = rec.subString(0);
+                    }
+                    System.debug('n --> ' + str.charAt(str.length()-2));
+                    System.debug('str --> ' + str.contains('\r') + ' ' + str.charAt(str.length()-1) + ' ' + str.codePointAt(str.length()-1) + ' ' + String.valueOf(str.codePointAt(str.length()-1)).unescapeUnicode());
+                    if(str.contains('\r'))
+                    {
+                        str = str.subString(0, str.length() - 1);
+                    }
+                    List<String> recList = str.split(',');
+                    vesIMORecMap.put(recList[0], str);
+                    System.debug('recList[1] --> ' + recList[1].contains('\n'));
+                    /*if(recList[1].contains('\n'))
+                    {
+                        recList[1] = recList[1].subString(0, recList[1].length() - 1);
+                    }*/
+                    invAccNameList.add(recList[1]);
+                }
+                System.debug('vesIMORecMap --> ' + vesIMORecMap);
+                i++;
+            }
+            System.debug('invnames --> ' + invAccNameList);
+            Map<Id, Vessel__c> vesMap = new Map<Id, Vessel__c>([SELECT Id, Name, Vessel_IMO__c FROM Vessel__c WHERE Vessel_IMO__c IN :vesIMORecMap.keySet()]);
+            List<Account> invAccList = [SELECT Id, Name, Account_ID__c FROM Account WHERE Account_ID__c IN :invAccNameList];
+            System.debug('invs --> ' + invAccList);
+            Map<String, Account> invAccMap = new Map<String, Account>();
+            for(Account acc : invAccList)
+            {
+                invAccMap.put(acc.Account_ID__c, acc);
+            }
+            System.debug('invAccMap --> ' + invAccMap);
+            Set<String> vesIMOSet = new Set<String>();
+            for(Vessel__c ves : vesMap.values())
+            {
+                vesIMOSet.add(ves.Vessel_IMO__c);
+            }
+            List<Installation__c> instList = new List<Installation__c>();
+            String noIMO = 'VesselIMO,Error\n';
+            Map<String, Installation__c> vesInstMap = new Map<String, Installation__c>();
+            for(Vessel__c ves : vesMap.values())
+            {
+                System.debug('id --> ' + ves.Vessel_IMO__c);
+                System.debug('rec --> ' + vesIMORecMap.get(ves.Vessel_IMO__c));
+                System.debug('rec --> ' + vesIMORecMap.get(ves.Vessel_IMO__c).split(',')[1]);
+                System.debug('val --> ' + invAccMap.get(vesIMORecMap.get(ves.Vessel_IMO__c).split(',')[1]));
+                if(invAccMap.get(vesIMORecMap.get(ves.Vessel_IMO__c).split(',')[1]) != NULL)
+                {
+                    Installation__c inst = new Installation__c(
+                        Installation_Type__c = 'Vessel',
+                        Invoice_Account__c = invAccMap.get(vesIMORecMap.get(ves.Vessel_IMO__c).split(',')[1]).Id,
+                        Vessel_Name__c = ves.Id,
+                        Quote__c = qtId,
+                        Quote_Line_Group__c = qlgId,
+                        Package__c = qlgMap.get(qlgId).Package__c,
+                        Contract__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__MasterContract__c,
+                        Installation_Order_Status__c = 'Draft',
+                        Contract_Customer__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__Account__c
+                    );
+                    instList.add(inst);
+                    vesInstMap.put(ves.Vessel_IMO__c, inst);
+                }
+                else
+                {
+                    noIMO += ves.Vessel_IMO__c + ',Invoice Account not present\n';
+                }
+            }
+            Database.saveResult[] sr;
+            if(!instList.isEmpty())
+            {
+                sr = Database.insert(instList, false);
+            }
+            i = 0;
+            Integer newInstCount = 0;
+            List<Installation__c> instListInserted = new List<Installation__c>();
+            for(Installation__c inst : instList)
+            {
+                if(!sr[i].isSuccess())
+                {
+                    noIMO += vesMap.get(instList[i].Vessel_Name__c).Vessel_IMO__c + ',';
+                    for(Database.Error err : sr[i].getErrors())
+                    {
+                        noIMO += err.getMessage() + '. ';
+                    }
+                    noIMO += '\n';
+                }
+                else
+                {
+                    newInstCount++;
+                    instListInserted.add(instList[i]);
+                }
+                i++;
+            }
+            createInstallationLines(instListInserted, new List<Id>{qlgId});
+            if(vesIMORecMap.keySet().size() != instList.size())
+            {
+                for(String imo : vesIMORecMap.keySet())
+                {
+                    if(!vesIMOSet.contains(imo))
+                    {
+                        noIMO += imo + ',IMO Not Present\n';
+                    }
+                }
+                BLOB b;
+                if(Test.isRunningTest())
+                { 
+                    b = BLOB.valueOf('Unit.Test');
+                }
+                else
+                {
+                    b = BLOB.valueOf(noIMO);
+                }
+                Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
+                Messaging.EmailFileAttachment attach = new Messaging.EmailFileAttachment();
+                attach.setFileName('Failed Records.csv');
+                attach.setBody(b);
+                message.setFileAttachments(new Messaging.EmailFileAttachment[]{attach});
+                String[] toAddresses = new String[] {qlgMap.values()[0].SBQQ__Quote__r.SBQQ__SalesRep__r.Email}; 
+                message.setToAddresses(toAddresses); 
+                message.setSubject('IMOs\' not present to create the Installations'); 
+                message.setHtmlBody('PFA, the list of IMOs\' that are not present in the Vessel records');
+                Messaging.sendEmail(new Messaging.SingleEmailMessage[] { message });
+            }
+            return newInstCount + Label.Upload_Installations_Success_Message;
+        }
+        catch (Exception ex)
+        {
+            System.debug('e --> ' + ex);
+            System.debug('e --> ' + ex.getLineNumber());
+            System.debug('e --> ' + ex.getMessage());
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            throw new AuraHandledException(ex.getMessage());
+        }
     }
     
     @AuraEnabled
@@ -31,9 +192,10 @@ public class QuoteInstallationController {
             List<Installation__c> installList = [SELECT Id, Name, Delivery_Contact__c, Delivery_Contact__r.Name, Client__c, Client__r.Name, Invoice_Account__c, Invoice_Account__r.Name, Contract_Customer__c, Contract_Customer__r.Name, Installation_Type__c, Vessel_Name__c, Vessel_Name__r.Name, Organisation_Name__c, Organisation_Name__r.Name FROM Installation__c WHERE Id IN :instList];
             return installList;
         }
-        catch (Exception e) {
-            System.debug('msg --> ' + e.getMessage());
-            throw new AuraHandledException(e.getMessage());
+        catch (Exception ex) {
+            System.debug('msg --> ' + ex.getMessage());
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            throw new AuraHandledException(ex.getMessage());
         }
     }
     
@@ -41,11 +203,11 @@ public class QuoteInstallationController {
     public static string fetchQuoteLineGroups(String quoteId){
         try {
             List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c,
-                                                        SBQQ__Quote__r.SBQQ__Account__c,
+                                                        SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
                                                         (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
                                                         Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name
                                                         FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
-                                                        (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode
+                                                        (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode
                                                         From SBQQ__LineItems__r)
                                                         From SBQQ__QuoteLineGroup__c
                                                         Where SBQQ__Quote__c =:quoteId Order By Name Asc];
@@ -64,17 +226,41 @@ public class QuoteInstallationController {
                 QuoteRecordWrapper qrw = new QuoteRecordWrapper();
                 qrw.qlg = qlg;
                 qrw.pack = packMap.get(qlg.Package__c);
+                Date dt = Date.today();//.addDays(366);
+                qrw.installationPrice = 0;
+                System.debug('dt --> ' + dt);
+                for(SBQQ__QuoteLine__c ql : qlg.SBQQ__LineItems__r)
+                {
+                    System.debug('1 --> ' + (ql.SBQQ__StartDate__c < dt));
+                    System.debug('2 --> ' + (ql.SBQQ__EndDate__c > dt));
+                    if(ql.SBQQ__StartDate__c <= dt && ql.SBQQ__EndDate__c >= dt)
+                    {
+                        System.debug('ql --> ' + ql);
+                        qrw.installationPrice += ql.SBQQ__NetTotal__c;//SBQQ__NetPrice__c;
+                    }
+                }
+                qrw.userPrice = (qrw.installationPrice == NULL || qrw.installationPrice == 0 || qlg.User_Quantity__c == NULL || qlg.User_Quantity__c == 0) ? 0 : qrw.installationPrice/qlg.User_Quantity__c;
+                qrw.installationPrice = (qrw.installationPrice == NULL || qrw.installationPrice == 0 || qlg.Installation_Quantity__c == NULL || qlg.Installation_Quantity__c == 0) ? 0 : qrw.installationPrice/qlg.Installation_Quantity__c;
+                qrw.userPrice = qrw.userPrice.setScale(2);
+                qrw.installationPrice = qrw.installationPrice.setScale(2);
+                System.debug('qrw --> ' + qrw);
                 qrwList.add(qrw);
             }
+            System.debug('qrwList --> ' + JSON.serialize(qrwList));
             return JSON.serialize(qrwList);
             
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+        }
+        catch (Exception ex)
+        {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            throw new AuraHandledException(ex.getMessage());
         }
     }
     @AuraEnabled
-    public static String fetchQuoteLineGroupProducts(String quoteGrpId){
-        try {
+    public static String fetchQuoteLineGroupProducts(String quoteGrpId)
+    {
+        try
+        {
             Set<String> prodsList = new Set<String>();
             List<SBQQ__QuoteLine__c> quoteLines = [Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode
                                                     From SBQQ__QuoteLine__c
@@ -87,65 +273,82 @@ public class QuoteInstallationController {
                 prodString = String.join(new List<String>(prodsList),',');
             }
             return prodString;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+        }
+        catch (Exception ex)
+        {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            throw new AuraHandledException(ex.getMessage());
         }
     }
     @AuraEnabled
-    public static List<sObject> saveInstallation(List<sObject> sobjList){
-        try {
+    public static List<sObject> saveInstallation(List<sObject> sobjList)
+    {
+        try
+        {
             List<Id> qlgIdList = new List<Id>();
             for(Installation__c inst : (List<Installation__c>)sobjList)
             {
                 qlgIdList.add(inst.Quote_Line_Group__c);
             }
-            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c FROM SBQQ__QuoteLineGroup__c WHERE Id IN :qlgIdList]);
+            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, SBQQ__Quote__r.SBQQ__Account__c, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c FROM SBQQ__QuoteLineGroup__c WHERE Id IN :qlgIdList]);
             for(Installation__c inst : (List<Installation__c>)sobjList)
             {
+                inst.Installation_Order_Status__c = 'Draft';
+                inst.Contract_Customer__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__Account__c;
                 inst.Package__c = qlgMap.get(inst.Quote_Line_Group__c).Package__c;
                 inst.Contract__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__MasterContract__c != NULL ? qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__MasterContract__c : NULL;
             }
             insert sobjList;
-            createInstallationLines((List<Installation__c>)sObjList, qlgIdList);
+            //createInstallationLines((List<Installation__c>)sObjList, qlgIdList);
             return [Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
             Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name From Installation__c Where Id IN:sobjList];
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+        }
+        catch (Exception ex)
+        {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            throw new AuraHandledException(ex.getMessage());
         }
     }
 
     public static void createInstallationLines(List<Installation__c> instList, List<Id> qlgIdList)
     {
-        List<SBQQ__QuoteLine__c> qlList = new List<SBQQ__QuoteLine__c>([SELECT Id, Name, SBQQ__Group__c, SBQQ__Product__c, CurrencyIsoCode, SBQQ__Product__r.Name, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetTotal__c FROM SBQQ__QuoteLine__c WHERE SBQQ__Group__c IN :qlgIdList]);
-        Map<Id, List<SBQQ__QuoteLine__c>> qlgIdQlListMap = new Map<Id, List<SBQQ__QuoteLine__c>>();
-        for(SBQQ__QuoteLine__c ql : qlList)
+        try
         {
-            if(qlgIdQlListMap.get(ql.SBQQ__Group__c) == NULL)
+            List<SBQQ__QuoteLine__c> qlList = new List<SBQQ__QuoteLine__c>([SELECT Id, Name, SBQQ__Group__c, SBQQ__Product__c, CurrencyIsoCode, SBQQ__Product__r.Name, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetTotal__c, SBQQ__NetPrice__c FROM SBQQ__QuoteLine__c WHERE SBQQ__Group__c IN :qlgIdList]);
+            Map<Id, List<SBQQ__QuoteLine__c>> qlgIdQlListMap = new Map<Id, List<SBQQ__QuoteLine__c>>();
+            for(SBQQ__QuoteLine__c ql : qlList)
             {
-                qlgIdQlListMap.put(ql.SBQQ__Group__c, new List<SBQQ__QuoteLine__c>());
+                if(qlgIdQlListMap.get(ql.SBQQ__Group__c) == NULL)
+                {
+                    qlgIdQlListMap.put(ql.SBQQ__Group__c, new List<SBQQ__QuoteLine__c>());
+                }
+                qlgIdQlListMap.get(ql.SBQQ__Group__c).add(ql);
             }
-            qlgIdQlListMap.get(ql.SBQQ__Group__c).add(ql);
-        }
-        List<Installation_Line__c> instLines = new List<Installation_Line__c>();
-        for(Installation__c inst : instList)
-        {
-            for(SBQQ__QuoteLine__c ql : qlgIdQlListMap.get(inst.Quote_Line_Group__c))
+            List<Installation_Line__c> instLines = new List<Installation_Line__c>();
+            for(Installation__c inst : instList)
             {
-                instLines.add(new Installation_Line__c(
-                    Name = ql.SBQQ__Product__r.Name,
-                    Installation__c = inst.Id,
-                    Quote_Line__c = ql.Id,
-                    Product__c = ql.SBQQ__Product__c,
-                    Start_Date__c = ql.SBQQ__StartDate__c,
-                    End_Date__c = ql.SBQQ__EndDate__c,
-                    Net_Total__c = ql.SBQQ__NetTotal__c,
-                    CurrencyIsoCode = ql.CurrencyIsoCode
-                ));
+                for(SBQQ__QuoteLine__c ql : qlgIdQlListMap.get(inst.Quote_Line_Group__c))
+                {
+                    instLines.add(new Installation_Line__c(
+                        Name = ql.SBQQ__Product__r.Name,
+                        Installation__c = inst.Id,
+                        Quote_Line__c = ql.Id,
+                        Product__c = ql.SBQQ__Product__c,
+                        Start_Date__c = ql.SBQQ__StartDate__c,
+                        End_Date__c = ql.SBQQ__EndDate__c,
+                        Net_Total__c = ql.SBQQ__NetPrice__c,
+                        CurrencyIsoCode = ql.CurrencyIsoCode
+                    ));
             }
         }
         if(!instLines.isEmpty())
         {
             insert instLines;
+        }
+        }
+        catch(Exception ex)
+        {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
         }
     }
 }

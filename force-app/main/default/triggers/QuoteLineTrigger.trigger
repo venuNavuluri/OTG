@@ -1,8 +1,11 @@
-trigger QuoteLineTrigger on SBQQ__QuoteLine__c (before insert)
+trigger QuoteLineTrigger on SBQQ__QuoteLine__c (before insert, after insert, before update, after update)
 {
-    QuoteLineTriggerHandler handler = new QuoteLineTriggerHandler();
+    if(Trigger.isAfter && Trigger.isInsert)
+    {
+        new QuoteLineTriggerHandler().afterinsert();
+    }
     if(Trigger.isBefore && Trigger.isInsert)
     {
-        handler.beforeInsert();
+        new QuoteLineTriggerHandler().beforeinsert();
     }
 }

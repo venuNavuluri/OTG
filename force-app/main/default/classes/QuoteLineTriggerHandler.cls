@@ -1,22 +1,12 @@
 public class QuoteLineTriggerHandler extends TriggerHandler
 {
-    public override void beforeInsert()
-    {
+    public override void beforeInsert() {
         QuoteLineTriggerHandler.updateQuoteLineGroupDetails((List<SBQQ__QuoteLine__c>)Trigger.new);
     }
-    public override void afterInsert()
-    {
-    }
-    protected override void afterDelete()
-    {   
-    }
     
-    public override void beforeUpdate()
-    {
-    }
-    
-    public override void afterUpdate()
-    {
+    public override void afterInsert() {
+        //Map<Id, SBQQ__QuoteLine__c> QLNewMap = (Map<Id, SBQQ__QuoteLine__c>)Trigger.newMap;
+       // updateQuoteLineGroupDetails(QLNewMap.keySet());
     }
     
     public static void updateQuoteLineGroupDetails(List<SBQQ__QuoteLine__c> newQuoteLineList)
@@ -46,5 +36,7 @@ public class QuoteLineTriggerHandler extends TriggerHandler
                 }
             }
         }
-    }
+
+}
+    
 }

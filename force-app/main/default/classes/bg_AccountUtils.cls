@@ -107,7 +107,7 @@ public class bg_AccountUtils
         // semi colon separated list of emails
         if (emailListPattern == null)
         {
-            emailListPattern = Pattern.compile('^([\\w+\\-.%]+@[\\w\\-.]+\\.[A-Za-z]{2,4}(?:;|$))+');
+            emailListPattern = Pattern.compile('^([\\w+\\-.%\']+@[\\w\\-.]+\\.[A-Za-z]{2,4}(?:;|$))+');
         }
         Matcher emailListMatcher = emailListPattern.matcher(emailListStr);
         

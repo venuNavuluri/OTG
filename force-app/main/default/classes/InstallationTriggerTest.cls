@@ -4,6 +4,20 @@ public class InstallationTriggerTest
     @TestSetUp
     public static void createTestData()
     {
+        /*Default_Account_Owner_Settings__c dao = new Default_Account_Owner_Settings__c();
+        dao.EMEA_Default_Owner_ID__c = u.Id;
+        insert dao;*/
+        
+        Profile prof = [SELECT Id FROM Profile WHERE Name='OTG Sales User'];
+        User u = (User)TestDataFactory.createSObject('User', new Map<String, Object>{
+            'profileId' => prof.id,
+            'Username' => 'test@rrrr.com..otguatProd4'
+        });
+        
+        Default_Account_Owner_Settings__c da = (Default_Account_Owner_Settings__c)TestDataFactory.createSObject('Default_Account_Owner_Settings__c', new Map<String, Object>{
+            'EMEA_Default_Owner_ID__c' => u.id
+        });
+        
         Vessel__c vessel = new Vessel__c();
         vessel.Vessel_IMO__c = '1234567';
         vessel.Vessel_MMSI__c = '123456789';
