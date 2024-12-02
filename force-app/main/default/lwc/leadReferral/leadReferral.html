@@ -11,43 +11,43 @@
         <lightning-radio-group label="Is this an existing customer of LR or LR-OO?" name="existingCustomer" data-name="existingCustomer" options={IsLRcustomers} onchange={fieldChange} type="radio" required></lightning-radio-group>
         <lightning-input label="Account Name" type="text" data-name="companyName" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-input label="Account Website" type="text" data-name="website" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
-        <lightning-input label="Account Salesforce URL" type="URL" data-name="AccountURL" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
-        <!--div class="slds-m-around_medium">
+        <lightning-input label="Customer Background (If an existing customer, please add some background notes about the customer.)" type="text" data-name="customerbackground" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input label="Account Salesforce URL (If this account is already within your salesforce, please copy and paste the full URL.)" type="URL" data-name="AccountURL" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <div class="slds-m-around_medium">
             <div class="slds-grid slds-form__row">
-              <lightning-input label="Lead Contact First Name" type="text" data-name="firstName" name="firstName" onchange={fieldChange} style="min-width: 40%;margin-left: -4px;padding-right: 0.5%;" class="slds-col slds-m-bottom_x-small" pattern="[a-zA-Z]+"></lightning-input>
-              <lightning-input label="Lead Contact Last Name" type="text" data-name="lastName" onchange={fieldChange} style="min-width: 40%;padding-left: 0.5%;margin-right: -4px;" class="slds-col slds-m-bottom_x-small"></lightning-input>
+              <lightning-input name="firstName" label="Lead Contact First Name" type="text" data-name="firstName" required="true" onchange={fieldChange} style="min-width: 40%;margin-left: -4px;padding-right: 0.5%;" class="slds-col slds-m-bottom_x-small" pattern="[a-zA-Z]+"></lightning-input>
+              <lightning-input label="Lead Contact Last Name" type="text" data-name="lastName" required="true" onchange={fieldChange} style="min-width: 40%;padding-left: 0.5%;margin-right: -4px;" class="slds-col slds-m-bottom_x-small"></lightning-input>
             </div>
-        </div-->
-        <lightning-input label="Lead Contact Name" type="text" data-name="name" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        </div>
+        <!--lightning-input label="Lead Contact Name" type="text" data-name="name" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input-->
         <lightning-input label="Lead Contact Email" type="email" data-name="email" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-input label="Lead Contact Tel" type="tel" data-name="phone" name="phone" pattern="[0-9]+\s{0,1}[0-9]+" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
-        <lightning-checkbox-group label="OTG Products of Interests" name="products" onchange={handleChange}  options={productRange} value={value} required></lightning-checkbox-group>
-        <lightning-input label="Customer Background" type="text" data-name="customerbackground" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
-        <lightning-textarea label="Lead Description" type="text" data-name="message" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-textarea>
+        <lightning-checkbox-group label="OTG Products of Interests" name="products" onchange={handleChange}  options={productRange} value={value} required></lightning-checkbox-group>        
+        <lightning-textarea label="Lead Description" type="text" data-name="message" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-textarea>
         <lightning-input label="Vessel Name / IMO" type="text" data-name="vesselDetails" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
       </template>
         
         <template if:true={isMobile}>
-          <lightning-input label="Sales Person Full Name" type="text" data-name="salesPersonName" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input label="Sales Person Full Name" type="text" data-name="salesPersonName" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-input label="Sales Person Email" type="email" data-name="salesPersonEmail" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-radio-group label="Is this an existing customer of LR or LR-OO?" name="existingCustomer" data-name="existingCustomer" options={IsLRcustomers} onchange={fieldChange} type="radio" required></lightning-radio-group>
         <lightning-input label="Account Name" type="text" data-name="companyName" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-input label="Account Website" type="text" data-name="website" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
-        <!--div class="slds-m-around_medium">
+        <lightning-input label="Customer Background (If an existing customer, please add some background notes about the customer.)" type="text" data-name="customerbackground" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        <lightning-input label="Account Salesforce URL (If this account is already within your salesforce, please copy and paste the full URL.)" type="URL" data-name="AccountURL" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>     
+        <div class="slds-m-around_medium">
             <div class="slds-grid slds-form__row">
-              <lightning-input label="Lead Contact First Name" type="text" data-name="firstName" name="firstName" onchange={fieldChange} style="min-width: 40%;margin-left: -4px;padding-right: 0.5%;" class="slds-col slds-m-bottom_x-small" pattern="[a-zA-Z]+"></lightning-input>
-              <lightning-input label="Lead Contact Last Name" type="text" data-name="lastName" onchange={fieldChange} style="min-width: 40%;padding-left: 0.5%;margin-right: -4px;" class="slds-col slds-m-bottom_x-small"></lightning-input>
+              <lightning-input name="firstName" label="Lead Contact First Name" type="text" data-name="firstName" required="true" onchange={fieldChange} style="min-width: 40%;margin-left: -4px;padding-right: 0.5%;" class="slds-col slds-m-bottom_x-small" pattern="[a-zA-Z]+"></lightning-input>
+              <lightning-input label="Lead Contact Last Name" type="text" data-name="lastName" required="true" onchange={fieldChange} style="min-width: 40%;padding-left: 0.5%;margin-right: -4px;" class="slds-col slds-m-bottom_x-small"></lightning-input>
             </div>
-        </div-->
-        <lightning-input label="Lead Contact Name" type="text" data-name="name" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
+        </div>
+        <!--lightning-input label="Lead Contact Name" type="text" data-name="name" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input-->
         <lightning-input label="Lead Contact Email" type="email" data-name="email" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-input label="Lead Contact Tel" type="tel" data-name="phone" name="phone" pattern="[0-9]+\s{0,1}[0-9]+" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         <lightning-checkbox-group label="OTG Products of Interests" name="products" onchange={handleChange}  options={productRange} value={value} required></lightning-checkbox-group>
-        <lightning-input label="Customer Background" type="text" data-name="customerbackground" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
-        <lightning-textarea label="Lead Description" type="text" data-name="message" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-textarea>
+        <lightning-textarea label="Lead Description" type="text" data-name="message" required="true" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-textarea>
         <lightning-input label="Vessel Name / IMO" type="text" data-name="vesselDetails" onchange={fieldChange} class="slds-m-bottom_x-small"></lightning-input>
         </template>
-        
         <lightning-button
           label="Submit"
           variant="brand"

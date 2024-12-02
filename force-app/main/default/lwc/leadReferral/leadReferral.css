@@ -4,3 +4,22 @@
     --sds-c-button-brand-color-background-hover: #ff7300;
     --sds-c-button-brand-color-border-hover: #ff7300;
   }
+  .custom-input-container {
+  display: flex;
+  flex-direction: column; /* Ensures the label and input are stacked */
+}
+
+.custom-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem; /* Reduces the space between the label text and help icon */
+  font-size: 0.75rem;
+  color: #444444;
+  margin-bottom: 0.125rem; /* Fine-tunes label spacing */
+}
+
+.custom-help-icon {
+  margin-left: 0;
+  padding: 0;
+  align-self: center;
+}

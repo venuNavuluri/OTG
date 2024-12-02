@@ -1,4 +1,4 @@
-import { api, LightningElement, track, wire } from 'lwc';
+import { api,LightningElement,track,wire } from 'lwc';
 import validateLead from '@salesforce/apex/LeadReferralController.validateLead';
 import getCustomerTypes from '@salesforce/apex/LeadReferralController.getCustomerTypes';
 import { NavigationMixin } from 'lightning/navigation';
@@ -6,187 +6,223 @@ import FORM_FACTOR from '@salesforce/client/formFactor';
 
 export default class LeadReferral extends NavigationMixin(LightningElement) {
     @track selectedMultiSelectValues;
-    @track productList = [];
+    @track productList;
     @track showSpinner = false;
     @track fields = {
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        companyType: '',
-        existingCustomer: '',
-        companyName: '',
-        products: '',
-        website: '',
+        firstName:'',
+        lastName:'',
+        email:'',
+        phone:'',
+        companyType:'',
+        existingCustomer:'',
+        companyName:'',
+        products:'',
+        website:'',
         AccountURL: '',
-        salesPersonName: '',
-        salesPersonEmail: '',
-        vesselDetails: '',
+        salesPersonName:'',
+        salesPersonEmail:'',
+        vesselDetails:'',
         customerBackground: '',
-        formType: ''
-    };
-
+        formType:''
+    }
     message = '';
     @track IsLRcustomers = [];
     @track employees = [
-        { label: '1', value: '1' },
-        { label: '2-50', value: '2-50' },
-        { label: '50-200', value: '50-200' },
-        { label: '200-1000', value: '200-1000' },
-        { label: '1000-10000', value: '1000-10000' },
-        { label: '10000+', value: '10000+' }
-    ];
+        { label: '1', value: '1'},
+        { label: '2-50', value: '2-50'},
+        { label: '50-200', value: '50-200'},
+        { label: '200-1000', value: '200-1000'},
+        { label: '1000-10000', value: '1000-10000'},
+        { label: '10000+', value: '10000+'}
+    ]
 
-    @track error;
+    @track error ;
     @track name;
     @track isMobile = false;
 
-    value = [];
+   value = [];
     get productRange() {
         return [
             { label: 'Learning Management System/Learning Assessment (OLP)', value: 'Learning & Assessment' },
             { label: 'Fleet Management Solution (TM Master)', value: 'Fleet Management System (TM Master)' },
             { label: 'Crewing/HR Management System (Compas)', value: 'Crew Management/HR System (Compas)' },
             { label: 'Marine Regulations (DanDocs)', value: 'Marine Regulations' },
-            { label: 'Unknown - See Lead Description', value: 'Other' }
+            { label: 'Unknown - See Lead Description', value: 'Other'}
         ];
     }
 
+
     handleChange(event) {
-        this.productList = event.detail.value;
+        let products = [];
+        for (let a in event.detail.value){
+            products.push(event.detail.value[a]);
+        }
+        this.products = products;
     }
 
-    connectedCallback() {
-        console.log('In connected call back');
-        this.handleFormType();
-
+    connectedCallback(){
+        console.log("In connected call back");
+        if (this.getQueryParameters().type == 'ContactSales'){
+            this.fields.formType = 'ContactSales';
+        } else if (this.getQueryParameters().type == 'RequestDemo'){ 
+            this.fields.formType = 'RequestDemo';
+        } else if (this.getQueryParameters().type == 'LeadWebPageOrigin'){ 
+            this.fields.formType = 'LeadWebPageOrigin';
+        }
         getCustomerTypes()
-            .then(result => {
-                let typeData = JSON.parse(result).map(type => ({ label: type, value: type }));
-                this.IsLRcustomers = typeData;
-            })
-            .catch(error => {
-                console.error('Error fetching customer types:', error);
-            });
+        .then(result => {
+            let typeData = [];
+            result = JSON.parse(result);
+            for (let a in result){
+                typeData.push({ label: result[a], value: result[a]})
+            }
+            this.IsLRcustomers = typeData;
+        })
+        .catch(error => {
+    
+        });
+        console.log('Check');
+        console.log('formfactor --> ' + FORM_FACTOR);
+        if(FORM_FACTOR == 'Small')
+        {
+            this.isMobile = true;
+        }
+   }    
 
-        console.log('formFactor --> ' + FORM_FACTOR);
-        this.isMobile = FORM_FACTOR === 'Small';
-    }
+    fieldChange(event){
+        this.fields[event.target.dataset.name] = String(event.target.value);
 
-    handleFormType() {
-        const queryParams = this.getQueryParameters();
-        const type = queryParams.type || '';
-        this.fields.formType = ['ContactSales', 'RequestDemo', 'LeadWebPageOrigin'].includes(type) ? type : '';
-    }
-
-    fieldChange(event) {
-        const fieldName = event.target.dataset.name;
-        const fieldValue = event.target.value;
-        this.fields[fieldName] = fieldValue;
-
-        if (fieldName === 'name' && fieldValue) {
-            this.handleNameField(fieldValue);
+        if (event.target.dataset.name == 'website')
+        {
+            const websiteField = this.template.querySelector('lightning-input[data-name="website"]');
+            if (!this.fields[event.target.dataset.name].includes('.') || this.fields[event.target.dataset.name].includes(' '))
+            {
+                websiteField.setCustomValidity('Please enter a valid address');
+            }
+            else
+            {
+                websiteField.setCustomValidity('');
+            }
         }
 
-        if (fieldName === 'website') {
-            this.validateWebsiteField();
-        }
-
-        if (fieldName === 'companyName') {
-            this.validateCompanyNameField();
+        if (event.target.dataset.name == 'companyName')
+        {
+            const companyNameField = this.template.querySelector('lightning-input[data-name="companyName"]');
+            if (this.fields[event.target.dataset.name].length < 3)
+            {
+                companyNameField.setCustomValidity('Company Name must be at least 3 characters');
+            }
+            else
+            {
+                companyNameField.setCustomValidity('');
+            }
         }
     }
 
-    handleNameField(fullName) {
-        const nameParts = fullName.trim().split(' ');
-        this.fields.firstName = nameParts[0] || '';
-        this.fields.lastName = nameParts.slice(1).join(' ') || '';
-    }
-
-    validateWebsiteField() {
-        const websiteField = this.template.querySelector('lightning-input[data-name="website"]');
-        const websiteValue = this.fields.website;
-        if (!websiteValue.includes('.') || websiteValue.includes(' ')) {
-            websiteField.setCustomValidity('Please enter a valid website address.');
-        } else {
-            websiteField.setCustomValidity('');
-        }
-        websiteField.reportValidity();
-    }
-
-    validateCompanyNameField() {
-        const companyNameField = this.template.querySelector('lightning-input[data-name="companyName"]');
-        const companyNameValue = this.fields.companyName;
-        if (companyNameValue.length < 3) {
-            companyNameField.setCustomValidity('Company Name must be at least 3 characters.');
-        } else {
-            companyNameField.setCustomValidity('');
-        }
-        companyNameField.reportValidity();
-    }
-
-    submitLead() {
+    submitLead(event){
         this.showSpinner = true;
-        let isValid = this.validateForm();
+        let submitForm = true;
+        let checkboxSelected = false;
+        let radioSelected = false;
+        const inputFields = this.template.querySelectorAll('lightning-input');
+        const textareaFields = this.template.querySelectorAll('lightning-textarea');
+        const requiredFields = Array.from(inputFields).filter((field) => field.required);
 
-        if (isValid) {
-            this.fields.products = this.productList;
-            validateLead({ formData: JSON.stringify(this.fields) })
-                .then(() => {
-                    this.showSpinner = false;
-                    console.log('Lead submitted successfully.');
-                    window.location.href = '/apex/LeadSubmissionThankYou';
-                })
-                .catch(error => {
-                    this.showSpinner = false;
-                    console.error('Error submitting lead:', error);
-                });
+        inputFields.forEach((field) => {
+            const fieldName = field.dataset.name;
+
+            if(field.checkValidity() == false)
+            {
+                this.showSpinner = false;
+                console.error(`Field ${fieldName} is not valid!`);
+                submitForm = false;
+                field.focus();
+            }
+        });
+
+        textareaFields.forEach((field) => {
+            const fieldName = field.dataset.name;
+
+            if(field.checkValidity() == false)
+            {
+                this.showSpinner = false;
+                console.error(`Field ${fieldName} is not valid!`);
+                submitForm = false;
+                field.focus();
+            }
+        });
+
+
+        var checkboxGroup = this.template.querySelector(
+            'lightning-checkbox-group'
+        );
+        if (checkboxGroup.checkValidity()) {
+            checkboxSelected = true;
         } else {
+            // Shows the error immediately without user interaction
+            checkboxGroup.reportValidity();
+            this.checkboxSelected = false
+        }
+
+        var radioGroup = this.template.querySelector(
+            'lightning-radio-group'
+        );
+        if (radioGroup.checkValidity()) {
+            radioSelected = true;
+        } else {
+            // Shows the error immediately without user interaction
+            radioGroup.reportValidity();
+            this.radioSelected = false
+        }
+        
+        requiredFields.forEach((field) => {
+            let submitForm = true;
+            const fieldName = field.dataset.name;
+            const fieldValue = field.value;
+           
+            // Check if the required field is populated
+            if (!fieldValue) {
+                this.showSpinner = false;
+                console.error(`Field ${fieldName} is required and not populated!`);
+                submitForm = false;
+                field.focus();
+            }
+        });
+
+        if (submitForm == true && checkboxSelected == true && radioSelected == true){
+            let formData = this.fields;
+            formData.products = this.products;
+            validateLead({
+                formData : JSON.stringify(formData)
+            }).then((result) => {
+                this.showSpinner = false;
+                console.log('success');
+                window.location.href = '/apex/LeadSubmissionThankYou';
+            });
+        }else {
             this.showSpinner = false;
         }
     }
 
-    validateForm() {
-        let isValid = true;
-
-        const inputFields = [...this.template.querySelectorAll('lightning-input')];
-        inputFields.forEach(field => {
-            if (!field.checkValidity()) {
-                field.reportValidity();
-                isValid = false;
-            }
-        });
-
-        const checkboxGroup = this.template.querySelector('lightning-checkbox-group');
-        if (checkboxGroup && !checkboxGroup.checkValidity()) {
-            checkboxGroup.reportValidity();
-            isValid = false;
-        }
-
-        const radioGroup = this.template.querySelector('lightning-radio-group');
-        if (radioGroup && !radioGroup.checkValidity()) {
-            radioGroup.reportValidity();
-            isValid = false;
-        }
-
-        return isValid;
-    }
-
     getQueryParameters() {
-        const params = {};
-        const search = location.search.substring(1);
+        var params = {};
+        var search = location.search.substring(1);
         if (search) {
-            search.split('&').forEach(pair => {
-                const [key, value] = pair.split('=');
-                params[key] = decodeURIComponent(value || '');
+            params = JSON.parse('{"' + search.replace(/&/g, '","').replace(/=/g, '":"') + '"}', (key, value) => {
+                return key === "" ? value : decodeURIComponent(value)
             });
         }
         return params;
     }
 
-    handleOnItemSelected(event) {
-        this.selectedMultiSelectValues = event.detail
-            .map(item => item.value)
-            .join(', ');
+    handleOnItemSelected (event) {
+        if (event.detail) {
+            this.selectedMultiSelectValues = '';
+            let self = this;
+            
+        event.detail.forEach (function (eachItem) {
+                self.selectedMultiSelectValues += eachItem.value + ', ';
+        });
+        }
     }
 }

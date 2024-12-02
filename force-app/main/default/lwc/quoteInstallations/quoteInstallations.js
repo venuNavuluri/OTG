@@ -543,7 +543,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             .then(result => {
                 installation.Id = result[0].Id
                 installation.Name = result[0].Name
-                this.displayToast('Installation created Succesfully','Suucess','success','dismissable')
+                this.displayToast('Installation created Succesfully','Success','success','dismissable')
                 installation.showVessel == installation.Installation_Type__c == 'Vessel'
                 quoteLineGroup.remainingInstallations = quoteLineGroup.remainingInstallations != null ? quoteLineGroup.remainingInstallations-1:0;
                 quoteLineGroup.installations.push(installation)
