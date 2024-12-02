@@ -1,0 +1,22 @@
+<apex:page showHeader="false" sidebar="false" >
+    <style>
+        @font-face {
+        font-family: "micr";
+        	src: url('{!URLFOR($Resource.Montserrat, 'micr.Montserrat')}') format('truetype');
+        }
+        body {
+            background:#fff;
+        	font-family: Montserrat;
+        }
+        #heading{padding:10px;}
+    
+        h1 {
+        	font-size:30px;
+        	color:#00172D;
+        }
+    </style>
+
+  <div id="heading">
+      <h1>Thank you for your enquiry, a member of our team will contact you as soon as possible</h1>
+   </div>
+</apex:page>

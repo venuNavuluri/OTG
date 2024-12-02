@@ -1,0 +1,14 @@
+<apex:page standardController="Opportunity" >
+<apex:slds />
+<article class="slds-card">
+<div style="margin:1rem;background-color:white">
+<span class="slds-icon_container slds-icon-utility-announcement" title="Description of icon when needed">
+  <svg class="slds-icon slds-icon-text-default" aria-hidden="true">
+    <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#warning')}"></use>
+  </svg>
+  <span class="slds-assistive-text">Description of icon when needed</span>
+</span>
+    <p style="font-size:1rem;padding-left:1rem;display:inline">Please create an Opportunity from an Account record page.</p>
+    </div>
+    </article>
+</apex:page>

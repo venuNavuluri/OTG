@@ -1,0 +1,20 @@
+<apex:page showHeader="false" sidebar="false" >
+
+
+
+<apex:includeLightning />
+
+<div class="component-container">
+    <div id="lightning" class="lightning-div" />
+</div>
+<script>
+    $Lightning.use("c:LeadSubmissionContainerWithoutProducts", function() {
+      $Lightning.createComponent("c:leadSubmissionWithoutProducts",
+          { paramValue: '{!$CurrentPage.parameters.qString}'},
+          "lightning",
+          function(cmp) {
+          }
+      );
+    });
+</script>
+</apex:page>

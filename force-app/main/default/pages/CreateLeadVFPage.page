@@ -1,0 +1,37 @@
+<apex:page controller="CreateLeadController" lightningStylesheets="true" >
+  <!--<apex:includeLightning />
+    <div id="compContainer" />-->
+    <script>
+    /* $Lightning.use("c:CreateLeadApp",function()
+         $Lightning.createComponent("c:createLeadFromURL",
+          {
+              emailAddress : '{!$CurrentPage.parameters.email}',
+              campaignId : '{!$CurrentPage.parameters.campaignId}'
+          },
+          "compContainer",
+          function(cmp) {
+              console.log("email --> " + '{!$CurrentPage.parameters.email}');
+              console.log("campaignId --> " + '{!$CurrentPage.parameters.campaignId}');
+                  console.log("App loaded successfully in VF page");
+           }
+         );
+     });*/
+  </script>
+    <apex:form rendered="{!!showComments}" id="Form2">
+        <h1 style="font-size:20px; padding: 1%;">
+            {!$Label.LeadCreationSuccess}
+        </h1>
+    </apex:form>
+    <apex:form rendered="{!showComments}" id="Form1" style="padding-left: 1%; padding-right: 1%; padding-top: 1%">
+        <apex:pageBlock >
+            <apex:pageMessages />
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton title="Submit" action="{!createLead}" value="Submit" />
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection title="Submit to Account Manager" columns="1">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<apex:inputTextarea title="Comments" label="Comments (Optional)" value="{!comments}" style="width: 40%;" rows="5" />
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+    
+</apex:page>

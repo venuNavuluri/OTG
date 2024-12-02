@@ -1,0 +1,61 @@
+<apex:page showHeader="false" sidebar="false" lightningStylesheets="true">
+    <style>
+        .center-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        }
+        
+        /* Adding padding and margin for responsive design */
+        .responsive-container {
+        margin: 5px;
+        padding: 5px;
+        }
+        
+        /* Style specifically for the form section */
+        .form-container {
+        margin: -25px auto; /* Center form on the page */
+        padding: 25px;
+        margin-right: 25%;
+    	margin-left: 25%
+        }
+        
+        /* Media query for smaller screens */
+        @media (max-width: 768px) {
+        .responsive-container {
+        margin: 10px;
+        padding: 15px;
+        }
+        .form-container {
+        padding: 15px;
+        }
+        }
+    </style>
+    
+    <!-- Salesforce Logo Section -->
+    <div class="responsive-container center-container">
+        <img src="{!$Resource.OTGLogo}" alt="OTG Logo" class="slds-image slds-m-bottom_small" style="max-width: 150px" />
+        
+        <!-- Information Text Section -->
+        <div class="slds-size_1-of-1 slds-medium-size_1-of-2 slds-text-align_center slds-p-around_small">
+            <p>This is an internal form for lead and customer referral purposes only. Do not share this page with customers nor external stakeholders. This is solely for internal sales teams of LR, LROO to engage with OTG.</p>
+            <p>Please enter the details below of the Customer or Prospect that has been identified as an interest in a cross-over product or a Prospect for LR or LROO. Please refer to the Lead Referral process and the Rules of Engagement between teams.</p>
+        </div>          
+    </div>
+    <apex:includeLightning />
+    
+    <div class="component-container form-container">
+        <div id="lightning" class="lightning-div" />
+    </div>
+    <script>
+    $Lightning.use("c:LeadReferralContainer", function() {
+        $Lightning.createComponent("c:leadReferral",
+                                   { paramValue: '{!$CurrentPage.parameters.qString}'},
+                                   "lightning",
+                                   function(cmp) {
+                                   }
+                                  );
+    });
+    </script>
+</apex:page>

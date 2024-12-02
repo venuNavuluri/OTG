@@ -1,0 +1,433 @@
+<apex:page renderAs="pdf" applyBodyTag="false" standardController="SBQQ__Quote__c" extensions="ContractDocumentPDFController" >
+    
+    <head>
+        <style type="text/css" media="print">
+            @font-face {
+            font-family: "Montserrat";
+            src: url("{!URLFOR($Resource.Montserrat, 'Montserrat.ttf')}") format('truetype');
+            }
+            body {
+            font-family: Dialog;
+            }
+            
+            table {
+            page-break-inside:auto
+            }
+            tr {
+            page-break-inside:avoid; page-break-after:auto
+            }
+            @page {
+            padding-top: 42px;
+            @top-center {
+            content: element(header);
+            }
+            @bottom-left {
+            content: element(footer);
+            }
+            }
+            div.header {
+            padding: 10%;
+            display: block;
+            position: running(header);
+            }
+            div.footer {
+            display: block;
+            padding-bottom: 10%;
+            position: running(footer);
+            }
+            .pagenumber:before {
+            content: counter(page);
+            }
+            .pagecount:before {
+            content: counter(pages);
+            }
+        </style>
+    </head>
+    <div class="header" style="margin-top:30%;">
+        <div><br/><br/>
+            <table style="width:100%;">
+                <tr >
+                    <td style="width:50%;"><apex:image value="{!$Resource.OceanLogo}" /></td>
+                    <td style="width:50%;">
+                        <p style="text-align:right; font-size:12px;" >
+                            RENEWAL QUOTE v3-04/2024<br/>
+                            www.oceantg.com
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <br /><br />
+    </div>
+    <div class="footer" style="margin-bottom:30%;">
+        <div>
+            <table style="width:100%;padding-bottom:100px;">
+                <tr >
+                    <td style="width:70%;"><apex:image value="{!$Resource.CompanyLogo}" style="width:100%;"/></td>
+                    <td style="width:30%;">
+                        <p style="text-align:right;font-size:12px;" >
+                            Part of Ocean Technologies Group<br />
+                            oceantg.com
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                </tr>
+                <tr>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                </tr>
+            </table>
+            <br />
+            <br />
+        </div>
+        <br/><br/>
+    </div>
+    
+    <div class="content" style="margin-top:80%;" >
+        <p style="page-break-after: always;">
+            <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+            <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+            RENEWAL QUOTE<br/>
+            Shearwater Geoservices Norway AS<br/>
+            Date: 29/09/2024 <br/>
+            Version: 9 <br/>
+        </p>
+        <div style="margin-top:10%; page-break-after: always;" >
+            RENEWAL QUOTE / AGREEMENT <br/>
+            THE PARTIES<br/> 
+            <ul style="page-break-after:avoid;" >
+                <li>Ocean TG Norway AS (“OTG”) incorporated and registered in the Norway with whose registered office is 
+                    at Inger Bang Lunds vei 12, 5059 Bergen, Norway (“SUPPLIER”);
+                </li> and
+                <li>
+                    Shearwater Geoservices Norway AS incorporated and registered in Norway with company number 914 
+                    633 338 whose registered office is at Damsgårdsveien 135, 5160 BERGEN LAKSEVÅG (“CUSTOMER”), each 
+                    a “Party” and together the “Parties”.
+                </li>
+            </ul>
+            SERVICES / APPENDIX<br/>
+            <br/>
+            <table border="1" style="border-collapse:collapse;width:100%;">
+                <tr>
+                    <td>Service</td>
+                    <td>Description</td>
+                    <td>General</td>
+                </tr>  
+                <tr>
+                    <td>Service Order</td>
+                    <td>Service Order Summary</td>
+                    <td>Cover Page</td>
+                </tr>
+            </table>
+            <br/>
+            SUMMARY<br/><br/>
+            Prior to delivery of the service, OTG will support you to enable a successful launch and high acceptance among 
+            your crew. A dedicated team will facilitate the above processes, during implementation and beyond. We trust 
+            that this service proposal will meet your requirements.<br/><br/>
+            Please feel free to ask for clarifications where anything is unclear and request changes where required. 
+            SIGNATORIES<br/><br/>
+            This Service Order is agreed and accepted for and on behalf of both parties by each authorised representative, 
+            the Customer signed date is the Service Order Date:<br/><br/>
+            <table style="width:100%;">
+                <tr>
+                    <td style="width:50%;" >
+                        <table style="width:100%;">
+                            <tr>
+                                <td colspan="2">
+                                    <p style="padding-top:1%;" >
+                                        SIGNED for and on behalf of SUPPLIER:<br/>
+                                        Ocean TG Norway AS.
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="padding-top:1%;" >
+                                        Name
+                                    </p>
+                                </td>
+                                <td>
+                                    <p style="padding-top:1%;" >
+                                        Apostolos Poulovassilis
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="padding-top:1%;" >
+                                        TITLE
+                                    </p>
+                                </td>
+                                <td>
+                                    <p style="padding-top:1%;" >
+                                        Director
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        DATE
+                                    </p>
+                                </td>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        30/09/2024
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="width:50%;" >
+                        <table style="width:100%;">
+                            <tr>
+                                <td colspan="2">
+                                    <p style="padding-top:10%;" >
+                                        SIGNED for and on behalf of CUSTOMER: <br />
+                                        Shearwater Geoservices Norway AS
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        Name
+                                    </p>
+                                </td>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        Antonio Stemple
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        TITLE
+                                    </p>
+                                </td>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        SVP MARINE AQUISITION
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        DATE
+                                    </p>
+                                </td>
+                                <td>
+                                    <p style="padding-top:10%;" >
+                                        30/09/2024
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div>
+        <p style="margin-top:10%;" >
+            <b>COVER PAGE - RENEWAL QUOTE SUMMARY</b>
+        </p>
+        <table border="1" style="border-collapse:collapse;" >
+            <tr>
+                <td>
+                    GENERAL
+                </td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>
+                    Quote Id
+                </td>
+                <td>qt.Name</td>
+            </tr>
+            <tr>
+                <td>Account ID</td>
+                <td>{!qt.SBQQ__Account__r.Account_ID__c}</td>
+            </tr>
+            <tr>
+                <td>Customer</td>
+                <td>{!qt.SBQQ__Account__r.Name}</td>
+            </tr>
+            <tr>
+                <td>Customer Address</td>
+                <td>{!qt.SBQQ__Account__r.Address1__c}<br/>{!qt.SBQQ__Account__r.Address2__c}<br/>{!qt.SBQQ__Account__r.Address3__c}<br/></td>
+            </tr>
+            <tr>
+                <td>Supplier</td>
+                <td>{!qt.Legal_Entity__r.Name}</td>
+            </tr>
+            <tr>
+                <td>Supplier website</td>
+                <td>https://oceantg.com/</td>
+            </tr>
+            <tr>
+                <td>Service Solution</td>
+                <td>{!qt.SBQQ__Opportunity2__r.Business_Unit__c}</td>
+            </tr>
+            <tr>
+                <td>Master Services Agreement  
+                    (OTG Terms and Conditions)</td>
+                <td>https://oceantg.com/legal/master-service-agreement/</td>
+            </tr>
+            <tr>
+                <td>Renewal Month</td>
+                <td>{!qt.SBQQ__MasterContract__r.Renewal_Month__c}</td>
+            </tr>
+            <tr>
+                <td>Renewal Term</td>
+                <td>{!qt.SBQQ__RenewalTerm__c}</td>
+            </tr>
+            <tr>
+                <td>Billing Frequency</td>
+                <td>{!qt.SBQQ__BillingFrequency__c}</td>
+            </tr>
+            <tr>
+                <td>Billing Currency</td>
+                <td>{!qt.CurrencyISOCode}</td>
+            </tr>
+            <tr>
+                <td>Payment Terms</td>
+                <td>{!qt.SBQQ__PaymentTerms__c}</td>
+            </tr>
+            <tr>
+                <td>Renewal Date</td>
+                <td>{!qt.SBQQ__MasterContract__r.Next_Renewal_Date__c}</td>
+            </tr>
+            <tr>
+                <td>Service type</td>
+                <td>Subscription</td>
+            </tr>
+            <tr>
+                <td>Order volume (Installations) </td>
+                <td>{!qt.SBQQ__MasterContract__r.No_of_Installations__c}</td>
+            </tr>
+            <tr>
+                <td>Uplift</td>
+                <td>{!qt.SBQQ__MasterContract__r.SBQQ__RenewalUpliftRate__c}</td>
+            </tr>
+            <tr>
+                <td>Your Account Manager</td>
+                <td>{!qt.SBQQ__MasterContract__r.Owner.Name}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div style="page-break-after: always;">
+        <p>
+            <b>YOUR PACKAGE</b><br /><br/>
+            Your Ocean Technologies Group subscription will automatically renew on 1st January 2025 for a subsequent 12 month term. For any requested changes or questions in relation to your renewal please contact us at annualinvoicetero@oceantg.com (for fleet its this email but for OLP is a different email)
+        </p>
+        <table border="1" style="border-collapse:collapse;width:100%;margin-top:10%" >
+            <tr>
+                <td colspan="3">
+                    <b>Package Details</b>
+                </td>
+            </tr>
+            <tr>
+                <td>Package Name</td>
+                <td>Products</td>
+                <td>Annual Cost ($) </td>
+            </tr>
+            <apex:repeat value="{!packWrapList}" var="pack">
+                <apex:repeat value="{!pack.productWrapList}" var="prod">
+                    <tr>
+                        <td >{!pack.packageName}</td>
+                        <td>{!prod.productName}</td>
+                        <td>{!prod.annualCost}</td>
+                    </tr>
+                </apex:repeat>
+            </apex:repeat>
+        </table>
+    </div>
+    
+    <br />
+    
+    <div style="page-break-after: always;">
+        <table border="1" style="border-collapse:collapse;width:100%;" >
+            <tr>
+                <td colspan="4"><b>Installations</b></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Installation Name</td>
+                <td>IMO</td>
+                <td>Invoice Account(Name &nbsp; Address)</td>
+                <td>Invoice Email</td>
+                <td>Package Name</td>
+            </tr>
+            <apex:repeat value="{!instList}" var="inst">
+                <tr>
+                    <td>{!inst.Installation_Name__c}</td>
+                    <td>{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
+                    <td>{!inst.Invoice_Account__r.Name}</td>
+                    <td>{!inst.Invoice_Account__r.Email__c}</td>
+                    <td>{!inst.Package__r.Name}</td>
+                </tr>
+            </apex:repeat>
+        </table>
+    </div>
+    
+    <br />
+    
+    <div>
+        <table border="1" style="border-collapse:collapse;width:100%;" >
+            <tr>
+                <td colspan="3" ><b>KEY CONTACTS</b></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>For Customer</td>
+                <td>For Ocean</td>
+            </tr>
+            <tr>
+                <td>Main Contact</td>
+                <td></td>
+                <td>AccountManager.com</td>
+            </tr>
+            <tr>
+                <td>Support</td>
+                <td></td>
+                <td>Support@oceantg.com</td>
+            </tr>
+            <tr>
+                <td>Invoicing</td>
+                <td></td>
+                <td>Invoicequery@oceantg.com<br/>Creditcontrol@oceantg.com</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!--<div>
+        <table border="1" style="border-collapse:collapse;width:100%">
+            <tr>
+                <td>Package Id</td>
+                <td>Vessel IMO</td>
+                <td>Amount</td>
+                <td>Invoice</td>
+            </tr>
+            <apex:repeat value="{!instList}" var="inst">
+                <tr>
+                    <td>{!inst.Package__r.Package_Number__c}</td>
+                    <td>{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
+                    <td>{!inst.Package__r.Package_Cost__c}</td>
+                    <td>{!inst.Invoice_Account__r.Name}</td>
+                </tr>
+            </apex:repeat>
+        </table>
+    </div>-->
+    <div>
+        <p>This renewal quote is governed by the OTG Standard Master Services Agreement, available at https://oceantg.com/legal/master-service-agreement/.<br />
+            You are now at renewal, therefore outside of your initial agreement term (or “Fixed Term” as the case may be) as such you are bound by the terms of our Master Services Agreement including, without limitation, the warranty declaimers, limitations or liability and termination provisions.
+        </p>
+    </div>
+</apex:page>
