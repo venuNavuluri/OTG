@@ -2,7 +2,6 @@ import { LightningElement, api } from 'lwc';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import saveDoc from '@salesforce/apex/GenerateDocumentController.saveAsDocument';
-import activate from '@salesforce/apex/ActivateOrderController.activateOrder';
 
 export default class GenerateDocument extends LightningElement {
     source;

@@ -1,0 +1,19 @@
+<template>
+    <lightning-modal-header label="Create Document"></lightning-modal-header>
+    <lightning-modal-body>
+        <template if:true={show}>
+            <iframe src={source} height="500px" width="1000px" ></iframe>
+        </template>
+        <template if:false={show}>
+            <p>Are you sure, you want to Generate the document ?</p>
+        </template>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <template if:true={show}>
+            <lightning-button label="Save" onclick={save} variant="brand" ></lightning-button>
+        </template>
+        <template if:false={show} >
+            <lightning-button label="Yes" onclick={onYes} variant="brand" ></lightning-button>
+        </template>
+    </lightning-modal-footer>
+</template>

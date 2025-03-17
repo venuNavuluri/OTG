@@ -59,38 +59,48 @@ export default class TerminateInstallations extends LightningElement
         {
             if(this.tValue == 'Yes')
             {
-                terminateInstallationRecord({
-                    instId : this.recordId,
-                    endDate : this.endDate,
-                    reason : this.reason
-                }).then(result => {
-                    if(result == 'SUCCESS')
-                    {
-                        console.log('result --> ' + JSON.stringify(result));
+                const allFieldsValid = [...this.template.querySelectorAll('lightning-input-field')].reduce(
+                    (validSoFar, inputField) => {
+                        return validSoFar && inputField.reportValidity();
+                        },
+                        true
+                );
+                if (allFieldsValid) {
+                    terminateInstallationRecord({
+                        instId : this.recordId,
+                        endDate : this.endDate,
+                        reason : this.reason
+                    })
+                    .then(result => {
+                        if(result == 'SUCCESS')
+                        {
+                            console.log('result --> ' + JSON.stringify(result));
+                            this.hideFooter = true;
+                            this.message = 'Installation Terminated Successfully.';
+                            const evt = new ShowToastEvent({
+                                title: 'Success',
+                                message: 'Installation Terminated Successfully.',
+                                variant: 'success'
+                            });
+                            this.dispatchEvent(evt);
+                            const closeEvent = new CloseActionScreenEvent();
+                            this.dispatchEvent(closeEvent);
+                        }
+                    })
+                    .catch(error => {
+                        console.log('error --> ' + JSON.stringify(error));
                         this.hideFooter = true;
-                        this.message = 'Installation Terminated Successfully.';
+                        this.message = 'Error oocured while updating the Installation to Terminated.';
                         const evt = new ShowToastEvent({
-                            title: 'Success',
-                            message: 'Installation Terminated Successfully.',
-                            variant: 'success'
+                            title: 'Error',
+                            message: 'Error oocured while updating the Installation to Terminated.',
+                            variant: 'error'
                         });
                         this.dispatchEvent(evt);
                         const closeEvent = new CloseActionScreenEvent();
                         this.dispatchEvent(closeEvent);
-                    }
-                }).catch(error => {
-                    console.log('error --> ' + JSON.stringify(error));
-                    this.hideFooter = true;
-                    this.message = 'Error oocured while updating the Installation to Terminated.';
-                    const evt = new ShowToastEvent({
-                        title: 'Error',
-                        message: 'Error oocured while updating the Installation to Terminated.',
-                        variant: 'error'
                     });
-                    this.dispatchEvent(evt);
-                    const closeEvent = new CloseActionScreenEvent();
-                    this.dispatchEvent(closeEvent);
-                });
+                }
             }
             else
             {

@@ -1,0 +1,364 @@
+<apex:page renderAs="pdf" applyBodyTag="false" standardController="Contract" extensions="ContractOverviewDocPDFController">
+    
+    <head>
+        <style type="text/css" media="print">
+            @font-face {
+            font-family: "Montserrat";
+            src: url("{!URLFOR($Resource.Montserrat, 'Montserrat.ttf')}") format('truetype');
+            }
+            body {
+            font-family: Dialog;
+            }
+            table {
+            page-break-inside: auto;
+            }
+            tr {
+            page-break-inside: avoid; 
+            page-break-after: auto;
+            }
+            @page {
+            padding-top: 50px;
+            margin-bottom: 110px;
+            @top-center {
+            content: element(header);
+            }
+            @bottom-left {
+            content: element(footer);
+            }
+            }
+            div.header {
+            padding: 10%;
+            display: block;
+            position: running(header);
+            }
+            div.footer {
+            display: block;
+            padding-bottom: 50px;
+            height: 200px;
+            position: running(footer);
+            }
+            .pagenumber:before {
+            content: counter(page);
+            }
+            .pagecount:before {
+            content: counter(pages);
+            }
+            td {
+            padding-left: 10px;
+            }
+            .content {
+            page-break-inside: avoid;
+            page-break-before: auto;
+            page-break-after: auto;
+            overflow: hidden;
+            position: relative;
+            }
+            .content img {
+            page-break-inside: avoid;
+            page-break-before: auto;
+            page-break-after: auto;
+            display: block;
+            max-width: 200px;
+            max-height: 150px;
+            }
+            .red-text {
+            color: red;
+            }
+        </style>
+    </head>
+    
+    <!-- Header Section -->
+    <div class="header" style="border-bottom: 2px solid #017499; padding: 10px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <!-- Left Section: Logo -->
+                <td style="width: 50%; vertical-align: middle;">
+                    <apex:image value="{!$Resource.OceanLogo}" style="max-width: 100px;" />
+                </td>
+                <!-- Right Section: Quote Information -->
+                <td style="width: 50%; text-align: right; vertical-align: middle;">
+                    <p style="font-size: 14px; font-weight: bold; color: #017499; margin: 0;">
+                        CONTRACT OVERVIEW v{!version}-{!formattedDate}
+                    </p>
+                    <p style="font-size: 12px; font-weight: normal; color: #017499; margin: 0;">
+                        Ocean Technologies Group
+                    </p>
+                    <p style="font-size: 12px; color: orange; margin: 0;">
+                        <a href="https://www.oceantg.com" style="text-decoration: none; color: orange;">www.oceantg.com</a>
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- Footer Section -->
+    <div class="footer">
+        <table style="width: 100%; padding-bottom: 0;">
+            <tr>
+                <td style="width: 70%;"><apex:image value="{!$Resource.CompanyLogo}" style="width: 100%;" /></td>
+                <td style="width: 30%; text-align: right;">
+                    <p style="color: #017499; font-size: 12px; margin: 0;">Part of Ocean Technologies Group</p>
+                    <p style="color: orange; font-size: 12px; margin: 0;">oceantg.com</p>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center;">CONFIDENTIAL</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="content" style="margin-right:0px;" >
+        <apex:image url="{!$Resource.RoundLogo}" style="position:absolute;margin-left:50%;width:110%;height:100%;" />
+        <p style="page-break-after: always;">
+            <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+            <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+            CONTRACT OVERVIEW<br/>
+            {!contr.Account.Name}<br/>
+            Date: <apex:outputText value="{0,date, dd_MMMMMMMMM_yy}">
+            <apex:param value="{!Today}" />
+            </apex:outputText> <br/>
+            Version: {!version} <br/>
+        </p>
+        <div>
+            <div style="margin: 0; padding: 0; page-break-before: auto;">
+                <p style="margin: 20px 0; font-size: 18px; font-weight: bold; text-align: center; color: #017499;">
+                    CONTRACT OVERVIEW SUMMARY
+                </p>
+                <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <tr style="background-color: #f4f4f4; font-weight: bold; text-align: left;">
+                        <td style="padding: 8px;">GENERAL</td>
+                        <td style="padding: 8px;"></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Contract ID</td>
+                        <td style="padding: 8px;">{!contr.ContractNumber}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Account ID</td>
+                        <td style="padding: 8px;">{!contr.Account.Account_ID__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Customer</td>
+                        <td style="padding: 8px;">{!contr.Account.Name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Customer Address</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText value="{!contr.Account.Address1__c}" rendered="{!NOT(ISBLANK(contr.Account.Address1__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.Address1__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!contr.Account.Address2__c}" rendered="{!NOT(ISBLANK(contr.Account.Address2__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.Address2__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!contr.Account.Address3__c}" rendered="{!NOT(ISBLANK(contr.Account.Address3__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.Address3__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!contr.Account.Town_City__c}" rendered="{!NOT(ISBLANK(contr.Account.Town_City__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.Town_City__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!contr.Account.County_State__c}" rendered="{!NOT(ISBLANK(contr.Account.County_State__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.County_State__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!contr.Account.Postcode_Zipcode__c}" rendered="{!NOT(ISBLANK(contr.Account.Postcode_Zipcode__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Postcode_Zipcode__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!contr.Account.Country__r.Name}" rendered="{!NOT(ISBLANK(contr.Account.Country__r.Name))}" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Supplier</td>
+                        <td style="padding: 8px;">{!qt.Legal_Entity__r.Name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Supplier Website</td>
+                        <td style="padding: 8px;">https://oceantg.com/</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Service Solution</td>
+                        <td style="padding: 8px;">{!contr.Business_Unit__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Master Services Agreement (OTG Terms and Conditions)</td>
+                        <td style="padding: 8px;">https://oceantg.com/legal/master-service-agreement/</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Renewal Month</td>
+                        <td style="padding: 8px;">{!contr.Renewal_Month__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Renewal Term</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText id="RTerm" value="{0, number, integer}">
+                                <apex:param value="{!contr.SBQQ__RenewalTerm__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Billing Frequency</td>
+                        <td style="padding: 8px;">{!contr.Billing_Frequency__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Billing Currency</td>
+                        <td style="padding: 8px;">{!contr.CurrencyISOCode}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Payment Terms</td>
+                        <td style="padding: 8px;">{!contr.SBQQ__Quote__r.SBQQ__PaymentTerms__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Renewal Date</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText value="{0,date,MM/dd/yy}">
+                                <apex:param value="{!contr.Next_Renewal_Date__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Service Type</td>
+                        <td style="padding: 8px;">Subscription</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Order Volume (Installations)</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText id="TInsts" value="{0, number, integer}">
+                                <apex:param value="{!contr.No_of_Installations__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <!--<tr>
+                        <td style="padding: 8px;">Uplift</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText id="upLift" value="{0, number, ##.##}%">
+                                <apex:param value="{!qt.SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.SBQQ__RenewalUpliftRate__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>-->
+                    <tr>
+                        <td style="padding: 8px;">Your Account Manager</td>
+                        <td style="padding: 8px;">{!contr.SBQQ__Opportunity__r.Account_Owner__c}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            
+            <!-- Additional Blocks and Tables -->
+            <div style="margin: 0; padding: 0;">
+                <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">YOUR PACKAGE</p>
+                <!--<p style="font-size: 14px; margin-bottom: 15px; line-height: 1.8;">
+                    Your Ocean Technologies Group subscription will automatically renew on <b>{!formattedRenewalDate}</b> for a subsequent 12-month term.
+                    For any requested changes or questions in relation to your renewal, please contact us at
+                    <a href="mailto:annualinvoicetero@oceantg.com" style="color: #017499;">annualinvoicetero@oceantg.com</a>.
+                </p>-->
+                <!-- Package Details Table -->
+                <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <tr style="background-color: #f4f4f4; font-weight: bold;">
+                        <td colspan="4" style="padding: 8px; text-align: center;">Package Details</td>
+                    </tr>
+                    <tr style="background-color: #f9f9f9;">
+                        <td style="padding: 8px; width: 10%; text-align: left;"><b>Package </b></td>
+                        <td style="padding: 8px; width: 35%; text-align: left;"><b>Products</b></td>
+                        <td style="padding: 8px; width: 20%; text-align: left;"><b>Current Price</b></td>
+                        <!--<td style="padding: 8px; width: 20%; text-align: left;"><b>Renewal Price</b></td>-->
+                        <td style="padding: 8px; width: 15%; text-align: left;"><b>Installation Quantity</b></td>
+                    </tr>
+                    <apex:repeat value="{!packWrapList}" var="pack">
+                        <tr>
+                            <td style="padding: 8px; vertical-align: top;">{!pack.packageName}</td>
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:repeat value="{!pack.productWrapList}" var="prod">
+                                    <apex:outputPanel styleClass="{!IF(prod.removeFromPackage || prod.qlquantity == 0, 'red-text', '')}">
+                                        {!prod.productName}
+                                    </apex:outputPanel><br/>
+                                </apex:repeat>
+                            </td>
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:outputText id="annCost" value="{0, number}">
+                                    {!qt.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.previousCost}" />
+                                </apex:outputText>
+                            </td>
+                            <!--<td style="padding: 8px; vertical-align: top;">
+                                <apex:outputText id="instCost" value="{0, number}">
+                                    {!qt.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.installationCost}" />
+                                </apex:outputText>
+                            </td>-->
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:outputText id="instQty" value="{0, number}">
+                                    <apex:param value="{!pack.installationQuantity}" />
+                                </apex:outputText>
+                            </td>
+                        </tr>
+                    </apex:repeat>
+                </table>
+            </div>
+            <div style="margin-top: 20px;">
+                <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">Installations</p>
+                <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <tr style="background-color: #f4f4f4; font-weight: bold;">
+                        <td style="padding: 8px; width: 15%;"><b>Installation Name</b></td>
+                        <td style="padding: 8px; width: 10%;"><b>IMO</b></td>
+                        <td style="padding: 8px; width: 10%;"><b>Invoice Account Number</b></td>
+                        <!--<td style="padding: 8px; width: 25%;"><b>Invoice Account Name &amp; Address</b></td>
+                        <td style="padding: 8px; width: 20%;"><b>Invoice Email</b></td>-->
+                        <td style="padding: 8px; width: 10%;"><b>Package Name</b></td>
+                        <td style="padding: 8px; width: 20%;"><b>Installation Cost</b></td>
+                    </tr>
+                    <apex:repeat value="{!instList}" var="inst">
+                        <tr>
+                            <td style="padding: 8px;">{!inst.Installation_Name__c}</td>
+                            <td style="padding: 8px;">{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
+                            <td style="padding: 8px;">{!inst.Invoice_Account__r.Account_ID__c}</td>
+                            <!--<td style="padding: 8px;">{!inst.Invoice_Account__r.Name}, {!inst.Invoice_Account__r.Address1__c}, {!inst.Invoice_Account__r.Address2__c}, {!inst.Invoice_Account__r.Address3__c},
+                                {!inst.Invoice_Account__r.Town_City__c}, {!inst.Invoice_Account__r.County_State__c}, {!inst.Invoice_Account__r.Postcode_Zipcode__c},
+                                {!inst.Invoice_Account__r.Country__r.Name}</td>
+                            <td style="padding: 8px;">{!inst.Invoice_Account__r.Invoice_Emails__c}</td>-->
+                            <td style="padding: 8px;">{!inst.Package__r.Package_Number__c}</td>
+                            <td style="padding: 8px;">{!inst.CurrencyIsoCode} {!inst.Package__r.Installation_Cost__c}</td>
+                        </tr>
+                    </apex:repeat>
+                    <tr style="background-color: #f4f4f4; font-weight: bold;">
+                        <td colspan="4" style="padding: 8px; text-align: right;">Total Installation Cost</td>
+                        <td style="padding: 8px;">{!currencyIsoCode} {!totalInstallationCost}</td>
+                    </tr>
+                </table>
+                
+                <div style="display: {!IF(hasInv, 'block', 'none')}">
+                    <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">Invoice Accounts</p>
+                    <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                        <tr style="background-color: #f4f4f4; font-weight: bold;">
+                            <td style="padding: 8px; width: 10%;"><b>Invoice Account Number</b></td>
+                            <td style="padding: 8px; width: 25%;"><b>Invoice Account Name &amp; Address</b></td>
+                            <td style="padding: 8px; width: 20%;"><b>Invoice Email</b></td>
+                        </tr>
+                        <apex:repeat value="{!invWrapList}" var="inv">
+                            <tr>
+                                <td style="padding: 8px;">{!inv.invAccNumber}</td>
+                                <td style="padding: 8px;">{!inv.invNameAddr}</td>
+                                <td style="padding: 8px;white-space: pre-line;">{!inv.invEmail}</td>
+                            </tr>
+                        </apex:repeat>
+                    </table>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    <div style="margin-top: 20px; padding: 10px; font-size: 14px; line-height: 1.8; color: #000;">
+        <p>
+            If you wish to add any new installations to your current contract please send the following information 
+            <a href="mailto:fleetsalesoperations@oceantg.com" style="color: #017499;">fleetsalesoperations@oceantg.com</a>.
+        </p>
+        <ul>
+            <li>Vessel IMO</li>
+            <li>Vessel Name</li>
+            <li>Invoice account including address</li>
+        </ul>
+        <p>
+            If you wish to add any additional modules or services to your contract please do reach out to your account manager.
+        </p>
+          <!--  This renewal quote is governed by the OTG Standard Master Services Agreement, available at 
+            <a href="https://oceantg.com/legal/master-service-agreement/" style="color: #017499; text-decoration: none;" target="_blank">
+                MASTER SERVICES AGREEMENT - Ocean Technologies Group
+            </a>.
+        </p>
+        <p>
+            You are now at renewal, therefore outside of your initial agreement term (or “Fixed Term” as the case may be). 
+            As such, you are bound by the terms of our Master Services Agreement including, without limitation, the warranty 
+            disclaimers, limitations of liability, and termination provisions.
+        </p>-->
+    </div>
+</apex:page>

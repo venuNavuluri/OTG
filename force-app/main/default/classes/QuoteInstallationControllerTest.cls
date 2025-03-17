@@ -137,9 +137,10 @@ public class QuoteInstallationControllerTest
         List<Installation__c> instList = new List<Installation__c>();
         instList.add(inst1);
         QuoteInstallationController.saveInstallation(instList);
-        Account invAcc = [SELECT Id, Name FROM Account WHERE RecordType.Name = 'Invoice Account'];
+        Account invAcc = [SELECT Id, Name, Account_Id__c FROM Account WHERE RecordType.Name = 'Invoice Account'];
         String stCsv = 'VesselIMO,InvoiceAccount\n';
-        stCsv += '123,' + invAcc.Id + '\n';
+        stCsv += '123,' + invAcc.Account_Id__c + '\n';
+        //stCsv += '12310,' + invAcc.Account_Id__c + '\n';
         ContentVersion ContVerFile = new ContentVersion();
         ContVerFile.VersionData = Blob.valueOf(stCsv);
         ContVerFile.Title = 'title'; 
@@ -148,6 +149,18 @@ public class QuoteInstallationControllerTest
         insert ContVerFile;
         
         QuoteInstallationController.createInstallations(contVerFile.Id, qt.Id, qrwList[0].qlg.Id);
+        
+        String stCsv1 = 'VesselIMO,InvoiceAccount\n';
+        //stCsv += '123,' + invAcc.Account_Id__c + '\n';
+        stCsv1 += '12310,' + invAcc.Account_Id__c + '\n';
+        ContentVersion ContVerFile1 = new ContentVersion();
+        ContVerFile1.VersionData = Blob.valueOf(stCsv1);
+        ContVerFile1.Title = 'title'; 
+        ContVerFile1.ContentLocation= 's';
+        ContVerFile1.PathOnClient='title.csv';
+        insert ContVerFile1;
+        
+        QuoteInstallationController.createInstallations(contVerFile1.Id, qt.Id, qrwList[0].qlg.Id);
         QuoteInstallationController.createRecords(qt.Id, qrwList[0].qlg.Id, 1, NULL, invAcc.Id, NULL);
     }
 }

@@ -275,19 +275,24 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     if(quoteLineGroup.remainingInstallations > 0 || quoteLineGroup.Installation_Quantity__c ==  null){
                         quoteLineGroup.newInstallations = this.addInstallation(1,quoteLineGroup.Id);
                     }
-                    if(!quoteLineGroup.SBQQ__LineItems__r?.records){
-                        continue
-                    }
-                    let prodList = [];
-                    for(let qLine of quoteLineGroup.SBQQ__LineItems__r.records){
-                        console.log(JSON.stringify(qLine))
-                        let prdKey = qLine.SBQQ__Product__r.ProductCode+' : '+qLine.SBQQ__ProductName__c
-                        if(!prodList.includes(prdKey)){
-                            prodList.push(prdKey)
+                    if(quoteLineGroup.SBQQ__LineItems__r?.records)
+                    {
+                        let prodList = [];
+                        for(let qLine of quoteLineGroup.SBQQ__LineItems__r.records){
+                            console.log(JSON.stringify(qLine))
+                            let prdKey = qLine.SBQQ__Product__r.ProductCode+' : '+qLine.SBQQ__ProductName__c
+                            if(!prodList.includes(prdKey)){
+                                prodList.push(prdKey)
+                            }
                         }
-                    }
-                    if(prodList.length){
-                        quoteLineGroup.productsString = prodList.join(',')
+                        console.log('length --> ' + prodList.length);
+                        if(prodList.length){
+                            quoteLineGroup.productsString = prodList.join(',')
+                        }
+                        else
+                        {
+                            quoteLineGroup.productsString = '';
+                        }
                     }
                     qlgArray.push(quoteLineGroup);
                 }
@@ -301,7 +306,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             }
         })
         .catch(error => {
-
+            console.log('error --> ' + JSON.stringify(error));
         })
     }
 
@@ -394,9 +399,10 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         }
     }   
     checkForDuplicate(pkgIndx, installIndx, pkgId, exVesselId, fieldName, isVessel) {
-        var existPackage = this.quoteLineGroups[pkgIndx];
+        //var existPackage = this.quoteLineGroups[pkgIndx];
         var matchVessel = false;
-        if (existPackage) {
+        //if (existPackage) {
+        this.quoteLineGroups.forEach(existPackage => {
             var existInstall = existPackage.existingInstallations;
             existInstall.forEach(element => {
                 console.log('element --> ' + JSON.stringify(element) + ' ' + element.Vessel_Name__c);
@@ -405,7 +411,8 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     matchVessel = true;
                 }
             });
-        }
+        });
+        //}
         return matchVessel;
     }
     handleFieldChange(event){
@@ -424,7 +431,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         }
         console.log(qgindexVar+' --> '+quoteLineGroupId+' --> '+indexVar+' --> '+fieldName+' --> '+fieldValue)
         let quoteLineGroup = this.quoteLineGroups[qgindexVar];
-        /*if (fieldName == 'Vessel_Name__c' || fieldName == 'Organisation_Name__c') {
+        if (fieldName == 'Vessel_Name__c' || fieldName == 'Organisation_Name__c') {
             var flag = this.checkForDuplicate(qgindexVar, indexVar, quoteLineGroupId, fieldValue, fieldName, quoteLineGroup.newInstallations[indexVar].showVessel);
             if (flag == true) {
                 fieldValue = "";
@@ -437,7 +444,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 quoteLineGroup.newInstallations[indexVar].disButton = false;
             }
         }
-       */
+       
         if(fieldName === 'Installation_Type__c'){
             quoteLineGroup.newInstallations[indexVar].showVessel = fieldValue == 'Vessel'
         }
@@ -591,29 +598,56 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     {
         console.log('row --> ' + JSON.stringify(row));
         this.changeInstId = row.Id;
-        fetchPackages({
-            qtId : this.recordId
-        }).then(result => {
-            console.log('result --> ' + JSON.stringify(result));
-            if(result && result.length)
+        var flag = false;
+        /*this.quoteLineGroups.forEach(qlg => {
+            if(qlg.existingInstallations != null && qlg.existingInstallations != undefined)
             {
-                //let resultArray = JSON.parse(result);
-                for(let rec of result)
-                {
-                    if(row.Package__c != rec.Id)
+                qlg.existingInstallations.forEach(inst => {
+                    console.log('instId --> ' + inst.Id);
+                    console.log('changeInstId --> ' + this.changeInstId);
+                    if(inst.Id == this.changeInstId)
                     {
-                        this.packageOptions.push({
-                            label : rec.Name,
-                            value : rec.Id
-                        });
+                        if(qlg.existingInstallations.length <= 1)
+                        {
+                            flag = true;
+                            const evt = new ShowToastEvent({
+                                title : 'Error',
+                                message : 'Please select the installation from a package where the number of installations are more than 1',
+                                variant : 'error'
+                            });
+                            this.dispatchEvent(evt);
+                        }
+                    }
+                });
+            }
+        });
+        if(!flag)
+        {*/
+            fetchPackages({
+                qtId : this.recordId
+            }).then(result => {
+                console.log('result --> ' + JSON.stringify(result));
+                this.packageOptions = [];
+                if(result && result.length)
+                {
+                    //let resultArray = JSON.parse(result);
+                    for(let rec of result)
+                    {
+                        if(row.Package__c != rec.Id)
+                        {
+                            this.packageOptions.push({
+                                label : rec.Name,
+                                value : rec.Id
+                            });
+                        }
                     }
                 }
-            }
-            this.showChangePackage = true;
-            console.log('packageOptions --> ' + this.packageOptions);
-        }).catch(error => {
-            console.log('error --> ' + error);
-        });
+                this.showChangePackage = true;
+                console.log('packageOptions --> ' + this.packageOptions);
+            }).catch(error => {
+                console.log('error --> ' + error);
+            });
+        //}
     }
 
     handleSelected(event)
@@ -683,7 +717,9 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 this.dispatchEvent(evt);
                 console.log('before close');
                 this.showChangePackage = false;
-                this.refreshPage();
+                //this.refreshPage();
+                this.quoteLineGroups = [];
+                this.fetchInstallations();
             }).catch(error => {
                 console.log('error --> ' + error);
             });

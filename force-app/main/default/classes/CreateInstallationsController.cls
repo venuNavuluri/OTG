@@ -23,22 +23,22 @@ public class CreateInstallationsController
         {
             if(!isTerminate)
             {
-                Contract contr = [SELECT Id, Name, CurrencyIsoCode, AccountId, (SELECT Id, Name FROM Installations__r WHERE Vessel_Name__c = :inst.Vessel_Name__c) FROM Contract WHERE Id = :contrId];
+                Contract contr = [SELECT Id, Name, AccountId, (SELECT Id, Name FROM Installations__r WHERE Vessel_Name__c = :inst.Vessel_Name__c) FROM Contract WHERE Id = :contrId];
                 if(inst.Vessel_Name__c != NULL && contr.Installations__r != NULL && contr.Installations__r.size() > 0)
                 {
                     return 'Duplicate_Error';
                 }
                 inst.Contract__c = contrId;
                 inst.Contract_Customer__c = contr.AccountId;
-                inst.CurrencyIsoCode = contr.CurrencyIsoCode;
                 inst.Package__c = packId;
                 inst.Installation_Order_Status__c = 'Draft';
                 inst.Installation_Start_Date__c = Date.today().addDays(30);
                 insert inst;
             }
-            
+            SYstem.debug('before '+isTerminate);
             Date startDate = isTerminate ? inst.Termination_End_Date__c : Date.today().addDays(30);
             CreateInstallationsController.modifyContract(inst.Id, startDate, contrId, packId, isTerminate);
+            SYstem.debug('after '+isTerminate);
             
             if(!isTerminate)
             {
@@ -95,10 +95,16 @@ public class CreateInstallationsController
             {
                 Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
                 Logger.saveLog();
+                System.debug('ex --> ' + ex);
+                System.debug('ex msg --> ' + ex.getMessage());
+                System.debug('ex line --> ' + ex.getLineNumber());
+                System.debug('ex st --> ' + ex.getStackTraceString());
                 qt = [SELECT Id, Name, SBQQ__Status__c, SBQQ__Ordered__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE SBQQ__MasterContract__c = :contrId ORDER BY CreatedDate DESC LIMIT 1];
                 System.debug('qt --> ' + qt);
             }
             Package__c pack = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Id = :packId AND Contract__c = :contrId AND Quote__c = :qt.Id];
+            System.debug('pack --> ' + pack);
+            System.debug('pack ins quan --> ' + pack.Installation_Quantity__c);
             Decimal newInstallationQuantity = (pack.Installation_Quantity__c != null ? pack.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);
             pack.Installation_Quantity__c = newInstallationQuantity;
             update pack;
@@ -107,6 +113,8 @@ public class CreateInstallationsController
             qlg.Installation_Quantity__c = qlgnewInstallationQuantity;
             update qlg;
             
+            //qt.SBQQ__Status__c = 'Approved';
+            System.debug('isTerminate --> ' + isTerminate);
             if(isTerminate)
             {
                 qt.Auto_Termination__c = TRUE;
@@ -146,6 +154,8 @@ public class CreateInstallationsController
         {
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
+            System.debug('ex --> ' + ex);
+            System.debug('ex line --> ' + ex.getLineNumber());
         }
     }
     
@@ -240,6 +250,20 @@ public class CreateInstallationsController
             Logger.saveLog();
         }
     }
+    
+    
+    /*private class QuoteCalculatorContext
+    {        
+        private QuoteModel quote;
+        private String callbackClass;
+        
+        private QuoteCalculatorContext(QuoteModel quote, String callbackClass)
+        {
+            this.quote = quote;            
+            this.callbackClass = callbackClass;        
+        }
+    } */
+    
     
     @AuraEnabled
     public static Boolean checkDuplicates(String contrId, String vesId, String orgId)

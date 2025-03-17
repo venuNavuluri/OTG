@@ -4,7 +4,6 @@ public class LeadReferralController {
     public static List<String> domainRules = new List<String>();
     public static List<String> keywordRules = new List<String>();
     
-    
     @AuraEnabled
     public static void validateLead(String formData){
         List<Lead> newLeads = new List<Lead>();
@@ -23,7 +22,7 @@ public class LeadReferralController {
         } 
         
         String queueId = getWebFormQueueId();
- 
+        
         Lead l = new Lead(
             OwnerId = queueId,
             Status = 'New',
@@ -41,7 +40,6 @@ public class LeadReferralController {
             Account_Salesforce_URL__c = (String)leadData.get('AccountURL'),
             Sales_Type__c = SalesType,
             Products__c = String.join(products, ';'),
-            
             Sales_Person_Email__c = (String)leadData.get('salesPersonEmail'),
             Sales_Person_Full_Name__c = (String)leadData.get('salesPersonName'),
             Customer_background__c = (String)leadData.get('customerbackground'),
@@ -72,18 +70,17 @@ public class LeadReferralController {
         }
     }
     private static Boolean checkForKeywords(String input, Set<String> keywords) {
-    if (String.isEmpty(input)) {
+        if (String.isEmpty(input)) { return false;
+        }
+        
+        for (String word : input.split(' ')) {
+            if (keywords.contains(word.toLowerCase())) {
+                return true;
+            }
+        }
+        
         return false;
     }
-
-    for (String word : input.split(' ')) {
-        if (keywords.contains(word.toLowerCase())) {
-            return true;
-        }
-    }
-
-    return false;
-}
     
     public static Boolean isSpam(Lead l){
         Boolean isSpam = false;
@@ -119,26 +116,26 @@ public class LeadReferralController {
     }
     
     private static Boolean isKeywordSpam(String message, String customerBackground) {
-    if (keywordRules.isEmpty() && spamValidation.containsKey('Keyword')) {
-        keywordRules = spamValidation.get('Keyword');
+        if (keywordRules.isEmpty() && spamValidation.containsKey('Keyword')) {
+            keywordRules = spamValidation.get('Keyword');
+        }
+        
+        Set<String> keywordSet = new Set<String>();
+        for (String rule : keywordRules) {
+            keywordSet.add(rule.toLowerCase());
+        }
+        
+        // Add null checks for message and customerBackground
+        if (!String.isEmpty(message) && checkForKeywords(message, keywordSet)) {
+            return true;
+        }
+        
+        if (!String.isEmpty(customerBackground) && checkForKeywords(customerBackground, keywordSet)) {
+            return true;
+        }
+        
+        return false;
     }
-
-    Set<String> keywordSet = new Set<String>();
-    for (String rule : keywordRules) {
-        keywordSet.add(rule.toLowerCase());
-    }
-
-    // Add null checks for message and customerBackground
-    if (!String.isEmpty(message) && checkForKeywords(message, keywordSet)) {
-        return true;
-    }
-
-    if (!String.isEmpty(customerBackground) && checkForKeywords(customerBackground, keywordSet)) {
-        return true;
-    }
-
-    return false;
-}
     
     public static Boolean isDomainSpam(String emailAddress,String Website){
         Boolean spamDomaim = false;

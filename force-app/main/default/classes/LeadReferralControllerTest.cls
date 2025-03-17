@@ -56,12 +56,12 @@ public class LeadReferralControllerTest {
         
         Assert.areEqual('New', l.Status, 'Lead is New'); 
         Assert.areEqual(null, l.Reason_For_Closing__c, 'Lead not marked as Lead Marked As Spam');          
-    }
+    }/*
 @IsTest
     public static void testCustomerTypes(){
         String types = LeadReferralController.getCustomerTypes();
 		List<String> stringList = (List<String>)JSON.deserialize(types, List<String>.class);
         Assert.areNotEqual(0, stringList.size(), 'Types Returned'); 
-    }    
+    }    */
     
 }

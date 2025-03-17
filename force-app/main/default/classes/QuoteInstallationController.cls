@@ -18,7 +18,7 @@ public class QuoteInstallationController {
         try
         {
             ContentVersion conVer = [SELECT Id, VersionData FROM ContentVersion WHERE Id = :conVerId];
-            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__SalesRep__r.Email FROM SBQQ__QuoteLineGroup__c WHERE Id = :qlgId]);
+            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__SalesRep__r.Email, SBQQ__Quote__r.CurrencyISOCode FROM SBQQ__QuoteLineGroup__c WHERE Id = :qlgId]);
             String st = conVer.VersionData.toString();
             System.debug('conVer --> ' + conVer.VersionData.toString());
             System.debug('st --> ' + st);
@@ -91,7 +91,8 @@ public class QuoteInstallationController {
                         Package__c = qlgMap.get(qlgId).Package__c,
                         Contract__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__MasterContract__c,
                         Installation_Order_Status__c = 'Draft',
-                        Contract_Customer__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__Account__c
+                        Contract_Customer__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__Account__c,
+                        CurrencyISOCode = qlgMap.get(qlgId).SBQQ__Quote__r.CurrencyISOCode
                     );
                     instList.add(inst);
                     vesInstMap.put(ves.Vessel_IMO__c, inst);
@@ -161,10 +162,8 @@ public class QuoteInstallationController {
         }
         catch (Exception ex)
         {
-            System.debug('e --> ' + ex);
-            System.debug('e --> ' + ex.getLineNumber());
-            System.debug('e --> ' + ex.getMessage());
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
@@ -175,14 +174,14 @@ public class QuoteInstallationController {
         try
         {
             //SBQQ__Quote__c quote = [SELECT Id, Name, SBQQ__Account__c FROM SBQQ__Quote__c WHERE Id = :quoteId];
-            SBQQ__QuoteLineGroup__c qlg = [SELECT Id, Name, Package__c, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__c, SBQQ__Quote__r.Name, SBQQ__Quote__r.SBQQ__Account__r.Name FROM SBQQ__QuoteLineGroup__c WHERE Id = :quoteGrpId];
+            SBQQ__QuoteLineGroup__c qlg = [SELECT Id, Name, Package__c, SBQQ__Quote__r.CurrencyISOCode, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__c, SBQQ__Quote__r.Name, SBQQ__Quote__r.SBQQ__Account__r.Name, CurrencyISOCode FROM SBQQ__QuoteLineGroup__c WHERE Id = :quoteGrpId];
             String clientId;
             List<Installation__c> instList = new List<Installation__c>();
             System.debug('count --> ' + count);
             for(Integer i = 0; i < count; i++)
             {
                 /* Installation_Type__c = type, Vessel_Name__c = vessel, Organisation_Name__c = org*/
-                instList.add(new Installation__c(Contract_Customer__c = qlg.SBQQ__Quote__r.SBQQ__Account__c, Quote__c = qlg.SBQQ__Quote__c, Quote_Line_Group__c = quoteGrpId,
+                instList.add(new Installation__c(Contract_Customer__c = qlg.SBQQ__Quote__r.SBQQ__Account__c, Quote__c = qlg.SBQQ__Quote__c, Quote_Line_Group__c = quoteGrpId,CurrencyISOCode = qlg.CurrencyISOCode,
                 Installation_Order_Status__c = 'Draft', Client__c = client, Delivery_Contact__c = delvContact, Invoice_Account__c = invAcc, Package__c = qlg.Package__c,
                 Contract__c = qlg.SBQQ__Quote__r.SBQQ__MasterContract__c != NULL ? qlg.SBQQ__Quote__r.SBQQ__MasterContract__c : NULL));
             }
@@ -195,6 +194,7 @@ public class QuoteInstallationController {
         catch (Exception ex) {
             System.debug('msg --> ' + ex.getMessage());
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
@@ -202,12 +202,12 @@ public class QuoteInstallationController {
     @AuraEnabled
     public static string fetchQuoteLineGroups(String quoteId){
         try {
-            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c,
+            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,
                                                         SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
                                                         (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
                                                         Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name
                                                         FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
-                                                        (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode
+                                                        (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c
                                                         From SBQQ__LineItems__r)
                                                         From SBQQ__QuoteLineGroup__c
                                                         Where SBQQ__Quote__c =:quoteId Order By Name Asc];
@@ -233,7 +233,7 @@ public class QuoteInstallationController {
                 {
                     System.debug('1 --> ' + (ql.SBQQ__StartDate__c < dt));
                     System.debug('2 --> ' + (ql.SBQQ__EndDate__c > dt));
-                    if(ql.SBQQ__StartDate__c <= dt && ql.SBQQ__EndDate__c >= dt)
+                    if((ql.SBQQ__StartDate__c <= dt && ql.SBQQ__EndDate__c >= dt) || (ql.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal' && ql.SBQQ__StartDate__c >= dt))
                     {
                         System.debug('ql --> ' + ql);
                         qrw.installationPrice += ql.SBQQ__NetTotal__c;//SBQQ__NetPrice__c;
@@ -252,7 +252,9 @@ public class QuoteInstallationController {
         }
         catch (Exception ex)
         {
+            System.debug(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
@@ -277,6 +279,7 @@ public class QuoteInstallationController {
         catch (Exception ex)
         {
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
@@ -290,10 +293,11 @@ public class QuoteInstallationController {
             {
                 qlgIdList.add(inst.Quote_Line_Group__c);
             }
-            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, SBQQ__Quote__r.SBQQ__Account__c, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c FROM SBQQ__QuoteLineGroup__c WHERE Id IN :qlgIdList]);
+            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, SBQQ__Quote__r.CurrencyISOCode, SBQQ__Quote__r.SBQQ__Account__c, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c FROM SBQQ__QuoteLineGroup__c WHERE Id IN :qlgIdList]);
             for(Installation__c inst : (List<Installation__c>)sobjList)
             {
                 inst.Installation_Order_Status__c = 'Draft';
+                inst.CurrencyIsoCode = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.CurrencyISOCode;
                 inst.Contract_Customer__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__Account__c;
                 inst.Package__c = qlgMap.get(inst.Quote_Line_Group__c).Package__c;
                 inst.Contract__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__MasterContract__c != NULL ? qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__MasterContract__c : NULL;
@@ -306,6 +310,7 @@ public class QuoteInstallationController {
         catch (Exception ex)
         {
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
@@ -349,6 +354,7 @@ public class QuoteInstallationController {
         catch(Exception ex)
         {
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
         }
     }
 }

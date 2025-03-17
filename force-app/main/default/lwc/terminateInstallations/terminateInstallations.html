@@ -12,7 +12,7 @@
             <lightning-record-edit-form object-api-name="Installation__c">
                 <div class="slds-grid slds-wrap">
                     <div class="slds-col slds-size_2-of-6 slds-p-right_small">
-                        <lightning-input-field variant="label-stacked" field-name="Termination_End_Date__c" onchange={handleFieldChange}>
+                        <lightning-input-field variant="label-stacked" field-name="Termination_End_Date__c" required="true" onchange={handleFieldChange}>
                         </lightning-input-field>
                         <template if:true={error}>
                             <span style="color:red"> <b>{message}</b></span>
@@ -21,7 +21,7 @@
                     <div class="slds-col slds-size_2-of-6 slds-p-right_small"></div>
                     <div class="slds-col slds-size_2-of-6 slds-p-right_small"></div>
                     <div class="slds-col slds-size_2-of-6  slds-p-right_small">
-                        <lightning-input-field variant="label-stacked" field-name="Termination_Reason__c" onchange={handleFieldChange}>
+                        <lightning-input-field variant="label-stacked" field-name="Termination_Reason__c" required="true" onchange={handleFieldChange}>
                         </lightning-input-field>
                     </div>
                 </div>

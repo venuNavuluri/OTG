@@ -1,4 +1,4 @@
-<apex:page renderAs="pdf" applyBodyTag="false" standardController="SBQQ__Quote__c" extensions="ContractDocumentPDFController" >
+<apex:page renderAs="pdf" applyBodyTag="false" standardController="SBQQ__Quote__c" extensions="ContractDocumentPDFController">
     
     <head>
         <style type="text/css" media="print">
@@ -9,15 +9,16 @@
             body {
             font-family: Dialog;
             }
-            
             table {
-            page-break-inside:auto
+            page-break-inside: auto;
             }
             tr {
-            page-break-inside:avoid; page-break-after:auto
+            page-break-inside: avoid; 
+            page-break-after: auto;
             }
             @page {
-            padding-top: 42px;
+            padding-top: 50px;
+            margin-bottom: 110px;
             @top-center {
             content: element(header);
             }
@@ -32,7 +33,8 @@
             }
             div.footer {
             display: block;
-            padding-bottom: 10%;
+            padding-bottom: 50px;
+            height: 200px;
             position: running(footer);
             }
             .pagenumber:before {
@@ -41,393 +43,316 @@
             .pagecount:before {
             content: counter(pages);
             }
+            td {
+            padding-left: 10px;
+            }
+            .content {
+            page-break-inside: avoid;
+            page-break-before: auto;
+            page-break-after: auto;
+            overflow: hidden;
+            position: relative;
+            }
+            .content img {
+            page-break-inside: avoid;
+            page-break-before: auto;
+            page-break-after: auto;
+            display: block;
+            max-width: 200px;
+            max-height: 150px;
+            }
+            .red-text {
+            color: red;
+            }
         </style>
     </head>
-    <div class="header" style="margin-top:30%;">
-        <div><br/><br/>
-            <table style="width:100%;">
-                <tr >
-                    <td style="width:50%;"><apex:image value="{!$Resource.OceanLogo}" /></td>
-                    <td style="width:50%;">
-                        <p style="text-align:right; font-size:12px;" >
-                            RENEWAL QUOTE v3-04/2024<br/>
-                            www.oceantg.com
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </div>
-        <br /><br />
-    </div>
-    <div class="footer" style="margin-bottom:30%;">
-        <div>
-            <table style="width:100%;padding-bottom:100px;">
-                <tr >
-                    <td style="width:70%;"><apex:image value="{!$Resource.CompanyLogo}" style="width:100%;"/></td>
-                    <td style="width:30%;">
-                        <p style="text-align:right;font-size:12px;" >
-                            Part of Ocean Technologies Group<br />
-                            oceantg.com
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <td>&nbsp;</td>
-                    <td>&nbsp;</td>
-                </tr>
-                <tr>
-                    <td>&nbsp;</td>
-                    <td>&nbsp;</td>
-                </tr>
-            </table>
-            <br />
-            <br />
-        </div>
-        <br/><br/>
+    
+    <!-- Header Section -->
+    <div class="header" style="border-bottom: 2px solid #017499; padding: 10px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <!-- Left Section: Logo -->
+                <td style="width: 50%; vertical-align: middle;">
+                    <apex:image value="{!$Resource.OceanLogo}" style="max-width: 100px;" />
+                </td>
+                <!-- Right Section: Quote Information -->
+                <td style="width: 50%; text-align: right; vertical-align: middle;">
+                    <p style="font-size: 14px; font-weight: bold; color: #017499; margin: 0;">
+                        RENEWAL QUOTE v{!version}-{!formattedDate}
+                    </p>
+                    <p style="font-size: 12px; font-weight: normal; color: #017499; margin: 0;">
+                        Ocean Technologies Group
+                    </p>
+                    <p style="font-size: 12px; color: orange; margin: 0;">
+                        <a href="https://www.oceantg.com" style="text-decoration: none; color: orange;">www.oceantg.com</a>
+                    </p>
+                </td>
+            </tr>
+        </table>
     </div>
     
-    <div class="content" style="margin-top:80%;" >
+    <!-- Footer Section -->
+    <div class="footer">
+        <table style="width: 100%; padding-bottom: 0;">
+            <tr>
+                <td style="width: 70%;"><apex:image value="{!$Resource.CompanyLogo}" style="width: 100%;" /></td>
+                <td style="width: 30%; text-align: right;">
+                    <p style="color: #017499; font-size: 12px; margin: 0;">Part of Ocean Technologies Group</p>
+                    <p style="color: orange; font-size: 12px; margin: 0;">oceantg.com</p>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center;">CONFIDENTIAL</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="content" style="margin-right:0px;" >
+        <apex:image url="{!$Resource.RoundLogo}" style="position:absolute;margin-left:50%;width:110%;height:100%;" />
         <p style="page-break-after: always;">
             <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
             <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
             RENEWAL QUOTE<br/>
-            Shearwater Geoservices Norway AS<br/>
-            Date: 29/09/2024 <br/>
-            Version: 9 <br/>
+            {!qt.SBQQ__Account__r.Name}<br/>
+            Date: <apex:outputText value="{0,date}">
+            <apex:param value="{!Today}" />
+            </apex:outputText> <br/>
+            Version: {!version} <br/>
         </p>
-        <div style="margin-top:10%; page-break-after: always;" >
-            RENEWAL QUOTE / AGREEMENT <br/>
-            THE PARTIES<br/> 
-            <ul style="page-break-after:avoid;" >
-                <li>Ocean TG Norway AS (“OTG”) incorporated and registered in the Norway with whose registered office is 
-                    at Inger Bang Lunds vei 12, 5059 Bergen, Norway (“SUPPLIER”);
-                </li> and
-                <li>
-                    Shearwater Geoservices Norway AS incorporated and registered in Norway with company number 914 
-                    633 338 whose registered office is at Damsgårdsveien 135, 5160 BERGEN LAKSEVÅG (“CUSTOMER”), each 
-                    a “Party” and together the “Parties”.
-                </li>
-            </ul>
-            SERVICES / APPENDIX<br/>
-            <br/>
-            <table border="1" style="border-collapse:collapse;width:100%;">
-                <tr>
-                    <td>Service</td>
-                    <td>Description</td>
-                    <td>General</td>
-                </tr>  
-                <tr>
-                    <td>Service Order</td>
-                    <td>Service Order Summary</td>
-                    <td>Cover Page</td>
-                </tr>
-            </table>
-            <br/>
-            SUMMARY<br/><br/>
-            Prior to delivery of the service, OTG will support you to enable a successful launch and high acceptance among 
-            your crew. A dedicated team will facilitate the above processes, during implementation and beyond. We trust 
-            that this service proposal will meet your requirements.<br/><br/>
-            Please feel free to ask for clarifications where anything is unclear and request changes where required. 
-            SIGNATORIES<br/><br/>
-            This Service Order is agreed and accepted for and on behalf of both parties by each authorised representative, 
-            the Customer signed date is the Service Order Date:<br/><br/>
-            <table style="width:100%;">
-                <tr>
-                    <td style="width:50%;" >
-                        <table style="width:100%;">
-                            <tr>
-                                <td colspan="2">
-                                    <p style="padding-top:1%;" >
-                                        SIGNED for and on behalf of SUPPLIER:<br/>
-                                        Ocean TG Norway AS.
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <p style="padding-top:1%;" >
-                                        Name
-                                    </p>
-                                </td>
-                                <td>
-                                    <p style="padding-top:1%;" >
-                                        Apostolos Poulovassilis
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <p style="padding-top:1%;" >
-                                        TITLE
-                                    </p>
-                                </td>
-                                <td>
-                                    <p style="padding-top:1%;" >
-                                        Director
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        DATE
-                                    </p>
-                                </td>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        30/09/2024
-                                    </p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                    <td style="width:50%;" >
-                        <table style="width:100%;">
-                            <tr>
-                                <td colspan="2">
-                                    <p style="padding-top:10%;" >
-                                        SIGNED for and on behalf of CUSTOMER: <br />
-                                        Shearwater Geoservices Norway AS
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        Name
-                                    </p>
-                                </td>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        Antonio Stemple
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        TITLE
-                                    </p>
-                                </td>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        SVP MARINE AQUISITION
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        DATE
-                                    </p>
-                                </td>
-                                <td>
-                                    <p style="padding-top:10%;" >
-                                        30/09/2024
-                                    </p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
+        <div>
+            <div style="margin: 0; padding: 0; page-break-before: auto;">
+                <p style="margin: 20px 0; font-size: 18px; font-weight: bold; text-align: center; color: #017499;">
+                    RENEWAL QUOTE SUMMARY
+                </p>
+                <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <tr style="background-color: #f4f4f4; font-weight: bold; text-align: left;">
+                        <td style="padding: 8px;">GENERAL</td>
+                        <td style="padding: 8px;"></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Quote Id</td>
+                        <td style="padding: 8px;">{!qt.Name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Account ID</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__Account__r.Account_ID__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Customer</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__Account__r.Name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Customer Address</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText value="{!qt.SBQQ__Account__r.Address1__c}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Address1__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Address1__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!qt.SBQQ__Account__r.Address2__c}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Address2__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Address2__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!qt.SBQQ__Account__r.Address3__c}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Address3__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Address3__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!qt.SBQQ__Account__r.Town_City__c}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Town_City__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Town_City__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!qt.SBQQ__Account__r.County_State__c}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.County_State__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.County_State__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!qt.SBQQ__Account__r.Postcode_Zipcode__c}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Postcode_Zipcode__c))}" />
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Postcode_Zipcode__c))}"><br /></apex:outputPanel>
+                            <apex:outputText value="{!qt.SBQQ__Account__r.Country__r.Name}" rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Country__r.Name))}" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Supplier</td>
+                        <td style="padding: 8px;">{!qt.Legal_Entity__r.Name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Supplier Website</td>
+                        <td style="padding: 8px;">https://oceantg.com/</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Service Solution</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__Opportunity2__r.Business_Unit__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Master Services Agreement (OTG Terms and Conditions)</td>
+                        <td style="padding: 8px;">https://oceantg.com/legal/master-service-agreement/</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Renewal Month</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.Renewal_Month__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Renewal Term</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText id="RTerm" value="{0, number, integer}">
+                                <apex:param value="{!qt.SBQQ__RenewalTerm__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Billing Frequency</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__BillingFrequency__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Billing Currency</td>
+                        <td style="padding: 8px;">{!qt.CurrencyISOCode}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Payment Terms</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__PaymentTerms__c}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Renewal Date</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText value="{0,date,MM/dd/yy}">
+                                <apex:param value="{!qt.SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.Next_Renewal_Date__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Service Type</td>
+                        <td style="padding: 8px;">Subscription</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Order Volume (Installations)</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText id="TInsts" value="{0, number, integer}">
+                                <apex:param value="{!qt.Total_Installations__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Uplift</td>
+                        <td style="padding: 8px;">
+                            <apex:outputText id="upLift" value="{0, number, ##.##}%">
+                                <apex:param value="{!qt.SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.SBQQ__RenewalUpliftRate__c}" />
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Your Account Manager</td>
+                        <td style="padding: 8px;">{!qt.SBQQ__Opportunity2__r.Account_Owner__c}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            
+            <!-- Additional Blocks and Tables -->
+            <div style="margin: 0; padding: 0;">
+                <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">YOUR PACKAGE</p>
+                <p style="font-size: 14px; margin-bottom: 15px; line-height: 1.8;">
+                    Your Ocean Technologies Group subscription will automatically renew on <b>{!formattedRenewalDate}</b> for a subsequent 12-month term.
+                    For any requested changes or questions in relation to your renewal, please contact us at
+                    <a href="mailto:annualinvoicetero@oceantg.com" style="color: #017499;">annualinvoicetero@oceantg.com</a>.
+                </p>
+                <!-- Package Details Table -->
+                <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <tr style="background-color: #f4f4f4; font-weight: bold;">
+                        <td colspan="5" style="padding: 8px; text-align: center;">Package Details</td>
+                    </tr>
+                    <tr style="background-color: #f9f9f9;">
+                        <td style="padding: 8px; width: 10%; text-align: left;"><b>Package </b></td>
+                        <td style="padding: 8px; width: 35%; text-align: left;"><b>Products</b></td>
+                        <td style="padding: 8px; width: 20%; text-align: left;"><b>Current Price</b></td>
+                        <td style="padding: 8px; width: 20%; text-align: left;"><b>Renewal Price</b></td>
+                        <td style="padding: 8px; width: 15%; text-align: left;"><b>Installation Quantity</b></td>
+                    </tr>
+                    <apex:repeat value="{!packWrapList}" var="pack">
+                        <tr>
+                            <td style="padding: 8px; vertical-align: top;">{!pack.packageName}</td>
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:repeat value="{!pack.productWrapList}" var="prod">
+                                    <apex:outputPanel styleClass="{!IF(prod.removeFromPackage || prod.qlquantity == 0, 'red-text', '')}">
+                                        {!prod.productName}
+                                    </apex:outputPanel><br/>
+                                </apex:repeat>
+                            </td>
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:outputText id="annCost" value="{0, number}">
+                                    {!qt.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.previousCost}" />
+                                </apex:outputText>
+                            </td>
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:outputText id="instCost" value="{0, number}">
+                                    {!qt.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.installationCost}" />
+                                </apex:outputText>
+                            </td>
+                            <td style="padding: 8px; vertical-align: top;">
+                                <apex:outputText id="instQty" value="{0, number}">
+                                    <apex:param value="{!pack.installationQuantity}" />
+                                </apex:outputText>
+                            </td>
+                        </tr>
+                    </apex:repeat>
+                </table>
+            </div>
+            <div style="margin-top: 20px;">
+    <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">Installations</p>
+    
+    <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px; table-layout: fixed;">
+        <colgroup>
+            <col style="width: 15%;">  <!-- Installation Name -->
+            <col style="width: 10%;">  <!-- IMO -->
+            <col style="width: 22%;">  <!-- Invoice Account Name & Address -->
+            <col style="width: 18%;">  <!-- Invoice Email -->
+            <col style="width: 12%;">  <!-- Package Name -->
+            <col style="width: 13%;">  <!-- Install Cost (Increased width slightly) -->
+        </colgroup>
+        
+        <tr style="background-color: #f4f4f4; font-weight: bold;">
+            <td style="padding: 8px;"><b>Installation Name</b></td>
+            <td style="padding: 8px;"><b>IMO</b></td>
+            <td style="padding: 8px;"><b>Invoice Account Name &amp; Address</b></td>
+            
+            <!-- Wrapped Email Column -->
+            <td style="padding: 8px; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                <b>Invoice Email</b>
+            </td>
+            
+            <td style="padding: 8px;"><b>Package Name</b></td>
+            
+            <!-- Ensure Installation Cost is Always Visible -->
+            <td style="padding: 8px; text-align: right; white-space: nowrap;"><b>Install Cost</b></td>
+        </tr>
+        
+        <apex:repeat value="{!instList}" var="inst">
+            <tr>
+                <td style="padding: 8px;">{!inst.Installation_Name__c}</td>
+                <td style="padding: 8px;">{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
+                <td style="padding: 8px;">{!inst.Invoice_Account__r.Name}</td>
+                
+                <!-- Wrapped Email Column -->
+                <td style="padding: 8px; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                    {!inst.Invoice_Account__r.Invoice_Emails__c}
+                </td>
+                
+                <td style="padding: 8px;">{!inst.Package__r.Package_Number__c}</td>
+                
+                <!-- Ensure Proper Formatting for Installation Cost -->
+                <td style="padding: 8px; text-align: right; white-space: nowrap;">
+                    {!inst.CurrencyIsoCode} {!inst.Package__r.Installation_Cost__c}
+                </td>
+            </tr>
+        </apex:repeat>
+        
+        <tr style="background-color: #f4f4f4; font-weight: bold;">
+            <td colspan="5" style="padding: 8px; text-align: right;">Total Installation Cost</td>
+            <td style="padding: 8px; text-align: right; white-space: nowrap;">{!currencyIsoCode} {!totalInstallationCost}</td>
+        </tr>
+    </table>
+</div>
         </div>
     </div>
-    <div>
-        <p style="margin-top:10%;" >
-            <b>COVER PAGE - RENEWAL QUOTE SUMMARY</b>
-        </p>
-        <table border="1" style="border-collapse:collapse;" >
-            <tr>
-                <td>
-                    GENERAL
-                </td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>
-                    Quote Id
-                </td>
-                <td>qt.Name</td>
-            </tr>
-            <tr>
-                <td>Account ID</td>
-                <td>{!qt.SBQQ__Account__r.Account_ID__c}</td>
-            </tr>
-            <tr>
-                <td>Customer</td>
-                <td>{!qt.SBQQ__Account__r.Name}</td>
-            </tr>
-            <tr>
-                <td>Customer Address</td>
-                <td>{!qt.SBQQ__Account__r.Address1__c}<br/>{!qt.SBQQ__Account__r.Address2__c}<br/>{!qt.SBQQ__Account__r.Address3__c}<br/></td>
-            </tr>
-            <tr>
-                <td>Supplier</td>
-                <td>{!qt.Legal_Entity__r.Name}</td>
-            </tr>
-            <tr>
-                <td>Supplier website</td>
-                <td>https://oceantg.com/</td>
-            </tr>
-            <tr>
-                <td>Service Solution</td>
-                <td>{!qt.SBQQ__Opportunity2__r.Business_Unit__c}</td>
-            </tr>
-            <tr>
-                <td>Master Services Agreement  
-                    (OTG Terms and Conditions)</td>
-                <td>https://oceantg.com/legal/master-service-agreement/</td>
-            </tr>
-            <tr>
-                <td>Renewal Month</td>
-                <td>{!qt.SBQQ__MasterContract__r.Renewal_Month__c}</td>
-            </tr>
-            <tr>
-                <td>Renewal Term</td>
-                <td>{!qt.SBQQ__RenewalTerm__c}</td>
-            </tr>
-            <tr>
-                <td>Billing Frequency</td>
-                <td>{!qt.SBQQ__BillingFrequency__c}</td>
-            </tr>
-            <tr>
-                <td>Billing Currency</td>
-                <td>{!qt.CurrencyISOCode}</td>
-            </tr>
-            <tr>
-                <td>Payment Terms</td>
-                <td>{!qt.SBQQ__PaymentTerms__c}</td>
-            </tr>
-            <tr>
-                <td>Renewal Date</td>
-                <td>{!qt.SBQQ__MasterContract__r.Next_Renewal_Date__c}</td>
-            </tr>
-            <tr>
-                <td>Service type</td>
-                <td>Subscription</td>
-            </tr>
-            <tr>
-                <td>Order volume (Installations) </td>
-                <td>{!qt.SBQQ__MasterContract__r.No_of_Installations__c}</td>
-            </tr>
-            <tr>
-                <td>Uplift</td>
-                <td>{!qt.SBQQ__MasterContract__r.SBQQ__RenewalUpliftRate__c}</td>
-            </tr>
-            <tr>
-                <td>Your Account Manager</td>
-                <td>{!qt.SBQQ__MasterContract__r.Owner.Name}</td>
-            </tr>
-        </table>
-    </div>
-    
-    <div style="page-break-after: always;">
+    <div style="margin-top: 20px; padding: 10px; font-size: 14px; line-height: 1.8; color: #000;">
         <p>
-            <b>YOUR PACKAGE</b><br /><br/>
-            Your Ocean Technologies Group subscription will automatically renew on 1st January 2025 for a subsequent 12 month term. For any requested changes or questions in relation to your renewal please contact us at annualinvoicetero@oceantg.com (for fleet its this email but for OLP is a different email)
+            This renewal quote is governed by the OTG Standard Master Services Agreement, available at 
+            <a href="https://oceantg.com/legal/master-service-agreement/" style="color: #017499; text-decoration: none;" target="_blank">
+                MASTER SERVICES AGREEMENT - Ocean Technologies Group
+            </a>.
         </p>
-        <table border="1" style="border-collapse:collapse;width:100%;margin-top:10%" >
-            <tr>
-                <td colspan="3">
-                    <b>Package Details</b>
-                </td>
-            </tr>
-            <tr>
-                <td>Package Name</td>
-                <td>Products</td>
-                <td>Annual Cost ($) </td>
-            </tr>
-            <apex:repeat value="{!packWrapList}" var="pack">
-                <apex:repeat value="{!pack.productWrapList}" var="prod">
-                    <tr>
-                        <td >{!pack.packageName}</td>
-                        <td>{!prod.productName}</td>
-                        <td>{!prod.annualCost}</td>
-                    </tr>
-                </apex:repeat>
-            </apex:repeat>
-        </table>
-    </div>
-    
-    <br />
-    
-    <div style="page-break-after: always;">
-        <table border="1" style="border-collapse:collapse;width:100%;" >
-            <tr>
-                <td colspan="4"><b>Installations</b></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Installation Name</td>
-                <td>IMO</td>
-                <td>Invoice Account(Name &nbsp; Address)</td>
-                <td>Invoice Email</td>
-                <td>Package Name</td>
-            </tr>
-            <apex:repeat value="{!instList}" var="inst">
-                <tr>
-                    <td>{!inst.Installation_Name__c}</td>
-                    <td>{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
-                    <td>{!inst.Invoice_Account__r.Name}</td>
-                    <td>{!inst.Invoice_Account__r.Email__c}</td>
-                    <td>{!inst.Package__r.Name}</td>
-                </tr>
-            </apex:repeat>
-        </table>
-    </div>
-    
-    <br />
-    
-    <div>
-        <table border="1" style="border-collapse:collapse;width:100%;" >
-            <tr>
-                <td colspan="3" ><b>KEY CONTACTS</b></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td>For Customer</td>
-                <td>For Ocean</td>
-            </tr>
-            <tr>
-                <td>Main Contact</td>
-                <td></td>
-                <td>AccountManager.com</td>
-            </tr>
-            <tr>
-                <td>Support</td>
-                <td></td>
-                <td>Support@oceantg.com</td>
-            </tr>
-            <tr>
-                <td>Invoicing</td>
-                <td></td>
-                <td>Invoicequery@oceantg.com<br/>Creditcontrol@oceantg.com</td>
-            </tr>
-        </table>
-    </div>
-    
-    <!--<div>
-        <table border="1" style="border-collapse:collapse;width:100%">
-            <tr>
-                <td>Package Id</td>
-                <td>Vessel IMO</td>
-                <td>Amount</td>
-                <td>Invoice</td>
-            </tr>
-            <apex:repeat value="{!instList}" var="inst">
-                <tr>
-                    <td>{!inst.Package__r.Package_Number__c}</td>
-                    <td>{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
-                    <td>{!inst.Package__r.Package_Cost__c}</td>
-                    <td>{!inst.Invoice_Account__r.Name}</td>
-                </tr>
-            </apex:repeat>
-        </table>
-    </div>-->
-    <div>
-        <p>This renewal quote is governed by the OTG Standard Master Services Agreement, available at https://oceantg.com/legal/master-service-agreement/.<br />
-            You are now at renewal, therefore outside of your initial agreement term (or “Fixed Term” as the case may be) as such you are bound by the terms of our Master Services Agreement including, without limitation, the warranty declaimers, limitations or liability and termination provisions.
+        <p>
+            You are now at renewal, therefore outside of your initial agreement term (or “Fixed Term” as the case may be). 
+            As such, you are bound by the terms of our Master Services Agreement including, without limitation, the warranty 
+            disclaimers, limitations of liability, and termination provisions.
         </p>
     </div>
 </apex:page>

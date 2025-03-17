@@ -9,6 +9,7 @@ public class CreateSalesOrderService {
 					Auto_Installation__c,
 					Auto_Termination__c,
 					CurrencyIsoCode,
+                	Quote__r.SBQQ__Type__c,
 					Contract__r.SBQQ__Quote__r.SBQQ__Type__c,
 					Contract__r.Migrated_Contract__c,
 					Contract__r.StartDate,
@@ -21,6 +22,7 @@ public class CreateSalesOrderService {
 				FROM Installation__c
 				WHERE Id IN :installations AND Installation_Order_Status__c = 'Active'
 			];
+            System.debug('inst list--> ' + newInstList);
 			List<Sales_Order__c> salesOrdersToCreate = new List<Sales_Order__c>();
 			Set<Date> startDateSet = new Set<Date>();
 			Set<Date> endDateSet = new Set<Date>();
@@ -38,12 +40,13 @@ public class CreateSalesOrderService {
                 
 				for (Integer i = 0; i < (Math.ceil((Decimal) contractTerm/billingCycleMonths)); i++) {
 					Date salesOrderStartDate = installation.Installation_Start_date__c.addMonths(i * billingCycleMonths);
-					if (installation.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
+					if (installation.Contract__r.Migrated_Contract__c && (installation.Quote__c == NULL || installation.Quote__r.SBQQ__Type__c != 'Amendment')) {
 						salesOrderStartDate = installation.Contract__r.StartDate.addMonths(i * billingCycleMonths);
 					}
-					if (installation.Contract__r.Migrated_Contract__c && !installation.Auto_Installation__c) {
+                    if (installation.Quote__r.SBQQ__Type__c == 'Renewal' || installation.Quote__r.SBQQ__Type__c == 'Quote') {
 						salesOrderStartDate = installation.Contract__r.StartDate.addMonths(i * billingCycleMonths);
 					}
+					
 					Date salesOrderEndDate = salesOrderStartDate.addMonths(billingCycleMonths).addDays(-1);
 					Date instEndDate = installation.Installation_End_date__c == null
 						? installation.Contract__r.EndDate
@@ -127,6 +130,7 @@ public class CreateSalesOrderService {
 					for (Installation_Line__c line : relatedLines) {
 						System.debug('line ' + line.Start_Date__c + '---' + line.End_Date__c);
 						System.debug('so ' + salesOrder.Start_Date__c + '---' + salesOrder.End_Date__c);
+                        System.debug('check --> ' + (line.Start_Date__c <= salesOrder.Start_Date__c && line.End_Date__c >= salesOrder.End_Date__c));
 						if (line.Start_Date__c <= salesOrder.Start_Date__c && line.End_Date__c >= salesOrder.End_Date__c) {
 							Double proratedAmount = calculateProratedAmount(line, salesOrder);
 							System.debug('in if');
@@ -165,7 +169,7 @@ public class CreateSalesOrderService {
 		} else if (billingFrequency == 'Monthly') {
 			return 1;
 		} else {
-			return 1; // Default to monthly if frequency is unknown
+			return 12; // Default to monthly if frequency is unknown
 		}
 	}
 

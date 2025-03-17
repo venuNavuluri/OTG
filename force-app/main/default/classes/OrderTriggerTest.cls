@@ -228,4 +228,67 @@ public class OrderTriggerTest
         
         ActivateOrderController.activateOrder(ord.Id);
     }
+    
+    @IsTest
+    public static void test3()
+    {
+        //Order ord = [SELECT Id, Name FROM Order ORDER BY CreatedDate DESC LIMIT 1];
+        SBQQ__Quote__c qt = [SELECT Id, Name, SBQQ__Status__c FROM SBQQ__Quote__c ORDER BY CreatedDate DESC LIMIT 1];
+        qt.SBQQ__Status__c = 'Approved';
+        update qt;
+        List<SBQQ__QuoteLineGroup__c> qlgList = [SELECT Id, Name FROM SBQQ__QuoteLineGroup__c];
+        List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Quote__c = :qt.Id];
+        System.debug('qlgList --> ' + qlgList.size());
+        System.debug('packList --> ' + packList);
+        packList[0].Installation_Quantity__c = 1;
+        packList[1].Installation_Quantity__c = 0;
+        update packList;
+        
+        Vessel__c ves1 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
+            'Name' => 'Test1',
+                'Vessel_IMO__c' => '123'
+        });
+        Vessel__c ves2 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
+            'Name' => 'Test2',
+                'Vessel_IMO__c' => '1234'
+        });
+        
+        Installation__c inst1 = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
+            //'Contract__c' => sbq.SBQQ__Account__c,
+            'Package__c' => packList[0].id,
+            'Vessel_Name__c' => ves1.id,
+                'Quote__c' => qt.Id
+        });
+        Installation__c inst2 = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
+            //'Contract__c' => sbq.SBQQ__Account__c,
+            'Package__c' => packList[1].id,
+            'Vessel_Name__c' => ves2.id,
+                'Quote__c' => qt.Id
+        });
+        
+        List<SBQQ__QuoteLine__c> qlList = [SELECT Id, Name, SBQQ__Product__c, SBQQ__PriceBookEntryId__c FROM SBQQ__QuoteLine__c WHERE SBQQ__Quote__c = :qt.Id];
+        List<PriceBookEntry> pbeList = [SELECT Id, Product2Id, PriceBook2Id FROM PriceBookEntry WHERE Product2Id = :qlList[0].SBQQ__Product__c];
+        System.debug('pbeList --> ' + pbeList);
+        qlList[0].SBQQ__PriceBookEntryId__c = [SELECT Id, Product2Id, PriceBook2Id FROM PriceBookEntry WHERE Product2Id = :qlList[0].SBQQ__Product__c].Id;
+        update qlList;
+        System.debug('qlList --> ' + qlList);
+        System.debug('qlList --> ' + qlList.size());
+        
+        List<Installation__c> instList = [SELECT Id, Name, Package__r.Installation_Quantity__c FROM Installation__c WHERE Quote__c = :qt.Id];
+        System.debug('instList --> ' + instList);
+        System.debug('int qty 1 --> ' + instList[0].Package__r.Installation_Quantity__c);
+        System.debug('int qty 2 --> ' + instList[1].Package__r.Installation_Quantity__c);
+        qt.SBQQ__Ordered__c = TRUE;
+        try
+        {
+            qt.Installation__c = inst1.Id;
+            System.debug('qt --> ' + qt);
+            update qt;
+        }
+        catch(Exception ex)
+        {
+            System.debug('ex --> ' + ex.getStackTraceString());
+            System.debug('ex --> ' + ex);
+        }
+    }
 }

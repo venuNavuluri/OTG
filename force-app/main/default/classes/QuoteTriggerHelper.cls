@@ -104,4 +104,5 @@ public class QuoteTriggerHelper
             Logger.saveLog();
         }
     }
+
 }
