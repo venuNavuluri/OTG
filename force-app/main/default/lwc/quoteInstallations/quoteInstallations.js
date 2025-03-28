@@ -51,6 +51,8 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     @track changeInstId;
     @track selectedRows = [];
     @track renderChangePackage = false;
+    @track showInvoiceError = false;
+    invoiceAccountValue = '';
     instColumns = [
         { label: 'Installation Name', fieldName: 'Name' },
         { label: 'Vessel IMO', fieldName: 'Vessel_IMO__c'}
@@ -66,16 +68,21 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     accUrl
     oppUrl
     columns = [ { label: 'Installation Id',fieldName: 'recordUrl',type: 'url',
-                typeAttributes: { label: { fieldName: 'Name' }, target: '_blank',tooltip:{fieldName:"Name"} } },
-                { label: 'Installation Type', fieldName: 'Installation_Type__c' },
+                typeAttributes: { label: { fieldName: 'Name' }, target: '_blank',tooltip:{fieldName:"Name"} },
+                cellAttributes: { class: { fieldName: 'rowStyle' }, } },
+                { label: 'Installation Type', fieldName: 'Installation_Type__c', cellAttributes: { class: { fieldName: 'rowStyle' }, } },
                 {label: 'Vessel/Organization Name',fieldName: 'vesselOrgLink',type: 'url',
-                typeAttributes: { label: { fieldName: 'vesselOrgName' }, target: '_blank',tooltip:{fieldName:"vesselOrgName"} }},
+                typeAttributes: { label: { fieldName: 'vesselOrgName' }, target: '_blank',tooltip:{fieldName:"vesselOrgName"} },
+                cellAttributes: { class: { fieldName: 'rowStyle' }, } },
                 {label: 'Invoice Account',fieldName: 'invAcctLink',type: 'url',
-                typeAttributes: { label: { fieldName: 'invAcctName' }, target: '_blank',tooltip:{fieldName:"invAcctName"} }},
+                typeAttributes: { label: { fieldName: 'invAcctName' }, target: '_blank',tooltip:{fieldName:"invAcctName"} },
+                cellAttributes: { class: { fieldName: 'rowStyle' } } },
                 {label: 'Client',fieldName: 'clientLink',type: 'url',
-                typeAttributes: { label: { fieldName: 'clientName' }, target: '_blank',tooltip:{fieldName:"clientName"} }},
+                typeAttributes: { label: { fieldName: 'clientName' }, target: '_blank',tooltip:{fieldName:"clientName"} },
+                cellAttributes: { class: { fieldName: 'rowStyle' }, } },
                 {label: 'Delivery Contact',fieldName: 'deliveryContactLink',type: 'url',
-                typeAttributes: { label: { fieldName: 'deliveryContactName' }, target: '_blank',tooltip:{fieldName:"deliveryContactName"} }},
+                typeAttributes: { label: { fieldName: 'deliveryContactName' }, target: '_blank',tooltip:{fieldName:"deliveryContactName"} },
+                cellAttributes: { class: { fieldName: 'rowStyle' }, }},
                 {
                     type: 'action',
                     typeAttributes: { rowActions: actions },
@@ -199,6 +206,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         console.log('qlg id --> ' + this.qlgId);
         console.log('qlg index --> ' + this.qgIndex);
         //console.log('qlg --> ' + JSON.stringify(quoteLineGroup));
+
         this.openSpinner = true;
         createRecords({quoteId : this.recordId,
             quoteGrpId : this.qlgId,
@@ -238,6 +246,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     }
 
     fetchInstallations(){
+        console.log('recId --> ' + this.recordId);
         fetchInitialConfiguration({quoteId:this.recordId})
         .then(result => {
             if(result && result.length){
@@ -329,6 +338,11 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             installExisting.deliveryContactLink = '/lightning/r/' + installExisting.Delivery_Contact__c + '/view'
             installExisting.deliveryContactName = installExisting.Delivery_Contact__r.Name
         }
+        console.log('inst qt Id --> ' + installExisting.Quote__c)
+        if(installExisting.Quote__c == this.recordId)
+        {
+            installExisting.rowStyle = 'highLight';
+        }
     }
 
     handleAddNew(event){
@@ -415,12 +429,26 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         //}
         return matchVessel;
     }
+
+    validateInvoiceAccount(event) {
+        let fieldValue = event.detail?.recordId || event.target?.value;
+        this.invoiceAccountValue = fieldValue;
+        this.showInvoiceError = !fieldValue;
+    }
+
     handleFieldChange(event){
         let indexVar = event.target.dataset.index
         let qgindexVar = event.target.dataset.qgindex
-        let fieldValue = event.currentTarget.value
+        //let fieldValue = event.currentTarget.value
         let quoteLineGroupId = event.target.dataset.qgid;
-        let fieldName = event.target.fieldName;
+        //let fieldName = event.target.fieldName;
+        let fieldValue = event.detail.recordId || event.currentTarget.value;
+        let fieldName = event.target.dataset.fieldname || event.target.fieldName;
+
+        if (fieldName === 'Invoice_Account__c') {
+            this.invoiceAccountValue = fieldValue;
+            this.validateInvoiceAccount(event);
+        }
         
         if(fieldName === undefined)
         {
@@ -431,6 +459,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         }
         console.log(qgindexVar+' --> '+quoteLineGroupId+' --> '+indexVar+' --> '+fieldName+' --> '+fieldValue)
         let quoteLineGroup = this.quoteLineGroups[qgindexVar];
+
         if (fieldName == 'Vessel_Name__c' || fieldName == 'Organisation_Name__c') {
             var flag = this.checkForDuplicate(qgindexVar, indexVar, quoteLineGroupId, fieldValue, fieldName, quoteLineGroup.newInstallations[indexVar].showVessel);
             if (flag == true) {
@@ -451,6 +480,14 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         quoteLineGroup.newInstallations[indexVar][fieldName] = fieldValue
     }
 
+    checkBeforeSubmit() {
+        if (!this.invoiceAccountValue) {
+            this.showInvoiceError = true;
+            return false; // Block form submission
+        }
+        return true; // Allow form submission
+    }
+    
     handleNewAccCreate(){
         //window.open(this.invAccUrl);
         //this.createInvoice = true;
@@ -535,9 +572,18 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         let quoteLineGroupId = event.target.dataset.qgid;
         console.log(qgindexVar+' --> '+quoteLineGroupId+' --> '+indexVar)
         let quoteLineGroup = this.quoteLineGroups[qgindexVar]
+
+        if (!this.checkBeforeSubmit()) {
+            console.error("Invoice Account is required!");
+            return; 
+        }
+        console.log("Saving data...");
+
         if(quoteLineGroup.remainingInstallations > 0)
         {
             let installation = quoteLineGroup.newInstallations[indexVar]
+            installation.Quote__c = this.recordId;
+            installation.Quote_Line_Group__c = quoteLineGroupId;
             console.log('installation rec --> '+JSON.stringify(installation))
             if(installation.showVessel){
                 delete installation.Organisation_Name__c
@@ -553,6 +599,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 this.displayToast('Installation created Succesfully','Success','success','dismissable')
                 installation.showVessel == installation.Installation_Type__c == 'Vessel'
                 quoteLineGroup.remainingInstallations = quoteLineGroup.remainingInstallations != null ? quoteLineGroup.remainingInstallations-1:0;
+                installation.rowStyle = 'highLight';
                 quoteLineGroup.installations.push(installation)
                 let newRec = {...result[0]}
                 console.log('inst --> ' + JSON.stringify(newRec));
@@ -592,6 +639,43 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 this.changePackage(row);
             default:
         }
+    }
+
+    changePackage1(event)
+    {
+        var instId = event.target.name;
+        var inst;
+        this.quoteLineGroups.forEach(qlg => {
+            qlg.existingInstallations.forEach(inst => {
+                if(instId == inst.Id)
+                {
+                    inst = inst;
+                }
+            })
+        });
+        fetchPackages({
+            qtId : this.recordId
+        }).then(result => {
+            console.log('result --> ' + JSON.stringify(result));
+            this.packageOptions = [];
+            if(result && result.length)
+            {
+                for(let rec of result)
+                {
+                    if(inst.Package__c != rec.Id)
+                    {
+                        this.packageOptions.push({
+                            label : rec.Name,
+                            value : rec.Id
+                        });
+                    }
+                }
+            }
+            this.showChangePackage = true;
+            console.log('packageOptions --> ' + this.packageOptions);
+        }).catch(error => {
+            console.log('error --> ' + error);
+        });
     }
 
     changePackage(row)
@@ -742,6 +826,15 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             });
             this.dispatchEvent(evt);
         }
+    }
+
+    editInstallation(event)
+    {
+        console.log('name --> ' + event.target.name);
+        this.currentInstallIdToEdit = event.target.name;
+        this.showProductsInfo = false;
+        this.showInstallationDetail = true;
+        this.openModal = true
     }
 
     editRow(row){

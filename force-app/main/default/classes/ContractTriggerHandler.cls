@@ -53,7 +53,7 @@ public class ContractTriggerHandler {
                 if (oldContr != null && newContr.Status == 'Activated' && oldContr.Status != 'Activated') {
                     if (contrMap.containsKey(contrId)) {
                         String quoteType = contrMap.get(contrId).SBQQ__Quote__r.SBQQ__Type__c;
-                        if (quoteType == 'Renewal' || quoteType == 'Quote') {
+                        if (quoteType == 'Renewal') {
                             activeContrList.add(contrId);
                         }
                     }
@@ -161,6 +161,7 @@ public class ContractTriggerHandler {
                     con.StartDate = opp.SBQQ__PrimaryQuote__r.SBQQ__StartDate__c;
                     con.EndDate = opp.SBQQ__PrimaryQuote__r.SBQQ__EndDate__c;
                     con.Previous_Contract__c = opp.SBQQ__RenewedContract__c;
+                    System.debug('con.Previous_Contract__c --------'+ con.Previous_Contract__c);
                     con.Subscription_System__c = opp.SBQQ__RenewedContract__r.Subscription_System__c;
                     con.Agreement_Type__c = opp.SBQQ__RenewedContract__r.Agreement_Type__c;
                     con.Next_Renewal_Date__c = opp.SBQQ__RenewedContract__r.Next_Renewal_Date__c;
@@ -286,25 +287,17 @@ public class ContractTriggerHandler {
             List<Installation__c> newQTInstList = new List<Installation__c>();
             if (instList != null && !instList.isEmpty()) {
                 for (Installation__c inst : instList) {
-                    inst.Installation_Order_Status__c = 'Active';
                     inst.Installation_End_date__c = Date.valueOf(inst.Contract__r.EndDate);
                     inst.Quote__c = inst.Order__r.SBQQ__Quote__c;
-                    if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c != 'Renewal') {
-                        inst.Installation_Start_date__c = Date.valueOf(inst.Contract__r.StartDate);
-                        if(inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Quote')
-                        {
-                            newQTInstList.add(inst);
-                        }
-                    } else if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal' || inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Quote') {
+                    inst.Order__c = inst.Order__r.Id;
+                    if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
                         newQTInstList.add(inst);
                     }
                     instIdList.add(inst.Id);
                 }
-                CreateInstallationsController.goToInstallationLineCreation(instIdList);
                 update instList;
                 if (!newQTInstList.isEmpty()) {
-                    CreateSalesOrderService.createSORecords(newQTInstList);
-                    // CreateSalesOrderService.createSOIRecords(newQTInstList);
+                    InstallationsRenewalService.processRenewalInstallations(newQTInstList);
                 }
             }
         } catch (Exception ex) {

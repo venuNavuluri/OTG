@@ -14,6 +14,7 @@ export default class CreateOrderFromQuote extends LightningElement
     @track message = '';//createOrderMessage;
     @track success = true;
     @api recordId;
+    @track showSpinner = false;
 
     @wire(validateInstallationCount, { qtId : '$recordId'})
     valMsg({error, data}){
@@ -56,6 +57,7 @@ export default class CreateOrderFromQuote extends LightningElement
     }*/
     createOrder()
     {
+        this.showSpinner = true;
         console.log('lbl --> ' + JSON.stringify(createOrderMessage));
         /*const fields = {};
         fields[quoteId.Id] = this.recordId;
@@ -63,6 +65,7 @@ export default class CreateOrderFromQuote extends LightningElement
         updateRecord({ fields });*/
         updateQuoteToOrdered({qtId:this.recordId})
         .then(result => {
+            this.showSpinner = false;
             console.log('result --> ' + JSON.stringify(result));
             if(result == 'SUCCESS')
             {
@@ -71,6 +74,7 @@ export default class CreateOrderFromQuote extends LightningElement
             }
         })
         .catch(error => {
+            this.showSpinner = false;
             console.log('error --> ' + JSON.stringify(error));
             this.message = JSON.stringify('Error occured while creating quote, please contact Technical support team.');
             this.success = true;

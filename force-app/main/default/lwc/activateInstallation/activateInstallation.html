@@ -1,0 +1,47 @@
+<template>
+    <lightning-modal-header label="Activate Installation"></lightning-modal-header>
+
+    <lightning-modal-body>
+        <div class="slds-p-around_medium">
+            <p class="slds-text-body_regular slds-p-bottom_medium">
+                If you want to activate the installation, please provide the installation start date below and submit.
+            </p>
+
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-1">
+                    <lightning-input
+                        type="date"
+                        name="StartDate"
+                        label="Installation Start Date"
+                        value={instStartDate}
+                        onchange={updateFieldValue}
+                        required>
+                    </lightning-input>
+                </div>
+            </div>
+        </div>
+    </lightning-modal-body>
+
+    <lightning-modal-footer>
+        <div class="slds-grid slds-grid_align-end slds-p-around_small">
+            <lightning-button
+                variant="brand"
+                label="Yes, Activate"
+                title="Activate Installation"
+                onclick={activateInstallationRecord}
+                class="slds-m-right_small">
+            </lightning-button>
+
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                title="Cancel Activation"
+                onclick={close}>
+            </lightning-button>
+        </div>
+    </lightning-modal-footer>
+
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+    </template>
+</template>

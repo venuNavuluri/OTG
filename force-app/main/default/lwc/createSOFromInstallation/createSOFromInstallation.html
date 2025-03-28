@@ -21,7 +21,7 @@
             </div>
             <footer class="slds-modal__footer">
                 <template if:true={showConfirmation}>
-                    <lightning-button variant="brand" label="Yes" onclick={createRecords}></lightning-button>
+                    <lightning-button variant="brand" label="Yes" onclick={createRecords}></lightning-button>&nbsp;
                     <lightning-button variant="neutral" label="No" onclick={closeModal}></lightning-button>
                 </template>
                 <template if:false={showConfirmation}>

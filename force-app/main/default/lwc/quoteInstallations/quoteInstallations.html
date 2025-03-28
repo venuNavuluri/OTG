@@ -35,10 +35,45 @@
                         <!-- <lightning-button label="Show All Products" onclick={handleShowProducts}></lightning-button> -->
                     </div>
                 </div>
-                <lightning-datatable show-row-number-column key-field="id" hide-checkbox-column data={eachQuoteGroup.existingInstallations}
+                <!--<lightning-datatable show-row-number-column key-field="id" hide-checkbox-column data={eachQuoteGroup.existingInstallations}
                     columns={columns} onrowaction={handleRowAction}
                     lwc:if={eachQuoteGroup.existingInstallations.length}>
-                </lightning-datatable>
+                </lightning-datatable>-->
+                <template if:true={eachQuoteGroup.existingInstallations.length} >
+                    <table class="border">
+                        <thead>
+                            <tr class="row">
+                                <th class="cell">Installation Id</th>
+                                <th class="cell">Installation Type</th>
+                                <th class="cell">Vessel/Organization Name</th>
+                                <th class="cell">Invoice Account</th>
+                                <th class="cell">Client</th>
+                                <th class="cell">Delivery Contact</th>
+                                <th class="cell"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={eachQuoteGroup.existingInstallations} for:item="installation">
+                                <tr class={installation.rowStyle} key={installation.Name}>
+                                    <td class="cell">
+                                        <a href={installation.recordUrl}>{installation.Name}</a>
+                                    </td>
+                                    <td class="cell">{installation.Installation_Type__c}</td>
+                                    <td class="cell"><a href={installation.vesselOrgLink}>{installation.vesselOrgName}</a></td>
+                                    <td class="cell"><a href={installation.invAcctLink}>{installation.invAcctName}</a></td>
+                                    <td class="cell"> {installation.clientName}</td>
+                                    <td class="cell">{installation.deliveryContactName}</td>
+                                    <td class="cell">
+                                        <lightning-button-menu alternative-text="Actions">
+                                            <lightning-menu-item value="Edit" label="Edit" name={installation.Id} onclick={editInstallation}></lightning-menu-item>
+                                            <lightning-menu-item value="Change Package" name={installation.Id} label="Change Package" onclick={changePackage1}></lightning-menu-item>
+                                        </lightning-button-menu>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
                 <template for:each={eachQuoteGroup.newInstallations} for:item="installation" for:index="indexVar">
                     <div key={eachQuoteGroup.Id} class="slds-m-top_small">
                         <lightning-record-edit-form object-api-name="Installation__c">
@@ -75,8 +110,13 @@
                                     </lightning-input-field>-->
                                     <lightning-record-picker label="Invoice Account" object-api-name="Account" placeholder="Search Invoice Accounts..." filter={filter} 
                                         value={installation.Invoice_Account__c} data-qgid={eachQuoteGroup.Id} data-fieldname="Invoice_Account__c"
-                                        data-index={indexVar} data-qgindex={qgIndexVar} onchange={handleFieldChange}>
+                                        data-index={indexVar} data-qgindex={qgIndexVar} onchange={handleFieldChange} onblur={validateInvoiceAccount}>
                                     </lightning-record-picker>
+                                    <template if:true={showInvoiceError}>
+                                        <div class="slds-text-color_error slds-m-top_xx-small">
+                                            Invoice Account cannot be blank
+                                        </div>
+                                    </template>
                                 </div>
                                 <div class="slds-col slds-size_2-of-6  slds-p-right_small">
                                     <lightning-input-field variant="label-stacked" field-name="Client__c"

@@ -43,7 +43,7 @@ public class CreateSalesOrderService {
 					if (installation.Contract__r.Migrated_Contract__c && (installation.Quote__c == NULL || installation.Quote__r.SBQQ__Type__c != 'Amendment')) {
 						salesOrderStartDate = installation.Contract__r.StartDate.addMonths(i * billingCycleMonths);
 					}
-                    if (installation.Quote__r.SBQQ__Type__c == 'Renewal' || installation.Quote__r.SBQQ__Type__c == 'Quote') {
+                    if (installation.Quote__r.SBQQ__Type__c == 'Renewal') {
 						salesOrderStartDate = installation.Contract__r.StartDate.addMonths(i * billingCycleMonths);
 					}
 					

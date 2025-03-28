@@ -68,18 +68,22 @@
                     <div class="outer-div">
                     <template if:true={isPackageScreen}>
                          <div class="slds-p-bottom_x-small">
-                    <div class="slds-grid slds-box">
-                        <div class="slds-col slds-size_1-of-2 slds-p-left_x-large">
-                            <lightning-radio-group
-                                label="Select Add/Remove"
-                                options={arOptions}
-                                value={arValue}
-                                onchange={onARSelected}
-                                required>
-                            </lightning-radio-group>
-                            <br/>
+                    <div class="slds-box">
+                        <p style="color: red;"><b>**You will be able to add only one installation using below radio buttons. To add more than one installation, please use amendment button**</b></p>
+                        <br />
+                        <div class="slds-grid">
+                            <div class="slds-col slds-size_1-of-2 slds-p-left_x-large" style="padding-left: 0px;">
+                                <lightning-radio-group
+                                    label="Select Add/Remove"
+                                    options={arOptions}
+                                    value={arValue}
+                                    onchange={onARSelected}
+                                    required>
+                                </lightning-radio-group>
+                                <br/>
+                            </div>
                         </div>
-                        </div>
+                    </div>
                     </div>
                         
                     </template>

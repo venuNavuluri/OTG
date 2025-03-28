@@ -10,7 +10,7 @@ export default class CreateSOFromInstallation extends LightningElement {
     @track message = '';
     @track soCreated;
     
-    @wire(getRecord, { recordId : "$recordId", fields : [SALES_ORDERS_CREATED]}) ContractRecord({error, data}) {
+    /*@wire(getRecord, { recordId : "$recordId", fields : [SALES_ORDERS_CREATED]}) ContractRecord({error, data}) {
         if(data)
         {
             console.log('data --> ' + JSON.stringify(data));
@@ -25,7 +25,7 @@ export default class CreateSOFromInstallation extends LightningElement {
         {
             console.log('error --> ' + JSON.stringify(error));
         }
-    };
+    };*/
 
     createRecords()
     {

@@ -175,7 +175,7 @@ public class InstallationTriggerHandler {
             }
 
             if (!activeInstList.isEmpty()) {
-                CreateSalesOrderService.createSORecords(activeInstList);
+              //  CreateSalesOrderService.createSORecords(activeInstList);
             }
 
         } catch (Exception ex) {

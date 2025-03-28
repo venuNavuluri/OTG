@@ -1,9 +1,6 @@
 <template>
-    <lightning-modal-header label="Activate Order"></lightning-modal-header>
-    <lightning-modal-body> 
-        If you want to activate the Order then please add the date below and submit ?
-        <lightning-input type="date" name="OrderDate" label="Order Activated date" value={orderActivatedDate} onchange={updateFieldValue}></lightning-input>
-    </lightning-modal-body>
+    <lightning-modal-header label="Create Contract"></lightning-modal-header>
+    <lightning-modal-body> Are you sure, you want to create contract ? </lightning-modal-body>
     <lightning-modal-footer>
         <lightning-button label="Yes" variant="brand" onclick={createContract}></lightning-button>&nbsp;
         <lightning-button label="No" variant="neutral" onclick={close}></lightning-button>

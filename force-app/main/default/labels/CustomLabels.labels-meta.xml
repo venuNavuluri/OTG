@@ -1,38 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
     <labels>
-        <fullName>CreateOrderMessage</fullName>
+        <fullName>PermissionSetName</fullName>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>CreateOrderMessage</shortDescription>
-        <value>Are you sure, you want to order the Quote ?</value>
+        <shortDescription>Create Invoice Account permissions</shortDescription>
+        <value>Create_Invoice_Account</value>
     </labels>
     <labels>
-        <fullName>CreateOrderSuccessMsg</fullName>
+        <fullName>Project_Management_Percentage_Error</fullName>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>CreateOrderSuccessMsg</shortDescription>
-        <value>Quote Ordered Successfully</value>
+        <shortDescription>Project_Management_Percentage_Error</shortDescription>
+        <value>This quote requires project management, and total project management days must be at least 20% of the total professional services days.</value>
     </labels>
     <labels>
-        <fullName>ToEmail</fullName>
+        <fullName>Quote_Approval_Status_Message</fullName>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>ToEmail</shortDescription>
-        <value>Venu.Navuluri_EXT@oceantg.com</value>
+        <shortDescription>Quote_Approval_Status_Message</shortDescription>
+        <value>This quote has already been submitted for approval. Please click the ‘Recall Approval’ button and then resubmit for approval.</value>
     </labels>
     <labels>
-        <fullName>Upload_Installations_Error_Message</fullName>
+        <fullName>Quote_Recalculation_Validation</fullName>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Upload Installations Error Message</shortDescription>
-        <value>Error creating installations, please reach out to Technical Support Team.</value>
+        <shortDescription>Quote Recalculation Validation</shortDescription>
+        <value>Please re-calculate quote before submitting for approval.</value>
     </labels>
     <labels>
-        <fullName>Upload_Installations_Success_Message</fullName>
+        <fullName>SOW_Info</fullName>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Upload Installations Success Message</shortDescription>
-        <value>records have been created successfully, you will receive an email for any failed records with the Vessel IMO</value>
+        <shortDescription>SOW Info</shortDescription>
+        <value>Statement Of Work</value>
+    </labels>
+    <labels>
+        <fullName>SOW_Required_Message</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>SOW Required Message</shortDescription>
+        <value>Please attach the Statement of Work before submitting for Approval.</value>
+    </labels>
+    <labels>
+        <fullName>ValidationMessage</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>ValidationMessage</shortDescription>
+        <value>You have to be an Admin or a Finance Team Member to update Bill To Account.</value>
+    </labels>
+    <labels>
+        <fullName>msg_background_calculation_in_progress</fullName>
+        <categories>Messages</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Calculation In Progress Message</shortDescription>
+        <value>Recalculating...</value>
+    </labels>
+    <labels>
+        <fullName>msg_background_contracting_in_progress</fullName>
+        <categories>Messages</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Contracting In Progress Message</shortDescription>
+        <value>Creating/Updating Assets...</value>
+    </labels>
+    <labels>
+        <fullName>msg_background_order_completion_in_progress</fullName>
+        <categories>Messages</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Order Completion In Progress Message</shortDescription>
+        <value>Order completion in progress...</value>
+    </labels>
+    <labels>
+        <fullName>msg_background_updating</fullName>
+        <categories>Messages</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Updating In Progress Message</shortDescription>
+        <value>Updating...</value>
     </labels>
 </CustomLabels>
