@@ -18,7 +18,7 @@ public class SalesOrderGeneratorService {
                 Date contractStart = inst.Contract__r.StartDate;
 
                 Integer interval = getBillingCycleMonths(inst.Contract__r.Billing_Frequency__c);
-                List<BillingPeriod> billingPeriods = generateBillingPeriods(contractStart, instEnd, interval);
+                List<BillingPeriod> billingPeriods = generateBillingPeriods(contractStart, instEnd, interval, instStart);
 
                 for (Integer i = 0; i < billingPeriods.size(); i++) {
                     Date periodStart = billingPeriods[i].startDate;
@@ -121,21 +121,54 @@ public class SalesOrderGeneratorService {
         }
     }
 
-    private static List<BillingPeriod> generateBillingPeriods(Date startDate, Date endDate, Integer interval) {
-        List<BillingPeriod> periods = new List<BillingPeriod>();
-        Date currentStart = startDate;
+    private static List<BillingPeriod> generateBillingPeriods(Date contractStart, Date contractEnd, Integer interval, Date installStart) {
+    List<BillingPeriod> periods = new List<BillingPeriod>();
 
-        while (currentStart <= endDate) {
-            Date currentEnd = currentStart.addMonths(interval).addDays(-1);
-            if (currentEnd > endDate) currentEnd = endDate;
-
-            periods.add(new BillingPeriod(currentStart, currentEnd));
-            currentStart = currentEnd.addDays(1);
-        }
-
-        return periods;
+    // Step 1: Find the first aligned billing period based on contract start
+    Date firstAlignedStart = contractStart;
+    while (firstAlignedStart.addMonths(interval) <= installStart) {
+        firstAlignedStart = firstAlignedStart.addMonths(interval);
     }
 
+    // Step 2: Calculate first billing period end
+    Date firstPeriodEnd = getAccuratePeriodEnd(firstAlignedStart, interval);
+    if (firstPeriodEnd > contractEnd) {
+        firstPeriodEnd = contractEnd;
+    }
+
+    // Step 3: First billing period (from installStart to aligned period end)
+    periods.add(new BillingPeriod(installStart, firstPeriodEnd));
+
+    // Step 4: Remaining billing periods
+    Date periodStart = firstPeriodEnd.addDays(1);
+    while (periodStart <= contractEnd) {
+        Date periodEnd = getAccuratePeriodEnd(periodStart, interval);
+        if (periodEnd > contractEnd) {
+            periodEnd = contractEnd;
+        }
+        periods.add(new BillingPeriod(periodStart, periodEnd));
+        periodStart = periodEnd.addDays(1);
+    }
+
+    return periods;
+}
+    private static Date getAccuratePeriodEnd(Date startDate, Integer interval) {
+    // Try adding interval months
+    Date tentativeEnd = startDate.addMonths(interval);
+
+    // If adding months skips to a shorter month (e.g., Feb), backtrack to last day of previous month
+    if (startDate.day() > 28 && tentativeEnd.day() < startDate.day()) {
+        Integer year = tentativeEnd.year();
+        Integer month = tentativeEnd.month();
+
+        // Get last day of the month
+        Date monthEnd = Date.newInstance(year, month + 1, 1).addDays(-1);
+        return monthEnd;
+    }
+
+    return tentativeEnd.addDays(-1);
+}
+    
     public static Double calculateProratedAmount(Installation_Line__c line, Sales_Order__c so) {
         try {
             if (line.Start_Date__c.day() == line.End_Date__c.addDays(1).day() &&
