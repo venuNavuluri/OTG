@@ -45,6 +45,7 @@
                             <tr class="row">
                                 <th class="cell">Installation Id</th>
                                 <th class="cell">Installation Type</th>
+                                <th class="cell">Quote</th>
                                 <th class="cell">Vessel/Organization Name</th>
                                 <th class="cell">Invoice Account</th>
                                 <th class="cell">Client</th>
@@ -59,6 +60,7 @@
                                         <a href={installation.recordUrl}>{installation.Name}</a>
                                     </td>
                                     <td class="cell">{installation.Installation_Type__c}</td>
+                                    <td class="cell">{installation.Quote__r.Name}</td>
                                     <td class="cell"><a href={installation.vesselOrgLink}>{installation.vesselOrgName}</a></td>
                                     <td class="cell"><a href={installation.invAcctLink}>{installation.invAcctName}</a></td>
                                     <td class="cell"> {installation.clientName}</td>
@@ -66,7 +68,7 @@
                                     <td class="cell">
                                         <lightning-button-menu alternative-text="Actions">
                                             <lightning-menu-item value="Edit" label="Edit" name={installation.Id} onclick={editInstallation}></lightning-menu-item>
-                                            <lightning-menu-item value="Change Package" name={installation.Id} label="Change Package" onclick={changePackage1}></lightning-menu-item>
+                                            <lightning-menu-item value="Change Package" name={installation.Id} label="Change Package1" onclick={changePackage1}></lightning-menu-item>
                                         </lightning-button-menu>
                                     </td>
                                 </tr>
@@ -149,7 +151,7 @@
                     <lightning-button label="+ Add New" onclick={handleAddNew}
                         lwc:if={eachQuoteGroup.remainingInstallations} data-lgid={eachQuoteGroup.Id}></lightning-button>&nbsp;&nbsp;
                     <!--lightning-button onclick={createRecordsBulk} label="Create Records Bulk" data-remqty={eachQuoteGroup.remainingInstallations} data-lgid={eachQuoteGroup.Id} data-qgindex={qgIndexVar} lwc:if={eachQuoteGroup.remainingInstallations}></lightning-button-->
-                    <lightning-file-upload label="Upload CSV to create records in Bulk" name="fileUploader" data-lgid={eachQuoteGroup.Id} accept={acceptedFormats} onuploadfinished={handleUploadFinished} lwc:if={eachQuoteGroup.remainingInstallations} ></lightning-file-upload>
+                    <lightning-file-upload label="Upload CSV to create records in Bulk" name="fileUploader" data-qgindex={qgIndexVar} data-lgid={eachQuoteGroup.Id} accept={acceptedFormats} onuploadfinished={handleUploadFinished} lwc:if={eachQuoteGroup.remainingInstallations} ></lightning-file-upload>
                     <p lwc:if={eachQuoteGroup.remainingInstallations} >Note: Please make sure the first column in csv as Vessel IMO Number and second column as Invoice Account Number</p>
                 </div>
 

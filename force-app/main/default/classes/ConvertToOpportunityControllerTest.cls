@@ -1,18 +1,21 @@
 @isTest
 public class ConvertToOpportunityControllerTest {
 
-    public static void TestData(String productValue) {
+    public static void TestData(String businessUnit, String productGroup) {
+        // Create default settings
         Default_Account_Owner_Settings__c setting = new Default_Account_Owner_Settings__c();
-        setting.SetupOwnerId=UserInfo.getOrganizationId();
+        setting.SetupOwnerId = UserInfo.getOrganizationId();
         setting.Name = 'EMEA Default Owner ID';
-        setting.EMEA_Default_Owner_ID__c     = '005Si0000004LInIAM';
+        setting.EMEA_Default_Owner_ID__c = '005Si0000004LInIAM';
         insert setting;
         
+        // Create country mapping
         Country_Mapping__c cm = new Country_Mapping__c();
         cm.Name = 'Test';
         cm.Sales_Region__c = 'Americas';
         insert cm;
         
+        // Create test account
         Account acc = new Account();
         acc.Name = 'Test';
         acc.Account_Status__c = 'Unverified';
@@ -24,12 +27,14 @@ public class ConvertToOpportunityControllerTest {
         acc.Customer_Type__c = 'Charity';
         insert acc;
         
+        // Create test contact
         Contact con = new Contact();
         con.LastName = 'Test con';
         con.AccountId = acc.Id;
         con.Job_Role__c = 'Crew / Seafarer';
         insert con;
         
+        // Create test lead with Business_Units__c field
         Lead lead = new Lead(
             FirstName = 'Test',
             LastName = 'Lead',
@@ -38,14 +43,18 @@ public class ConvertToOpportunityControllerTest {
             Contact__c = con.Id,
             Campaign__c = null,
             Description = 'Test Lead for Opportunity',
-            Products__c = productValue
+            //Business_Units__c = businessUnit,
+            Products__c = productGroup
         );
         insert lead;
+        
+        // Create converted lead status (required for lead conversion)
+        LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted=true LIMIT 1];
     }
 
     @isTest
     public static void fleetConvertToOpportunity() {
-        TestData('Fleet Management System (TM Master)');
+        TestData('Fleet', 'Fleet Management System (TM Master)');
 
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         
@@ -55,14 +64,14 @@ public class ConvertToOpportunityControllerTest {
 
         Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
 
-        System.assertNotEquals(createdOpp, null, 'Opportunity should be created');
-        System.assertEquals(createdOpp.Product_Group__c, 'TM Master', 'Product Group should be set based on Lead product');
-        System.assertEquals(createdOpp.Business_Unit__c, 'Fleet', 'Business Unit should be Fleet');
+        System.assertNotEquals(null, createdOpp, 'Opportunity should be created');
+        System.assertEquals('TM Master', createdOpp.Product_Group__c, 'Product Group should be TM Master');
+        System.assertEquals('Fleet', createdOpp.Business_Unit__c, 'Business Unit should be Fleet');
     }
     
     @isTest
     public static void crewConvertToOpportunity() {
-        TestData('Crew Management/HR System (Compas)');
+        TestData('Crew', 'Crew Management/HR System (Compas)');
 
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
 
@@ -72,14 +81,14 @@ public class ConvertToOpportunityControllerTest {
 
         Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
 
-        System.assertNotEquals(createdOpp, null, 'Opportunity should be created');
-        System.assertEquals(createdOpp.Product_Group__c, 'Compas Core', 'Product Group should be set based on Lead product');
-        System.assertEquals(createdOpp.Business_Unit__c, 'Crew', 'Business Unit should be Crew');
+        System.assertNotEquals(null, createdOpp, 'Opportunity should be created');
+        System.assertEquals('Compas Core', createdOpp.Product_Group__c, 'Product Group should be Compas Core');
+        System.assertEquals('Crew', createdOpp.Business_Unit__c, 'Business Unit should be Crew');
     }
     
     @isTest
     public static void marineConvertToOpportunity() {
-        TestData('Marine Regulations');
+        TestData('Marine Regulations', 'Marine Regulations');
 
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
 
@@ -89,8 +98,43 @@ public class ConvertToOpportunityControllerTest {
 
         Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
 
-        System.assertNotEquals(createdOpp, null, 'Opportunity should be created');
-        System.assertEquals(createdOpp.Product_Group__c, 'Marine Regulations', 'Product Group should be set based on Lead product');
-        System.assertEquals(createdOpp.Business_Unit__c, 'Marine Regulations', 'Business Unit should be Marine Regulations');
+        System.assertNotEquals(null, createdOpp, 'Opportunity should be created');
+        System.assertEquals('Marine Regulations', createdOpp.Product_Group__c, 'Product Group should be Marine Regulations');
+        System.assertEquals('Marine Regulations', createdOpp.Business_Unit__c, 'Business Unit should be Marine Regulations');
+    }
+    
+    @isTest
+    public static void testErrorHandling() {
+        // Create lead without account and contact (should fail)
+        Lead lead = new Lead(
+            FirstName = 'Test',
+            LastName = 'Error',
+            Company = 'Test Error Company'
+        );
+        insert lead;
+        
+        Test.startTest();
+        String result = ConvertToOpportunityController.convertToOpportunity(lead.Id);
+        Test.stopTest();
+        
+        System.assertEquals('Error: Missing Account or Contact reference. Account: null, Contact: null', result, 
+                          'Should return error for missing account and contact');
+    }
+    
+    @isTest
+    public static void testNullBusinessUnit() {
+        TestData(null, null); // No business unit
+        
+        Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
+        
+        Test.startTest();
+        String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);
+        Test.stopTest();
+
+        Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
+
+        System.assertNotEquals(null, createdOpp, 'Opportunity should still be created');
+        System.assertEquals(null, createdOpp.Product_Group__c, 'Product Group should be null when Business Unit is null');
+        System.assertEquals(null, createdOpp.Business_Unit__c, 'Business Unit should be null when not specified');
     }
 }

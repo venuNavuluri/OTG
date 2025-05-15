@@ -10,6 +10,10 @@ public class ContractTriggerHandlerTest
             'Quote__c' => sbq.Id
         });*/
         
+        VRConfiguration__c settings = VRConfiguration__c.getOrgDefaults();
+        settings.Quote_Ordered_Validation__c = TRUE;
+        upsert settings;
+        
         Profile prof = [SELECT Id FROM Profile WHERE Name='OTG Sales User'];
         User u = (User)TestDataFactory.createSObject('User', new Map<String, Object>{
             'profileId' => prof.id,
@@ -58,7 +62,6 @@ public class ContractTriggerHandlerTest
             CloseDate = Date.today() + 90,
             StageName = 'Prospecting & Qualifying',
             Amount = 1000
-            //Legal_Entity__c = 
         );
         insert opp;
         
@@ -85,7 +88,9 @@ public class ContractTriggerHandlerTest
             'SBQQ__BillingFrequency__c' => 'Annual',
             'Agreement_Type__c' => 'Asset Based Installation',
             'SBQQ__Primary__c' => TRUE,
-            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId()
+            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId(),
+                'SBQQ__StartDate__c' => Date.today(),
+                'SBQQ__EndDate__c' => Date.today()
                 });
         
         SBQQ__QuoteLineGroup__c sbqlg = (SBQQ__QuoteLineGroup__c)TestDataFactory.createSObject('SBQQ__QuoteLineGroup__c', new Map<String, Object>{
@@ -174,7 +179,7 @@ public class ContractTriggerHandlerTest
         ord.SBQQ__Contracted__c = TRUE;
         update ord;
         
-        Contract contr = (Contract)TestDataFactory.createSObject('Contract', new Map<String, Object>{
+        /*Contract contr = (Contract)TestDataFactory.createSObject('Contract', new Map<String, Object>{
             'SBQQ__Quote__c' => qt.Id,
             'AccountId' => acc.Id,
             'SBQQ__Opportunity__c' => opp.Id,
@@ -185,7 +190,7 @@ public class ContractTriggerHandlerTest
                 'EndDate' => Date.today().addDays(365),
                 'ContractTerm' => 12
             //'SBQQ__OpportunityPricebookId__c' => Test.getStandardPriceBookId()
-                });
+                });*/
     }
     
     @IsTest
@@ -354,9 +359,14 @@ public static void test2() {
                 'SBQQ__SubscriptionEndDate__c' => Date.today().addDays(365),
                 'SBQQ__NetPrice__c' => 100
                 });
-        CreateInstallationsController.createInstallationLines(new List<SBQQ__Subscription__c>{sub1, sub2});
         List<Installation_Line__c> instLineList = [SELECT Id, Name, Installation__r.Installation_Start_Date__c, Installation__r.Installation_End_Date__c FROM Installation_Line__c WHERE Installation__r.Contract__c = :con.Id];
         List<Installation__c> instList = [SELECT Id, Name, Contract__c, Installation_Start_Date__c, Installation_End_Date__c FROM Installation__c WHERE Contract__c = :con.Id];
+        List<Id> instIdList = new List<Id>();
+        for(Installation__c inst : instList)
+        {
+            instIdList.add(inst.Id);
+        }
+        CreateInstallationsController.createInstallationLines(new List<SBQQ__Subscription__c>{sub1, sub2}, instIdList);
         instList[0].Installation_Start_date__c = Date.today();
         instList[0].Installation_End_date__c = Date.today().addDays(364);
         instList[0].Installation_Order_Status__c = 'Active';
@@ -375,11 +385,11 @@ public static void test2() {
             System.debug('instLineList --> ' + instLineList);
         }
         
-        List<Id> instIdList = new List<Id>();
+        /*List<Id> instIdList = new List<Id>();
         for(Installation__c inst : instList)
         {
             instIdList.add(inst.Id);
-        }
+        }*/
         Date earliestStartDate = Date.today();
         Date latestEndDate = Date.today().addDays(364);
         System.debug('earliestStartDate --> ' + earliestStartDate);
@@ -493,9 +503,15 @@ public static void test2() {
                 'SBQQ__NetPrice__c' => 1000,
                 'SBQQ__Quantity__c' => 1
                 });
-        CreateInstallationsController.createInstallationLines(new List<SBQQ__Subscription__c>{sub1, sub2});
-        List<Installation_Line__c> instLineList = [SELECT Id, Name, Installation__r.Installation_Start_Date__c, Installation__r.Installation_End_Date__c FROM Installation_Line__c WHERE Installation__r.Contract__c = :con.Id];
+        
         List<Installation__c> instList = [SELECT Id, Name, Contract__c, Installation_Start_Date__c, Installation_End_Date__c FROM Installation__c WHERE Contract__c = :con.Id];
+        List<Id> instIdList = new List<Id>();
+        for(Installation__c inst : instList)
+        {
+            instIdList.add(inst.Id);
+        }
+        CreateInstallationsController.createInstallationLines(new List<SBQQ__Subscription__c>{sub1, sub2}, instIdList);
+        List<Installation_Line__c> instLineList = [SELECT Id, Name, Installation__r.Installation_Start_Date__c, Installation__r.Installation_End_Date__c FROM Installation_Line__c WHERE Installation__r.Contract__c = :con.Id];
         instList[0].Installation_Start_date__c = Date.today();
         instList[0].Installation_End_date__c = Date.today().addDays(364);
         instList[0].Installation_Order_Status__c = 'Active';
@@ -512,11 +528,6 @@ public static void test2() {
             instLineList[1].End_Date__c = Date.today().addDays(364);
             update instLineList;
             System.debug('instLineList --> ' + instLineList);
-        }
-        List<Id> instIdList = new List<Id>();
-        for(Installation__c inst : instList)
-        {
-            instIdList.add(inst.Id);
         }
         
         CreateSalesOrders.createSORecords(con.Id);

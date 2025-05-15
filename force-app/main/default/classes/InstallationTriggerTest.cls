@@ -57,7 +57,62 @@ public class InstallationTriggerTest {
             OwnerId = u.Id
         );
         insert acc2;
-
+        
+        Opportunity opp = new Opportunity(
+            Name = 'Test',
+            LeadSource = 'Cross Department Referral',
+            Business_Unit__c = 'Fleet',
+            Sales_Type__c = 'Subscription',
+            AccountId = acc1.Id,
+            CloseDate = Date.today() + 90,
+            StageName = 'Prospecting & Qualifying',
+            Amount = 1000 
+        );
+        insert opp;
+        
+        Product2 prd = (Product2)TestDataFactory.createSObject('Product2', new Map<String, Object>());
+        
+        PriceBookEntry pbe = (PriceBookEntry)TestDataFactory.createSObject('PriceBookEntry', new Map<String, Object>{
+            'Product2Id' => prd.Id,
+                'Pricebook2Id' => Test.getStandardPriceBookId(),
+                'IsActive' => TRUE
+        });
+        
+        SBQQ__Quote__c qt = (SBQQ__Quote__c)TestDataFactory.createSObject('SBQQ__Quote__c', new Map<String, Object>{
+            'SBQQ__SubscriptionTerm__c' => 12,
+            'SBQQ__Account__c' => acc1.Id,
+            'SBQQ__Opportunity2__c' => opp.Id,
+            'SBQQ__BillingFrequency__c' => 'Annual',
+            'Agreement_Type__c' => 'Asset Based Installation',
+            'SBQQ__Primary__c' => TRUE,
+            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId(),
+                'SBQQ__StartDate__c' => Date.today(),
+                'SBQQ__EndDate__c' => Date.today()
+                });
+        
+        SBQQ__QuoteLineGroup__c sbqlg = (SBQQ__QuoteLineGroup__c)TestDataFactory.createSObject('SBQQ__QuoteLineGroup__c', new Map<String, Object>{
+            //'Package__c' => pack.id,
+                'SBQQ__Quote__c' => qt.id,
+                'Installation_Quantity__c' => 1
+        });
+        
+        SBQQ__Subscription__c sub1 = (SBQQ__Subscription__c)TestDataFactory.createSObject('SBQQ__Subscription__c', new Map<String, Object>{
+                'SBQQ__SubscriptionStartDate__c' => Date.today(),
+                'SBQQ__SubscriptionEndDate__c' => Date.today().addDays(365),
+                'SBQQ__NetPrice__c' => 100
+                });
+        
+        SBQQ__QuoteLine__c sbql = (SBQQ__QuoteLine__c)TestDataFactory.createSObject('SBQQ__QuoteLine__c', new Map<String, Object>{
+            'SBQQ__Quote__c' => qt.Id,
+                'SBQQ__Product__c' => prd.Id,
+                'SBQQ__Group__c' => sbqlg.Id,
+                'SBQQ__PricebookEntryId__c' => pbe.Id,
+                'SBQQ__RenewedSubscription__c' =>sub1.Id,
+                'SBQQ__NetPrice__c' => 100.00,
+                'SBQQ__Quantity__c' => 1
+        });
+        System.debug('sbql --> ' + sbql);
+        
         // Create two unique vessels
         Vessel__c vessel1 = new Vessel__c(
             Vessel_IMO__c = '1234567',
@@ -98,6 +153,29 @@ public class InstallationTriggerTest {
         );
 
         insert new List<Installation__c> { inst1, inst2, inst3 };
+            
+            qt.SBQQ__Ordered__c = TRUE;
+        try
+        {
+            qt.Installation__c = inst1.Id;
+            System.debug('qt --> ' + qt);
+            update qt;
+        }
+        catch(Exception ex)
+        {
+            System.debug('ex --> ' + ex.getStackTraceString());
+            System.debug('ex --> ' + ex);
+        }
+        
+        Order ord = [SELECT Id FROM Order WHERE SBQQ__Quote__c = :qt.Id];
+        
+        Contract con = new Contract();
+        con.SBQQ__Order__c = ord.Id;
+        con.SBQQ__Quote__c = qt.Id;
+        con.SBQQ__Opportunity__c = opp.Id;
+        con.AccountId = acc1.Id;
+        con.ContractTerm = 12;
+        insert con;
     }
 
     @IsTest
@@ -123,7 +201,41 @@ public class InstallationTriggerTest {
     @IsTest
     public static void testTerminateInstallation() {
         Installation__c inst = [SELECT Id FROM Installation__c WHERE Installation_Order_Status__c != 'Active' LIMIT 1];
+        Account acc = [SELECT Id, Name FROM Account WHERE Name = 'Test Account 1' LIMIT 1];
+        
+        Contract con = [SELECT Id, Name, SBQQ__Quote__c FROM Contract LIMIT 1];
+
+        // Fetch related Packages
+        List<Package__c> packList = [SELECT Id, Name FROM Package__c WHERE Quote__c = :con.SBQQ__Quote__c];
+        
+        // Avoid querying inside a loop - Using map for efficient updates
+        Map<Id, Package__c> packageMap = new Map<Id, Package__c>();
+        for (Package__c p : packList) {
+            packageMap.put(p.Id, p);
+        }
+        
+        // Create subscriptions
+        List<SBQQ__Subscription__c> subscriptions = new List<SBQQ__Subscription__c>();
+        for (Id packageId : packageMap.keySet()) {
+            subscriptions.add(new SBQQ__Subscription__c(
+                Package__c = packageId,
+                SBQQ__Contract__c = con.Id,
+                SBQQ__SubscriptionStartDate__c = Date.today(),
+                SBQQ__SubscriptionEndDate__c = Date.today().addDays(365),
+                SBQQ__NetPrice__c = 100,
+                SBQQ__Quantity__c =1
+            ));
+        }
+        
+        // Bulk insert subscriptions
+        insert subscriptions;
+        
+        
+        
         inst.Installation_Order_Status__c = 'Active';
+        inst.Contract__c = con.Id;
+        inst.Installation_Start_date__c = Date.today();
+        inst.Installation_End_date__c = Date.today().addDays(365);
         update inst;
         Sales_Order__c salesOrder = new Sales_Order__c(
 						Installation__c = inst.Id,
@@ -143,6 +255,8 @@ public class InstallationTriggerTest {
         
         inst.Auto_Termination__c = TRUE;
         inst.Installation_Order_Status__c = 'Terminated';
+        inst.Termination_End_Date__c = Date.today();
+        inst.Termination_Reason__c = 'Test';
 
         Test.startTest();
         update inst;

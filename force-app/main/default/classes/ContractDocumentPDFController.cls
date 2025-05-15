@@ -33,7 +33,7 @@ public class ContractDocumentPDFController {
         qtLineList = [
             SELECT Id, Name, SBQQ__Product__c, SBQQ__Quantity__c, SBQQ__Product__r.Name, SBQQ__Group__c, SBQQ__Group__r.Package__c,
             SBQQ__Group__r.Package__r.Package_Name__c, SBQQ__Group__r.Package__r.Package_Number__c, SBQQ__Group__r.Package__r.Installation_Quantity__c,
-            SBQQ__Group__r.Package__r.Previous_Cost__c, SBQQ__Group__r.Package__r.Annual_Cost__c, 
+            SBQQ__Group__r.Package__r.InstallationCost__c,
             SBQQ__Group__r.Package__r.Installation_Cost__c, Remove_Product_from_Package__c,SBQQ__Group__r.Current_Price__c
             FROM SBQQ__QuoteLine__c
             WHERE SBQQ__Quote__c = :qt.Id AND SBQQ__Group__r.Package__r.Installation_Quantity__c > 0
@@ -57,9 +57,8 @@ public class ContractDocumentPDFController {
                 {
                     ProductWrapper pw = new ProductWrapper();
                     pw.productName = ql.SBQQ__Product__r.Name;
-                    pw.annualCost = ql.SBQQ__Group__r.Package__r.Annual_Cost__c;
                     pw.previousCost = ql.SBQQ__Group__r.Current_Price__c;
-                    pw.installationCost = ql.SBQQ__Group__r.Package__r.Installation_Cost__c;
+                    pw.installationCost = ql.SBQQ__Group__r.Package__r.InstallationCost__c;
                     pw.removeFromPackage = ql.Remove_Product_from_Package__c;
                     pw.qlquantity = ql.SBQQ__Quantity__c;
                     pw.instQuantity = ql.SBQQ__Group__r.Package__r.Installation_Quantity__c;
@@ -67,9 +66,9 @@ public class ContractDocumentPDFController {
                     prdNameMap.put(packageNumber + '-' + ql.SBQQ__Product__r.Name, pw);
                 }
                 /*else
-{
-ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Name);
-}*/
+                {
+                    ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Name);
+                }*/
                 packIdList.add(ql.SBQQ__Group__r.Package__c);
             }
         }
@@ -111,44 +110,25 @@ ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Nam
                 totalInstallationCost += inst.Package__r.Installation_Cost__c;
             }
             
-            if (inst.Invoice_Account__c != NULL && 
-                inst.Invoice_Account__r != NULL && 
-                invWrapMap.get(inst.Invoice_Account__r.Account_ID__c) == NULL) 
+            if(inst.Invoice_Account__c != NULL && invWrapMap.get(inst.Invoice_Account__r.Account_ID__c) == NULL)
             {
                 InvoiceWrapper invWrap = new InvoiceWrapper();
-                
-                // Ensure Account_ID__c is not null before using it
-                if (inst.Invoice_Account__r.Account_ID__c != NULL) {
-                    invWrap.invAccNumber = inst.Invoice_Account__r.Account_ID__c;
-                } else {
-                    System.debug('Warning: Account_ID__c is NULL for Invoice_Account__r');
-                }
-                
-                // Build invNameAddr safely, avoiding null values
+                invWrap.invAccNumber = inst.Invoice_Account__r.Account_ID__c;
+                /*invWrap.invNameAddr = inst.Invoice_Account__r.Name + ', ' + inst.Invoice_Account__r.Address1__c + ', ' + 
+                    inst.Invoice_Account__r.Address2__c + ', ' + inst.Invoice_Account__r.Address3__c + ', ' + 
+                    inst.Invoice_Account__r.Town_City__c + ', ' + inst.Invoice_Account__r.County_State__c + ', ' +
+                    inst.Invoice_Account__r.Postcode_Zipcode__c + ', ' + inst.Invoice_Account__r.Country__r.Name;*/
                 invWrap.invNameAddr = inst.Invoice_Account__r.Name + ', ' + 
                     (inst.Invoice_Account__r.Address1__c != NULL ? inst.Invoice_Account__r.Address1__c + ', ' : '') + 
                     (inst.Invoice_Account__r.Address2__c != NULL ? inst.Invoice_Account__r.Address2__c + ', ' : '') +
                     (inst.Invoice_Account__r.Address3__c != NULL ? inst.Invoice_Account__r.Address3__c + ', ' : '') + 
                     (inst.Invoice_Account__r.Town_City__c != NULL ? inst.Invoice_Account__r.Town_City__c + ', ' : '') +
-                    (inst.Invoice_Account__r.County_State__c != NULL ? inst.Invoice_Account__r.County_State__c + ', ' : '') +
+                    (inst.Invoice_Account__r.County_State__c != NULL ? inst.Invoice_Account__r.County_State__c + ', ' : '' ) +
                     (inst.Invoice_Account__r.Postcode_Zipcode__c != NULL ? inst.Invoice_Account__r.Postcode_Zipcode__c + ', ' : '') +
-                    (inst.Invoice_Account__r.Country__r != NULL && inst.Invoice_Account__r.Country__r.Name != NULL ? inst.Invoice_Account__r.Country__r.Name : '');
-                
-                // Ensure Invoice_Emails__c is not null before calling replaceAll()
-                if (inst.Invoice_Account__r.Invoice_Emails__c != NULL) {
-                    invWrap.invEmail = inst.Invoice_Account__r.Invoice_Emails__c.replaceAll(';', '\n');
-                } else {
-                    invWrap.invEmail = ''; // Assign empty string if null
-                    System.debug('Warning: Invoice_Emails__c is NULL for Invoice_Account__r');
-                }
-                
-                // Ensure Account_ID__c is not null before using it as a key in the map
-                if (inst.Invoice_Account__r.Account_ID__c != NULL) {
-                    invWrapMap.put(inst.Invoice_Account__r.Account_ID__c, invWrap);
-                    hasInv = TRUE;
-                } else {
-                    System.debug('Warning: Account_ID__c is NULL, not adding to invWrapMap');
-                }
+                    (inst.Invoice_Account__r.Country__c != NULL ? inst.Invoice_Account__r.Country__r.Name : '');
+                invWrap.invEmail = inst.Invoice_Account__r.Invoice_Emails__c != NULL ? inst.Invoice_Account__r.Invoice_Emails__c.replaceAll(';', '\n') : '';
+                invWrapMap.put(inst.Invoice_Account__r.Account_ID__c, invWrap);
+                hasInv = TRUE;
             }
         }
         

@@ -156,13 +156,13 @@
                             <apex:outputText value="{!contr.Account.County_State__c}" rendered="{!NOT(ISBLANK(contr.Account.County_State__c))}" />
                             <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.County_State__c))}"><br /></apex:outputPanel>
                             <apex:outputText value="{!contr.Account.Postcode_Zipcode__c}" rendered="{!NOT(ISBLANK(contr.Account.Postcode_Zipcode__c))}" />
-                            <apex:outputPanel rendered="{!NOT(ISBLANK(qt.SBQQ__Account__r.Postcode_Zipcode__c))}"><br /></apex:outputPanel>
+                            <apex:outputPanel rendered="{!NOT(ISBLANK(contr.Account.Postcode_Zipcode__c))}"><br /></apex:outputPanel><!--qt.SBQQ__Account__r.Postcode_Zipcode__c-->
                             <apex:outputText value="{!contr.Account.Country__r.Name}" rendered="{!NOT(ISBLANK(contr.Account.Country__r.Name))}" />
                         </td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Supplier</td>
-                        <td style="padding: 8px;">{!qt.Legal_Entity__r.Name}</td>
+                        <td style="padding: 8px;">{!contr.Legal_Entity__r.Name}</td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Supplier Website</td>
@@ -198,7 +198,7 @@
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Payment Terms</td>
-                        <td style="padding: 8px;">{!contr.SBQQ__Quote__r.SBQQ__PaymentTerms__c}</td>
+                        <td style="padding: 8px;">{!contr.Payment_Terms__c}</td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Renewal Date</td>
@@ -268,7 +268,7 @@
                             </td>
                             <td style="padding: 8px; vertical-align: top;">
                                 <apex:outputText id="annCost" value="{0, number}">
-                                    {!qt.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.previousCost}" />
+                                    {!contr.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.previousCost}" />
                                 </apex:outputText>
                             </td>
                             <!--<td style="padding: 8px; vertical-align: top;">
@@ -302,12 +302,8 @@
                             <td style="padding: 8px;">{!inst.Installation_Name__c}</td>
                             <td style="padding: 8px;">{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
                             <td style="padding: 8px;">{!inst.Invoice_Account__r.Account_ID__c}</td>
-                            <!--<td style="padding: 8px;">{!inst.Invoice_Account__r.Name}, {!inst.Invoice_Account__r.Address1__c}, {!inst.Invoice_Account__r.Address2__c}, {!inst.Invoice_Account__r.Address3__c},
-                                {!inst.Invoice_Account__r.Town_City__c}, {!inst.Invoice_Account__r.County_State__c}, {!inst.Invoice_Account__r.Postcode_Zipcode__c},
-                                {!inst.Invoice_Account__r.Country__r.Name}</td>
-                            <td style="padding: 8px;">{!inst.Invoice_Account__r.Invoice_Emails__c}</td>-->
                             <td style="padding: 8px;">{!inst.Package__r.Package_Number__c}</td>
-                            <td style="padding: 8px;">{!inst.CurrencyIsoCode} {!inst.Package__r.Installation_Cost__c}</td>
+                            <td style="padding: 8px;">{!inst.CurrencyIsoCode} {!inst.Package__r.InstallationCost__c}</td>
                         </tr>
                     </apex:repeat>
                     <tr style="background-color: #f4f4f4; font-weight: bold;">
@@ -350,15 +346,5 @@
         <p>
             If you wish to add any additional modules or services to your contract please do reach out to your account manager.
         </p>
-          <!--  This renewal quote is governed by the OTG Standard Master Services Agreement, available at 
-            <a href="https://oceantg.com/legal/master-service-agreement/" style="color: #017499; text-decoration: none;" target="_blank">
-                MASTER SERVICES AGREEMENT - Ocean Technologies Group
-            </a>.
-        </p>
-        <p>
-            You are now at renewal, therefore outside of your initial agreement term (or “Fixed Term” as the case may be). 
-            As such, you are bound by the terms of our Master Services Agreement including, without limitation, the warranty 
-            disclaimers, limitations of liability, and termination provisions.
-        </p>-->
     </div>
 </apex:page>

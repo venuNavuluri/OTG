@@ -115,7 +115,7 @@
             <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
             RENEWAL QUOTE<br/>
             {!qt.SBQQ__Account__r.Name}<br/>
-            Date: <apex:outputText value="{0,date}">
+            Date: <apex:outputText value="{0,date, dd_MMMMMMMMM_yy}">
             <apex:param value="{!Today}" />
             </apex:outputText> <br/>
             Version: {!version} <br/>
@@ -286,65 +286,71 @@
                 </table>
             </div>
             <div style="margin-top: 20px;">
-    <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">Installations</p>
-    
-    <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px; table-layout: fixed;">
-        <colgroup>
-            <col style="width: 15%;">  <!-- Installation Name -->
-            <col style="width: 10%;">  <!-- IMO -->
-            <col style="width: 22%;">  <!-- Invoice Account Name & Address -->
-            <col style="width: 18%;">  <!-- Invoice Email -->
-            <col style="width: 12%;">  <!-- Package Name -->
-            <col style="width: 13%;">  <!-- Install Cost (Increased width slightly) -->
-        </colgroup>
-        
-        <tr style="background-color: #f4f4f4; font-weight: bold;">
-            <td style="padding: 8px;"><b>Installation Name</b></td>
-            <td style="padding: 8px;"><b>IMO</b></td>
-            <td style="padding: 8px;"><b>Invoice Account Name &amp; Address</b></td>
-            
-            <!-- Wrapped Email Column -->
-            <td style="padding: 8px; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                <b>Invoice Email</b>
-            </td>
-            
-            <td style="padding: 8px;"><b>Package Name</b></td>
-            
-            <!-- Ensure Installation Cost is Always Visible -->
-            <td style="padding: 8px; text-align: right; white-space: nowrap;"><b>Install Cost</b></td>
-        </tr>
-        
-        <apex:repeat value="{!instList}" var="inst">
-            <tr>
-                <td style="padding: 8px;">{!inst.Installation_Name__c}</td>
-                <td style="padding: 8px;">{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
-                <td style="padding: 8px;">{!inst.Invoice_Account__r.Name}</td>
+                <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">Installations</p>
+                <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <tr style="background-color: #f4f4f4; font-weight: bold;">
+                        <td style="padding: 8px; width: 15%;"><b>Installation Name</b></td>
+                        <td style="padding: 8px; width: 10%;"><b>IMO</b></td>
+                        <td style="padding: 8px; width: 10%;"><b>Invoice Account Number</b></td>
+                        <!--<td style="padding: 8px; width: 25%;"><b>Invoice Account Name &amp; Address</b></td>
+                        <td style="padding: 8px; width: 20%;"><b>Invoice Email</b></td>-->
+                        <td style="padding: 8px; width: 10%;"><b>Package Name</b></td>
+                        <td style="padding: 8px; width: 20%;"><b>Installation Cost</b></td>
+                    </tr>
+                    <apex:repeat value="{!instList}" var="inst">
+                        <tr>
+                            <td style="padding: 8px;">{!inst.Installation_Name__c}</td>
+                            <td style="padding: 8px;">{!inst.Vessel_Name__r.Vessel_IMO__c}</td>
+                            <td style="padding: 8px;">{!inst.Invoice_Account__r.Account_ID__c}</td>
+                            <!--<td style="padding: 8px;">{!inst.Invoice_Account__r.Name}, {!inst.Invoice_Account__r.Address1__c}, {!inst.Invoice_Account__r.Address2__c}, {!inst.Invoice_Account__r.Address3__c},
+                                {!inst.Invoice_Account__r.Town_City__c}, {!inst.Invoice_Account__r.County_State__c}, {!inst.Invoice_Account__r.Postcode_Zipcode__c},
+                                {!inst.Invoice_Account__r.Country__r.Name}</td>
+                            <td style="padding: 8px;white-space: pre-line;">{!inst.Invoice_Account__r.Invoice_Emails__c}</td>-->
+                            <td style="padding: 8px;">{!inst.Package__r.Package_Number__c}</td>
+                            <td style="padding: 8px;">{!inst.CurrencyIsoCode} {!inst.Package__r.Installation_Cost__c}</td>
+                        </tr>
+                    </apex:repeat>
+                    <tr style="background-color: #f4f4f4; font-weight: bold;">
+                        <td colspan="4" style="padding: 8px; text-align: right;">Total Installation Cost</td>
+                        <td style="padding: 8px;">{!currencyIsoCode} {!totalInstallationCost}</td>
+                    </tr>
+                </table>
                 
-                <!-- Wrapped Email Column -->
-                <td style="padding: 8px; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                    {!inst.Invoice_Account__r.Invoice_Emails__c}
-                </td>
-                
-                <td style="padding: 8px;">{!inst.Package__r.Package_Number__c}</td>
-                
-                <!-- Ensure Proper Formatting for Installation Cost -->
-                <td style="padding: 8px; text-align: right; white-space: nowrap;">
-                    {!inst.CurrencyIsoCode} {!inst.Package__r.Installation_Cost__c}
-                </td>
-            </tr>
-        </apex:repeat>
-        
-        <tr style="background-color: #f4f4f4; font-weight: bold;">
-            <td colspan="5" style="padding: 8px; text-align: right;">Total Installation Cost</td>
-            <td style="padding: 8px; text-align: right; white-space: nowrap;">{!currencyIsoCode} {!totalInstallationCost}</td>
-        </tr>
-    </table>
-</div>
+                <div style="display: {!IF(hasInv, 'block', 'none')}">
+                    <p style="font-size: 18px; font-weight: bold; color: #017499; margin-bottom: 10px;">Invoice Accounts</p>
+                    <table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                        <tr style="background-color: #f4f4f4; font-weight: bold;">
+                            <td style="padding: 8px; width: 10%;"><b>Invoice Account Number</b></td>
+                            <td style="padding: 8px; width: 25%;"><b>Invoice Account Name &amp; Address</b></td>
+                            <td style="padding: 8px; width: 20%;"><b>Invoice Email</b></td>
+                        </tr>
+                        <apex:repeat value="{!invWrapList}" var="inv">
+                            <tr>
+                                <td style="padding: 8px;">{!inv.invAccNumber}</td>
+                                <td style="padding: 8px;">{!inv.invNameAddr}</td>
+                                <td style="padding: 8px;white-space: pre-line;">{!inv.invEmail}</td>
+                            </tr>
+                        </apex:repeat>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     <div style="margin-top: 20px; padding: 10px; font-size: 14px; line-height: 1.8; color: #000;">
+        <!--<p>
+            If you wish to add any new installations to your current contract please send the following information 
+            <a href="mailto:fleetsalesoperations@oceantg.com" style="color: #017499;">fleetsalesoperations@oceantg.com</a>.
+        </p>
+        <ul>
+            <li>Vessel IMO</li>
+            <li>Vessel Name</li>
+            <li>Invoice account including address</li>
+        </ul>
         <p>
-            This renewal quote is governed by the OTG Standard Master Services Agreement, available at 
+            If you wish to add any additional modules or services to your contract please do reach out to your account manager.
+        </p>-->
+        <p>
+              This renewal quote is governed by the OTG Standard Master Services Agreement, available at 
             <a href="https://oceantg.com/legal/master-service-agreement/" style="color: #017499; text-decoration: none;" target="_blank">
                 MASTER SERVICES AGREEMENT - Ocean Technologies Group
             </a>.

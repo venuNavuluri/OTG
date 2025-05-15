@@ -12,7 +12,8 @@ export default class CreateContract extends LightningElement {
         updateRecord({fields : {
             Id : this.recordId,
             Status : 'Activated',
-            SBQQ__Contracted__c : true
+            Is_Activated__c : true,
+            SBQQ__Contracted__c : true,
         }}).then(result => {
             this.showSpinner = false;
             console.log('result --> ' + JSON.stringify(result));

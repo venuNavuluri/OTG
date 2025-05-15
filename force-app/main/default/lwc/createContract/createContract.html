@@ -1,11 +1,36 @@
 <template>
-    <lightning-modal-header label="Create Contract"></lightning-modal-header>
-    <lightning-modal-body> Are you sure, you want to create contract ? </lightning-modal-body>
-    <lightning-modal-footer>
-        <lightning-button label="Yes" variant="brand" onclick={createContract}></lightning-button>&nbsp;
-        <lightning-button label="No" variant="neutral" onclick={close}></lightning-button>
-    </lightning-modal-footer>
-    <template if:true={showSpinner} >
-        <lightning-spinner></lightning-spinner>
-    </template>
+    <section class="slds-modal slds-fade-in-open" role="dialog">
+        <div class="slds-modal__container">
+            <lightning-modal-header label="Create Contract"></lightning-modal-header>
+
+            <lightning-modal-body>
+                <div class="slds-align_absolute-center slds-text-heading_small slds-p-around_medium">
+                    Are you sure you want to create a contract?
+                </div>
+            </lightning-modal-body>
+
+            <lightning-modal-footer>
+                <lightning-button
+                    label="Yes"
+                    variant="brand"
+                    class="slds-m-right_small"
+                    onclick={createContract}>
+                </lightning-button>
+
+                <lightning-button
+                    label="No"
+                    variant="neutral"
+                    onclick={close}>
+                </lightning-button>
+            </lightning-modal-footer>
+
+            <template if:true={showSpinner}>
+                <div class="spinner-overlay">
+                    <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <div class="slds-backdrop slds-backdrop_open"></div>
 </template>

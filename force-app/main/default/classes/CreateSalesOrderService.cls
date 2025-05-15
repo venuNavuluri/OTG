@@ -174,26 +174,26 @@ public class CreateSalesOrderService {
 	}
 
 	public static Double calculateProratedAmount(Installation_Line__c line, Sales_Order__c salesOrder) {
-		Double proratedAmount;
-		try {
-			if (
-				line.Start_Date__c.day() == line.End_Date__c.addDays(1).day() &&
-				salesOrder.Start_Date__c.day() == salesOrder.End_Date__c.addDays(1).day()
-			) {
-				// Calculate based on the number of months
-				Double totalMonths = (Double) line.Start_Date__c.monthsBetween(line.End_Date__c.addDays(1));
-				Double soMonths = (Double) salesOrder.Start_Date__c.monthsBetween(salesOrder.End_Date__c.addDays(1));
-				proratedAmount = (soMonths / totalMonths) * line.Net_Total__c;
-			} else {
-				// Calculate based on the number of days
-				Double totalDays = (Double) line.Start_Date__c.daysBetween(line.End_Date__c) + 1;
-				Double soDays = (Double) salesOrder.Start_Date__c.daysBetween(salesOrder.End_Date__c) + 1;
-				proratedAmount = (soDays / totalDays) * line.Net_Total__c;
-			}
-		} catch (Exception ex) {
-			Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
-			Logger.saveLog();
-		}
-		return proratedAmount;
-	}
+    Double proratedAmount = 0;
+    try {
+        if (
+            line.Start_Date__c.day() == line.End_Date__c.addDays(1).day() &&
+            salesOrder.Start_Date__c.day() == salesOrder.End_Date__c.addDays(1).day()
+        ) {
+            // Full-month aligned → use month-based proration
+            Double totalMonths = (Double) line.Start_Date__c.monthsBetween(line.End_Date__c.addDays(1));
+            Double soMonths = (Double) salesOrder.Start_Date__c.monthsBetween(salesOrder.End_Date__c.addDays(1));
+            proratedAmount = (soMonths / totalMonths) * line.Net_Total__c;
+        } else {
+            // Not aligned → use day-based proration
+            Double totalDays = (Double) line.Start_Date__c.daysBetween(line.End_Date__c) + 1;
+            Double soDays = (Double) salesOrder.Start_Date__c.daysBetween(salesOrder.End_Date__c) + 1;
+            proratedAmount = (soDays / totalDays) * line.Net_Total__c;
+        }
+    } catch (Exception ex) {
+        Logger.error('Error in calculateProratedAmount: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
+        Logger.saveLog();
+    }
+    return proratedAmount;
+}
 }
