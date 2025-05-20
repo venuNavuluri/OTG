@@ -19,7 +19,6 @@ public class QuoteTriggerHandler extends TriggerHandler {
     private static final String CHARGE_TYPE_ONE_TIME = 'One-Time';
     private static final String INSTALLATION_TERMINATED = 'Terminated';
     private static final Integer DEFAULT_SUBSCRIPTION_TERM = 12;
-   
     
     public override void beforeInsert() {
         QuoteTriggerHelper.updateQlgCheckbox(Trigger.new);
@@ -61,164 +60,131 @@ public class QuoteTriggerHandler extends TriggerHandler {
         
         // Step 2: Call the method to calculate Current_Price__c for Quote Line Groups
         if (!approvedQuoteIds.isEmpty()) {
-            //calculateCurrentPriceOnQuoteLineGroups(approvedQuoteIds);
+            calculateCurrentPriceOnQuoteLineGroups(approvedQuoteIds);
             updateInstalltionCost(approvedQuoteIds);
         }
         
     }
     
     public void createPackageRecords(
-    Map<Id, SBQQ__Quote__c> newQtMap,
-    Map<Id, SBQQ__Quote__c> oldQtMap
-) {
-    try {
-        Logger.debug('START: createPackageRecords');
-
-        // Step 1: Collect approved quotes
-        List<Id> approvedQuoteIds = new List<Id>();
-        for (SBQQ__Quote__c qt : newQtMap.values()) {
-            if (
-                qt.SBQQ__Status__c == 'Approved' &&
-                oldQtMap.get(qt.Id).SBQQ__Status__c != 'Approved' &&
-                (qt.Auto_Installation__c == false && qt.Auto_Termination__c == false)
-            ) {
-                approvedQuoteIds.add(qt.Id);
+        Map<Id, SBQQ__Quote__c> newQtMap,
+        Map<Id, SBQQ__Quote__c> oldQtMap
+    ) {
+        try {
+            // Step 1: Collect approved quotes of type 'Quote' or 'Renewal'
+            List<Id> approvedQuoteIds = new List<Id>();
+            for (SBQQ__Quote__c qt : newQtMap.values()) {
+                if (
+                    qt.SBQQ__Status__c == 'Approved' &&
+                    oldQtMap.get(qt.Id).SBQQ__Status__c != 'Approved' &&
+                    (qt.Auto_Installation__c == false && qt.Auto_Termination__c == false)
+                ) {
+                    approvedQuoteIds.add(qt.Id);
+                }
             }
-        }
-
-        Logger.debug('Approved Quote IDs: ' + approvedQuoteIds);
-
-        if (approvedQuoteIds.isEmpty()) {
-            Logger.debug('No approved quotes to process.');
-            Logger.saveLog();
-            return;
-        }
-
-        // Step 2: Query existing packages linked to the approved quotes
-        Map<String, Package__c> qlgToPackageMap = new Map<String, Package__c>();
-        for (Package__c existingPackage : [
-            SELECT Id, Name, Quote_Line_Group__c, Quote__c, Installation_Quantity__c
-            FROM Package__c
-            WHERE Quote__c IN :approvedQuoteIds
-        ]) {
-            qlgToPackageMap.put(existingPackage.Quote_Line_Group__c, existingPackage);
-        }
-
-        Logger.debug('Fetched existing packages: ' + qlgToPackageMap.keySet());
-
-        // Step 3: Query QuoteLineGroups
-        List<SBQQ__QuoteLineGroup__c> qlgList = [
-            SELECT Id, Name, Installation_Quantity__c, Number_of_Rapid_Titles__c,
-                   Number_of_Special_Products__c, Number_of_Virtual_Classrooms__c,
-                   User_Quantity__c, CurrencyISOCode, SBQQ__Quote__c
-            FROM SBQQ__QuoteLineGroup__c
-            WHERE SBQQ__Quote__c IN :approvedQuoteIds
-        ];
-
-        Logger.debug('QLGs to process: ' + qlgList.size());
-
-        // Step 4: Track records to insert/update
-        List<Package__c> newPackages = new List<Package__c>();
-        List<Package__c> packagesToUpdate = new List<Package__c>();
-        Set<Id> packagesToUpdateIds = new Set<Id>();
-
-        List<SBQQ__QuoteLineGroup__c> qlgToUpdate = new List<SBQQ__QuoteLineGroup__c>();
-        Set<Id> qlgToUpdateIds = new Set<Id>();
-
-        for (SBQQ__QuoteLineGroup__c qlg : qlgList) {
-            Logger.debug('Processing QLG: ' + qlg.Id);
-
-            if (qlgToPackageMap.containsKey(qlg.Id)) {
-                Package__c existingPackage = qlgToPackageMap.get(qlg.Id);
-                Boolean shouldUpdate = false;
-
-                if (existingPackage.Installation_Quantity__c != qlg.Installation_Quantity__c) {
-                    existingPackage.Installation_Quantity__c = qlg.Installation_Quantity__c;
-                    shouldUpdate = true;
-                }
-
-                if (existingPackage.Name != qlg.Name) {
-                    existingPackage.Name = qlg.Name;
-                    shouldUpdate = true;
-                }
-
-                if (shouldUpdate && !packagesToUpdateIds.contains(existingPackage.Id)) {
-                    packagesToUpdate.add(existingPackage);
-                    packagesToUpdateIds.add(existingPackage.Id);
-                }
-
-                if ((existingPackage.Quote_Line_Group__c == null || existingPackage.Quote_Line_Group__c != qlg.Id)
-                    && !qlgToUpdateIds.contains(qlg.Id)) {
-                    qlgToUpdate.add(new SBQQ__QuoteLineGroup__c(
-                        Id = qlg.Id,
-                        Package__c = existingPackage.Id
-                    ));
-                    qlgToUpdateIds.add(qlg.Id);
-                }
-
-            } else {
-                Logger.debug('Creating new Package for QLG: ' + qlg.Id);
-
-                Package__c newPackage = new Package__c(
-                    Account__c = newQtMap.get(qlg.SBQQ__Quote__c).SBQQ__Account__c,
-                    Contract__c = newQtMap.get(qlg.SBQQ__Quote__c).SBQQ__MasterContract__c,
-                    Installation_Quantity__c = qlg.Installation_Quantity__c,
-                    Number_of_Rapid_Titles__c = qlg.Number_of_Rapid_Titles__c,
-                    Number_of_Special_Products__c = qlg.Number_of_Special_Products__c,
-                    Number_of_Virtual_Classrooms__c = qlg.Number_of_Virtual_Classrooms__c,
-                    Package_Name__c = qlg.Name,
-                    Name = qlg.Name,
-                    CurrencyISOCode = qlg.CurrencyISOCode,
-                    User_Quantity__c = qlg.User_Quantity__c,
-                    Quote__c = qlg.SBQQ__Quote__c,
-                    Quote_Line_Group__c = qlg.Id
-                );
-
-                newPackages.add(newPackage);
+            
+            if (approvedQuoteIds.isEmpty()) {
+                return; // No approved quotes to process
             }
-        }
-
-        // Step 5: Insert new packages
-        if (!newPackages.isEmpty()) {
-            insert newPackages;
-            Logger.debug('Inserted new packages: ' + newPackages.size());
-
-            for (Package__c newPackage : newPackages) {
-                if (!qlgToUpdateIds.contains(newPackage.Quote_Line_Group__c)) {
+            
+            System.debug('Approved Quote IDs --> ' + approvedQuoteIds);
+            
+            // Step 2: Query existing packages linked to the approved quotes
+            Map<String, Package__c> qlgToPackageMap = new Map<String, Package__c>();
+            for (Package__c existingPackage : [
+                SELECT Id, Name, Quote_Line_Group__c, Quote__c, Installation_Quantity__c
+                FROM Package__c
+                WHERE Quote__c IN :approvedQuoteIds
+            ]) {
+                qlgToPackageMap.put(existingPackage.Quote_Line_Group__c, existingPackage);
+            }
+            
+            // Step 3: Query QuoteLineGroups for the approved quotes
+            List<SBQQ__QuoteLineGroup__c> qlgList = [
+                SELECT Id, Name, Installation_Quantity__c, Number_of_Rapid_Titles__c,
+                Number_of_Special_Products__c, Number_of_Virtual_Classrooms__c,
+                User_Quantity__c, CurrencyISOCode, SBQQ__Quote__c
+                FROM SBQQ__QuoteLineGroup__c
+                WHERE SBQQ__Quote__c IN :approvedQuoteIds
+            ];
+            
+            System.debug('QuoteLineGroups to process --> ' + qlgList);
+            
+            // Step 4: Create or link packages for QuoteLineGroups and track updates for installation quantities
+            List<Package__c> newPackages = new List<Package__c>();
+            List<Package__c> packagesToUpdate = new List<Package__c>();
+            List<SBQQ__QuoteLineGroup__c> qlgToUpdate = new List<SBQQ__QuoteLineGroup__c>();
+            
+            for (SBQQ__QuoteLineGroup__c qlg : qlgList) {
+                if (qlgToPackageMap.containsKey(qlg.Id)) {
+                    // Package already exists, link it to the QuoteLineGroup and check for changes in installation quantity
+                    Package__c existingPackage = qlgToPackageMap.get(qlg.Id);
+                    if (existingPackage.Quote_Line_Group__c == null || existingPackage.Quote_Line_Group__c != qlg.Id) {
+                        qlgToUpdate.add(new SBQQ__QuoteLineGroup__c(
+                            Id = qlg.Id,
+                            Package__c = existingPackage.Id
+                        ));
+                    }
+                    
+                    if (existingPackage.Installation_Quantity__c != qlg.Installation_Quantity__c) {
+                        System.debug('Existing Package Before Update --> ' + existingPackage);
+                        System.debug('QLG Installation Quantity --> ' + qlg.Installation_Quantity__c);
+                        existingPackage.Installation_Quantity__c = qlg.Installation_Quantity__c;
+                        packagesToUpdate.add(existingPackage);
+                    }
+                    
+                    // Check if the names are not equal and update the package's Name field
+                    if (existingPackage.Name != qlg.Name) {
+                        existingPackage.Name = qlg.Name;
+                        packagesToUpdate.add(existingPackage);
+                    }
+                } else {
+                    // Create a new package for this QuoteLineGroup
+                    Package__c newPackage = new Package__c(
+                        Account__c = newQtMap.get(qlg.SBQQ__Quote__c).SBQQ__Account__c,
+                        Contract__c = newQtMap.get(qlg.SBQQ__Quote__c).SBQQ__MasterContract__c,
+                        Installation_Quantity__c = qlg.Installation_Quantity__c,
+                        Number_of_Rapid_Titles__c = qlg.Number_of_Rapid_Titles__c,
+                        Number_of_Special_Products__c = qlg.Number_of_Special_Products__c,
+                        Number_of_Virtual_Classrooms__c = qlg.Number_of_Virtual_Classrooms__c,
+                        Package_Name__c = qlg.Name,
+                        Name = qlg.Name,
+                        CurrencyISOCode = qlg.CurrencyISOCode,
+                        User_Quantity__c = qlg.User_Quantity__c,
+                        Quote__c = qlg.SBQQ__Quote__c,
+                        Quote_Line_Group__c = qlg.Id
+                    );
+                    newPackages.add(newPackage);
+                }
+            }
+            
+            // Step 5: Insert new packages
+            if (!newPackages.isEmpty()) {
+                insert newPackages;
+                
+                // Link the newly created packages to the QuoteLineGroups
+                for (Package__c newPackage : newPackages) {
                     qlgToUpdate.add(new SBQQ__QuoteLineGroup__c(
                         Id = newPackage.Quote_Line_Group__c,
                         Package__c = newPackage.Id
                     ));
-                    qlgToUpdateIds.add(newPackage.Quote_Line_Group__c);
                 }
             }
-        }
-
-        // Step 6: Update existing packages
-        if (!packagesToUpdate.isEmpty()) {
-            update packagesToUpdate;
-            Logger.debug('Updated packages: ' + packagesToUpdate.size());
+            
+            // Step 6: Update existing packages with changed installation quantities
+            if (!packagesToUpdate.isEmpty()) {
+                update packagesToUpdate;
+            }
+            
+            // Step 7: Update QuoteLineGroups with Package IDs
+            if (!qlgToUpdate.isEmpty()) {
+                update qlgToUpdate;
+            }
+        } catch (Exception ex) {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
         }
-
-        // Step 7: Update QLGs with package links
-        if (!qlgToUpdate.isEmpty()) {
-            update qlgToUpdate;
-            Logger.debug('Updated QLGs with package references: ' + qlgToUpdate.size());
-            Logger.saveLog();
-        }
-
-        Logger.debug('END: createPackageRecords');
-    } catch (Exception ex) {
-        Logger.error(
-            'Exception in createPackageRecords:\n' +
-            'Message: ' + ex.getMessage() + '\n' +
-            'Line: ' + ex.getLineNumber() + '\n' +
-            'StackTrace: ' + ex.getStackTraceString()
-        );
-        Logger.saveLog();
     }
-}
     
     /**
     * @description Checks if existing Quotes have unprocessed draft Orders before approving.
@@ -411,290 +377,127 @@ public class QuoteTriggerHandler extends TriggerHandler {
     
     
     /**
-    * @description Calculate and update Current_Price__c on Quote Line Groups
-    * @param approvedQuoteIds Set of approved Quote IDs
-    */
-    /*
-      public void calculateCurrentPriceOnQuoteLineGroups(Set<Id> approvedQuoteIds) {
-            if (approvedQuoteIds == null || approvedQuoteIds.isEmpty()) {
-                System.debug('No approved quote IDs provided for processing.');
+* @description Calculate and update Current_Price__c on Quote Line Groups
+* @param approvedQuoteIds Set of approved Quote IDs
+*/
+    public void calculateCurrentPriceOnQuoteLineGroups(Set<Id> approvedQuoteIds) {
+        if (approvedQuoteIds == null || approvedQuoteIds.isEmpty()) {
+            System.debug('No approved quote IDs provided for processing.');
+            return;
+        }
+        
+        try {
+            // Step 1: Query related Quote Line Groups
+            List<SBQQ__QuoteLineGroup__c> quoteLineGroups = [
+                SELECT Id, SBQQ__Quote__c
+                FROM SBQQ__QuoteLineGroup__c
+                WHERE SBQQ__Quote__c IN :approvedQuoteIds
+            ];
+            
+            if (quoteLineGroups.isEmpty()) {
+                System.debug('No Quote Line Groups found for the approved Quotes.');
                 return;
             }
             
-            try {
-                // Step 1: Query related Quote Line Groups
-                List<SBQQ__QuoteLineGroup__c> quoteLineGroups = [
-                    SELECT Id, SBQQ__Quote__c
-                    FROM SBQQ__QuoteLineGroup__c
-                    WHERE SBQQ__Quote__c IN :approvedQuoteIds
-                ];
-                
-                if (quoteLineGroups.isEmpty()) {
-                    System.debug('No Quote Line Groups found for the approved Quotes.');
-                    return;
-                }
-                
-                // Collect Quote Line Group IDs
-                Set<Id> quoteLineGroupIds = new Map<Id, SBQQ__QuoteLineGroup__c>(quoteLineGroups).keySet();
-                
-                Map<String, Decimal> qlgPriceMap = new Map<String, Decimal>();
-                List<SBQQ__QuoteLine__c> qtlList = [SELECT Id, SBQQ__Group__c, Previous_Subscription_Net_Total__c, CurrencyIsoCode FROM SBQQ__QuoteLine__c WHERE SBQQ__Group__c  IN :quoteLineGroupIds];
-                
-                for(SBQQ__QuoteLine__c qtl : qtlList)
-                {
-                    if(qlgPriceMap.get(qtl.SBQQ__Group__c) == NULL)
-                    {
-                        qlgPriceMap.put(qtl.SBQQ__Group__c, 0.0);
-                    }
-                    Decimal price = qlgPriceMap.get(qtl.SBQQ__Group__c) + qtl.Previous_Subscription_Net_Total__c;
-                    qlgPriceMap.put(qtl.SBQQ__Group__c, price);
-                }
-                System.debug('qlgPriceMap --> ' + qlgPriceMap);
-                List<SBQQ__QuoteLineGroup__c> quoteLineGroupsToUpdate = new List<SBQQ__QuoteLineGroup__c>();
-                for (SBQQ__QuoteLineGroup__c qlg : quoteLineGroups)
-                {
-                    if (qlgPriceMap.containsKey(qlg.Id))
-                    {
-                        qlg.put('Current_Price__c', qlgPriceMap.get(qlg.Id));
-                        quoteLineGroupsToUpdate.add(qlg);
-                    }
-                }
-                
-                if (!quoteLineGroupsToUpdate.isEmpty()) {
-                    update quoteLineGroupsToUpdate;
-                    System.debug('Updated Current_Price__c on Quote Line Groups: ' + quoteLineGroupsToUpdate.size());
-                    System.debug('Updated Current_Price__c on Quote Line Groups: ' + quoteLineGroupsToUpdate);
-                }
-            } catch (Exception ex) {
-                System.debug('Error in calculateCurrentPriceOnQuoteLineGroups: ' + ex.getMessage());
-                Logger.error('Error in calculateCurrentPriceOnQuoteLineGroups: ' + ex.getMessage());
-            }
-        }*/
-     
-    
-     public static void updateInstalltionCost(Set<Id> approvedQuoteIds) {
-    try {
-        // Step 1: Fetch Quote Line Groups with Line Items and Installations
-        List<SBQQ__QuoteLineGroup__c> quoteGroups = [
-            SELECT Id, Name, Installation_Quantity__c, Package__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__c,
-                   SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
-                   (SELECT Id, Name, SBQQ__Product__c, SBQQ__ProductName__c, SBQQ__CustomerPrice__c, 
-                            Change_Type__c, Previous_Subscription_Net_Total__c
-                    FROM SBQQ__LineItems__r),
-                   (SELECT Id, Name, Installation_Type__c, Vessel_Name__c, Vessel_Name__r.Name,
-                            Organisation_Name__c, Organisation_Name__r.Name, Invoice_Account__c,
-                            Invoice_Account__r.Name, Client__c, Client__r.Name, Delivery_Contact__c,
-                            Delivery_Contact__r.Name
-                    FROM Installations__r
-                    WHERE Installation_Order_Status__c != 'Terminated')
-            FROM SBQQ__QuoteLineGroup__c
-            WHERE SBQQ__Quote__c IN :approvedQuoteIds
-            ORDER BY Name ASC
-        ];
-
-        // Step 2: Fetch related Packages
-        Map<Id, Package__c> packMap = new Map<Id, Package__c>([
-            SELECT Id, Name, Installation_Quantity__c, InstallationCost__c, Quote__c, Quote__r.SBQQ__Type__c, Quote_Line_Group__c, Products__c,
-                   (SELECT Id FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
-            FROM Package__c
-            WHERE Quote__c IN :approvedQuoteIds
-        ]);
-
-        // Lists for DML
-        List<Package__c> packListToUpdate = new List<Package__c>();
-        List<SBQQ__QuoteLineGroup__c> quoteGroupsToUpdate = new List<SBQQ__QuoteLineGroup__c>();
-        List<Installation__c> instList = new List<Installation__c>();
-
-        // Step 3: Process each Quote Line Group
-        for (SBQQ__QuoteLineGroup__c qlg : quoteGroups) {
-            if (qlg.Package__c == null || !packMap.containsKey(qlg.Package__c)) continue;
-            Package__c pack = packMap.get(qlg.Package__c);
-
-            Decimal currentCost = pack.InstallationCost__c != null ? pack.InstallationCost__c : 0.0;
-            Decimal installationPrice = 0.0;
-            Decimal currentPrice = 0.0;
-
-            String quoteType = qlg.SBQQ__Quote__r.SBQQ__Type__c;
-            Set<String> productNames = new Set<String>();
-
-            // For amendment, preload existing product names
-            if (quoteType == 'Amendment' && !String.isBlank(pack.Products__c)) {
-                List<String> existingNames = pack.Products__c.split(';');
-                for (String name : existingNames) {
-                    if (!String.isBlank(name)) {
-                        productNames.add(name.trim());
-                    }
-                }
-            }
-
-            Set<String> processedProductActions = new Set<String>(); // For Amendment: ProductId:Action
-            Set<Id> processedProductIds = new Set<Id>();             // For other quote types
-
-            for (SBQQ__QuoteLine__c ql : qlg.SBQQ__LineItems__r) {
-                if (ql.SBQQ__Product__c == null) continue;
-
-                Decimal price = ql.SBQQ__CustomerPrice__c != null ? ql.SBQQ__CustomerPrice__c : 0.0;
-
-                if (quoteType == 'Amendment') {
-                    String key = ql.SBQQ__Product__c + ':' + ql.Change_Type__c;
-                    if (!processedProductActions.contains(key)) {
-                        processedProductActions.add(key);
-
-                        if (ql.Change_Type__c == 'New') {
-                            installationPrice += price;
-
-                            if (!String.isBlank(ql.SBQQ__ProductName__c)) {
-                                productNames.add(ql.SBQQ__ProductName__c.trim());
-                            }
-                        } else if (ql.Change_Type__c == 'Cancel') {
-                            installationPrice -= price;
-
-                            if (!String.isBlank(ql.SBQQ__ProductName__c)) {
-                                productNames.remove(ql.SBQQ__ProductName__c.trim());
-                            }
-                        }
-                    }
-                } else {
-                    if (!processedProductIds.contains(ql.SBQQ__Product__c)) {
-                        processedProductIds.add(ql.SBQQ__Product__c);
-                        installationPrice += price;
-
-                        if (!String.isBlank(ql.SBQQ__ProductName__c)) {
-                            productNames.add(ql.SBQQ__ProductName__c.trim());
-                        }
-                    }
-                }
-
-                // For Renewal quote current price
-                if (quoteType == 'Renewal' && ql.Previous_Subscription_Net_Total__c != null) {
-                    currentPrice += ql.Previous_Subscription_Net_Total__c;
-                }
-            }
-
-            // Update Package installation cost
-            pack.InstallationCost__c = (quoteType == 'Amendment') ? currentCost + installationPrice : installationPrice;
-            pack.Products__c = String.join(new List<String>(productNames), ';');
-            if (currentPrice != null) {
-                pack.Previous_Cost__c = currentPrice;
-            }
-            packListToUpdate.add(pack);
-
-            // Update Quote Line Group current price
-            qlg.put('Current_Price__c', currentPrice);
-            qlg.put('Installation_Price__c',installationPrice);
-            quoteGroupsToUpdate.add(qlg);
-        }
-
-        // Step 4: DML updates
-        if (!packListToUpdate.isEmpty()) {
-            update packListToUpdate;
-        }
-
-        if (!quoteGroupsToUpdate.isEmpty()) {
-            update quoteGroupsToUpdate;
-        }
-
-        // Step 5: Update Installations for Renewal Quotes
-        for (Package__c pack : packMap.values()) {
-            if (pack.Quote__r.SBQQ__Type__c == 'Renewal' && pack.Installations__r != null && !pack.Installations__r.isEmpty()) {
-                for (Installation__c inst : pack.Installations__r) {
-                    inst.Quote__c = pack.Quote__c;
-                    inst.Quote_Line_Group__c = pack.Quote_Line_Group__c;
-                    instList.add(inst);
-                }
-            }
-        }
-
-        if (!instList.isEmpty()) {
-            update instList;
-        }
-
-    } catch (Exception ex) {
-        System.debug('Error in updateInstalltionCost: ' + ex.getMessage());
-        Logger.error('Error in updateInstalltionCost: ' + ex.getMessage());
-    }
-}
-    
-    private static final String CLASS_NAME = 'QuoteTriggerHandler';
-    
-    public static void handleBeforeInsert(List<SBQQ__Quote__c> newQuotes) {
-        // 1. Filter amendment quotes with contracts
-        List<SBQQ__Quote__c> amendmentQuotes = getAmendmentQuotes(newQuotes);
-        if (amendmentQuotes.isEmpty()) return;
-        
-        // 2. Get all related contracts
-        Map<Id, Contract> masterContracts = getMasterContracts(amendmentQuotes);
-        
-        // 3. Update quote currencies
-        updateQuoteCurrencies(amendmentQuotes, masterContracts);
-        
-        // 4. Update opportunity currencies
-        updateOpportunityCurrencies(amendmentQuotes, masterContracts);
-    }
-    
-    private static List<SBQQ__Quote__c> getAmendmentQuotes(List<SBQQ__Quote__c> quotes) {
-        List<SBQQ__Quote__c> amendmentQuotes = new List<SBQQ__Quote__c>();
-        for (SBQQ__Quote__c quote : quotes) {
-            if (quote.SBQQ__Type__c == 'Amendment' && 
-                quote.SBQQ__MasterContract__c != null &&
-                quote.SBQQ__Opportunity2__c != null) {
-                amendmentQuotes.add(quote);
-            }
-        }
-        return amendmentQuotes;
-    }
-    
-    private static void updateQuoteCurrencies(List<SBQQ__Quote__c> amendmentQuotes, Map<Id, Contract> masterContracts) {
-        for (SBQQ__Quote__c quote : amendmentQuotes) {
-            Contract masterContract = masterContracts.get(quote.SBQQ__MasterContract__c);
-            if (masterContract != null && quote.CurrencyIsoCode != masterContract.CurrencyIsoCode) {
-                quote.CurrencyIsoCode = masterContract.CurrencyIsoCode;
-            }
-        }
-    }
-    
-    private static void updateOpportunityCurrencies(List<SBQQ__Quote__c> amendmentQuotes, Map<Id, Contract> masterContracts) {
-        // Get all opportunity IDs
-        Set<Id> opportunityIds = new Set<Id>();
-        for (SBQQ__Quote__c quote : amendmentQuotes) {
-            opportunityIds.add(quote.SBQQ__Opportunity2__c);
-        }
-        
-        // Query opportunities with their current currency
-        Map<Id, Opportunity> opportunities = new Map<Id, Opportunity>([
-            SELECT Id, CurrencyIsoCode 
-            FROM Opportunity 
-            WHERE Id IN :opportunityIds
-            FOR UPDATE
-        ]);
-        
-        // Prepare updates
-        List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
-        for (SBQQ__Quote__c quote : amendmentQuotes) {
-            Opportunity opp = opportunities.get(quote.SBQQ__Opportunity2__c);
-            Contract contract = masterContracts.get(quote.SBQQ__MasterContract__c);
+            // Collect Quote Line Group IDs
+            Set<Id> quoteLineGroupIds = new Map<Id, SBQQ__QuoteLineGroup__c>(quoteLineGroups).keySet();
             
-            if (opp != null && contract != null && opp.CurrencyIsoCode != contract.CurrencyIsoCode) {
-                opp.CurrencyIsoCode = contract.CurrencyIsoCode;
-                opportunitiesToUpdate.add(opp);
+            Map<String, Decimal> qlgPriceMap = new Map<String, Decimal>();
+            List<SBQQ__QuoteLine__c> qtlList = [SELECT Id, SBQQ__Group__c, Previous_Subscription_Net_Total__c, CurrencyIsoCode FROM SBQQ__QuoteLine__c WHERE SBQQ__Group__c  IN :quoteLineGroupIds];
+            
+            for(SBQQ__QuoteLine__c qtl : qtlList)
+            {
+                if(qlgPriceMap.get(qtl.SBQQ__Group__c) == NULL)
+                {
+                    qlgPriceMap.put(qtl.SBQQ__Group__c, 0.0);
+                }
+                Decimal price = qlgPriceMap.get(qtl.SBQQ__Group__c) + qtl.Previous_Subscription_Net_Total__c;
+                qlgPriceMap.put(qtl.SBQQ__Group__c, price);
             }
-        }
-        
-        // Perform update
-        if (!opportunitiesToUpdate.isEmpty()) {
-            update opportunitiesToUpdate;
+            System.debug('qlgPriceMap --> ' + qlgPriceMap);
+            List<SBQQ__QuoteLineGroup__c> quoteLineGroupsToUpdate = new List<SBQQ__QuoteLineGroup__c>();
+            for (SBQQ__QuoteLineGroup__c qlg : quoteLineGroups)
+            {
+                if (qlgPriceMap.containsKey(qlg.Id))
+                {
+                    qlg.put('Current_Price__c', qlgPriceMap.get(qlg.Id));
+                    quoteLineGroupsToUpdate.add(qlg);
+                }
+            }
+            
+            if (!quoteLineGroupsToUpdate.isEmpty()) {
+                update quoteLineGroupsToUpdate;
+                System.debug('Updated Current_Price__c on Quote Line Groups: ' + quoteLineGroupsToUpdate.size());
+                System.debug('Updated Current_Price__c on Quote Line Groups: ' + quoteLineGroupsToUpdate);
+            }
+        } catch (Exception ex) {
+            System.debug('Error in calculateCurrentPriceOnQuoteLineGroups: ' + ex.getMessage());
+            Logger.error('Error in calculateCurrentPriceOnQuoteLineGroups: ' + ex.getMessage());
         }
     }
     
-    private static Map<Id, Contract> getMasterContracts(List<SBQQ__Quote__c> amendmentQuotes) {
-        Set<Id> contractIds = new Set<Id>();
-        for (SBQQ__Quote__c quote : amendmentQuotes) {
-            contractIds.add(quote.SBQQ__MasterContract__c);
+    public static void updateInstalltionCost(Set<Id> approvedQuoteIds)
+    {
+        try
+        {
+            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__c,
+                                                         SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
+                                                         (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
+                                                          Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name
+                                                          FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
+                                                         (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c,
+                                                          SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__CustomerPrice__c From SBQQ__LineItems__r)
+                                                         From SBQQ__QuoteLineGroup__c
+                                                         Where SBQQ__Quote__c IN: approvedQuoteIds Order By Name Asc];
+            Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, Installation_Quantity__c, Quote__c, Quote__r.SBQQ__Type__c, Quote_Line_Group__c,
+                                                                   (SELECT Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
+                                                                    Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
+                                                                   FROM Package__c WHERE Quote__c IN :approvedQuoteIds]);
+            
+            List<Package__c> packListToUpdate = new List<Package__c>();
+            for(SBQQ__QuoteLineGroup__c qlg : quoteGroups)
+            {
+                Package__c pack = packMap.get(qlg.Package__c);
+                Decimal installationPrice = 0.0;
+                for(SBQQ__QuoteLine__c ql : qlg.SBQQ__LineItems__r)
+                {
+                    installationPrice += ql.SBQQ__CustomerPrice__c;//SBQQ__NetPrice__c;
+                    //}
+                }
+                pack.InstallationCost__c = installationPrice;
+                packListToUpdate.add(pack);
+            }
+            if(!packListToUpdate.isEmpty())
+            {
+                update packListToUpdate;
+            }
+            
+            List<Installation__c> instList = new List<Installation__c>();
+            for(Package__c pack : packMap.values())
+            {
+                if(pack.Quote__r.SBQQ__Type__c == 'Renewal')
+                {
+                    if(pack.Installations__r != NULL && !pack.Installations__r.isEmpty())
+                    {
+                        for(Installation__c inst : pack.Installations__r)
+                        {
+                            inst.Quote__c = pack.Quote__c;
+                            inst.Quote_Line_Group__c = pack.Quote_Line_Group__c;
+                            instList.add(inst);
+                        }
+                    }
+                }
+            }
+            if(!instList.isEmpty())
+            {
+                update instList;
+            }
         }
-        return new Map<Id, Contract>([
-            SELECT Id, CurrencyIsoCode 
-            FROM Contract 
-            WHERE Id IN :contractIds
-        ]);
+        catch (Exception ex)
+        {
+            System.debug('Error in calculateCurrentPriceOnQuoteLineGroups: ' + ex.getMessage());
+            Logger.error('Error in calculateCurrentPriceOnQuoteLineGroups: ' + ex.getMessage());
+        }
     }
+    
 }

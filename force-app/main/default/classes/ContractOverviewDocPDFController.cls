@@ -1,9 +1,9 @@
 public class ContractOverviewDocPDFController
 {
     public Contract contr { get; set; }
-    //public SBQQ__Quote__c qt { get; set; }
+    public SBQQ__Quote__c qt { get; set; }
     public List<Package__c> packList { get; set; }
-    //public List<SBQQ__QuoteLine__c> qtLineList;
+    public List<SBQQ__QuoteLine__c> qtLineList;
     public List<PackageWrapper> packWrapList { get; set; }
     public List<Installation__c> instList { get; set; }
     public Date Today { get { return Date.today(); } }
@@ -19,23 +19,34 @@ public class ContractOverviewDocPDFController
         contr = (Contract) st.getRecord();
         contr = [SELECT Id, Name, ContractNumber, SBQQ__Quote__c, AccountId, Account.Name, Account.Account_ID__c, Account.Address1__c, Account.Address2__c,Payment_Terms__c,Legal_Entity__r.Name,
                  Account.Address3__c, Account.Town_City__c, Account.County_State__c, Account.Postcode_Zipcode__c,
-                 Account.Country__r.Name, SBQQ__Quote__r.SBQQ__PaymentTerms__c, Business_Unit__c, Renewal_Month__c, SBQQ__RenewalTerm__c, SBQQ__RenewalOpportunity__r.SBQQ__RenewedContract__r.Next_Renewal_Date__c,
+                 Account.Country__r.Name, SBQQ__Quote__r.SBQQ__PaymentTerms__c, Business_Unit__c, Renewal_Month__c, SBQQ__RenewalTerm__c,
                  Billing_Frequency__c, CurrencyIsoCode, Next_Renewal_Date__c, No_of_Installations__c, SBQQ__Opportunity__r.Account_Owner__c FROM Contract WHERE Id = :contr.Id];
         
-        Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, Quote__c, Products__c, Package_Number__c, Annual_Cost__c, InstallationCost__c, Installation_Cost__c, Installation_Quantity__c FROM Package__c WHERE Contract__c = :contr.Id AND Installation_Quantity__c > 0]);
+        Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, Quote__c FROM Package__c WHERE Contract__c = :contr.Id]);
         System.debug('packMap --> ' + packMap);
         
-        List<AggregateResult> agrList = [SELECT Installation__r.Package__c Pack, Product__r.Name Prod, COUNT(Id) cnt FROM Installation_Line__c WHERE Installation__r.Package__c IN :packMap.keySet() GROUP BY Installation__r.Package__c, Product__r.Name];
-        Map<Id, List<String>> packProdMap = new Map<Id, List<String>>();
-        for(AggregateResult agr : agrList)
-        {
-            if(packProdMap.get((Id)agr.get('Pack')) == NULL)
-            {
-                packProdMap.put((Id)agr.get('Pack'), new List<String>());
-            }
-            packProdMap.get((Id)agr.get('Pack')).add((String)agr.get('Prod')) ;
-        }
-        System.debug('packPrdMap --> ' + packProdMap);
+        qt = [
+            SELECT Id, Name, Legal_Entity__r.Country__r.Name, Total_Installations__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Business_Unit__c,
+            SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.Renewal_Month__c, SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.Next_Renewal_Date__c,
+            SBQQ__PaymentTerms__c, SBQQ__Opportunity2__r.Account_Owner__c, SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.No_of_Installations__c,
+            SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.SBQQ__RenewalUpliftRate__c, SBQQ__MasterContract__r.Next_Renewal_Date__c,
+            SBQQ__MasterContract__r.Renewal_Month__c, SBQQ__Account__c, SBQQ__Account__r.Phone, SBQQ__Account__r.Address1__c, SBQQ__Account__r.Address2__c,
+            SBQQ__Account__r.Address3__c, SBQQ__Account__r.Name, SBQQ__Account__r.Town_City__c, SBQQ__Account__r.County_State__c, SBQQ__Account__r.Postcode_Zipcode__c,
+            SBQQ__Account__r.Country__r.Name, SBQQ__Account__r.Account_ID__c, Legal_Entity__c, Legal_Entity__r.Name, SBQQ__SubscriptionTerm__c,
+            SBQQ__RenewalTerm__c, SBQQ__BillingFrequency__c, CurrencyIsoCode
+            FROM SBQQ__Quote__c
+            WHERE Id = :packMap.values()[0].Quote__c
+        ];
+        
+        qtLineList = [
+            SELECT Id, Name, SBQQ__Product__c, SBQQ__Quantity__c, SBQQ__Product__r.Name, SBQQ__Group__c, SBQQ__Group__r.Package__c,
+            SBQQ__Group__r.Package__r.Package_Name__c, SBQQ__Group__r.Package__r.Package_Number__c, SBQQ__Group__r.Package__r.Installation_Quantity__c,
+            SBQQ__Group__r.Package__r.Previous_Cost__c, SBQQ__Group__r.Package__r.Annual_Cost__c, 
+            SBQQ__Group__r.Package__r.Installation_Cost__c, Remove_Product_from_Package__c,SBQQ__Group__r.Current_Price__c, SBQQ__Group__r.Package__r.InstallationCost__c
+            FROM SBQQ__QuoteLine__c
+            WHERE SBQQ__Group__r.Package__c IN :packMap.keySet() AND SBQQ__Group__r.Package__r.Installation_Quantity__c > 0
+        ];
+        
         
         packWrapList = new List<PackageWrapper>();
         
@@ -43,32 +54,30 @@ public class ContractOverviewDocPDFController
         Map<String, List<ProductWrapper>> prodWrapMap = new Map<String, List<ProductWrapper>>();
         Set<String> packageNameProdStrSet = new Set<String>();
         
-        for(Package__c pk : packMap.values())
-        {
-            if (!packProdMap.isEmpty())
-            {
-                String packageNumber = pk.Package_Number__c;
+        for (SBQQ__QuoteLine__c ql : qtLineList) {
+            if (ql.SBQQ__Group__r.Package__r != null) {
+                String packageNumber = ql.SBQQ__Group__r.Package__r.Package_Number__c;
                 if (!prodWrapMap.containsKey(packageNumber)) {
                     prodWrapMap.put(packageNumber, new List<ProductWrapper>());
                 }
                 
-                for(String prod : pk.Products__c.split(';'))
+                if(!packageNameProdStrSet.contains(packageNumber + ql.SBQQ__Product__r.Name))
                 {
                     ProductWrapper pw = new ProductWrapper();
-                    pw.productName = prod;
-                    //pw.annualCost = pk.Annual_Cost__c;
-                    //System.debug('current --> ' + ql.SBQQ__Group__r.Current_Price__c);
-                    pw.previousCost = pk.InstallationCost__c;
-                    //pw.installationCost = pk.Installation_Cost__c;
-                    pw.instQuantity = pk.Installation_Quantity__c;
+                    pw.productName = ql.SBQQ__Product__r.Name;
+                    pw.annualCost = ql.SBQQ__Group__r.Package__r.Annual_Cost__c;
+                    System.debug('current --> ' + ql.SBQQ__Group__r.Current_Price__c);
+                    pw.previousCost = ql.SBQQ__Group__r.Package__r.InstallationCost__c;
+                    pw.installationCost = ql.SBQQ__Group__r.Package__r.Installation_Cost__c;
+                    pw.removeFromPackage = ql.Remove_Product_from_Package__c;
+                    pw.qlquantity = ql.SBQQ__Quantity__c;
+                    pw.instQuantity = ql.SBQQ__Group__r.Package__r.Installation_Quantity__c;
                     prodWrapMap.get(packageNumber).add(pw);
                     packageNameProdStrSet.add(packageNumber + pw.productName);
-                    packIdList.add(pk.Id);
+                    packIdList.add(ql.SBQQ__Group__r.Package__c);
                 }
             }
         }
-        System.debug('prodWrapMap --> ' + prodWrapMap);
-
         
         for (String packageNumber : prodWrapMap.keySet()) {
             System.debug('pack num --> ' + packageNumber);
@@ -76,8 +85,8 @@ public class ContractOverviewDocPDFController
             PackageWrapper pw = new PackageWrapper();
             pw.packageName = packageNumber;
             pw.productWrapList = prodWrapMap.get(packageNumber);
-            //pw.annualCost = prodWrapMap.get(packageNumber).size() > 0 ? prodWrapMap.get(packageNumber)[0].annualCost : 0;
-            //pw.installationCost = prodWrapMap.get(packageNumber).size() > 0 ? prodWrapMap.get(packageNumber)[0].installationCost : 0;
+            pw.annualCost = prodWrapMap.get(packageNumber).size() > 0 ? prodWrapMap.get(packageNumber)[0].annualCost : 0;
+            pw.installationCost = prodWrapMap.get(packageNumber).size() > 0 ? prodWrapMap.get(packageNumber)[0].installationCost : 0;
             pw.previousCost = prodWrapMap.get(packageNumber).size() > 0 ? prodWrapMap.get(packageNumber)[0].previousCost : 0;
             pw.installationQuantity = prodWrapMap.get(packageNumber).size() > 0 ? prodWrapMap.get(packageNumber)[0].instQuantity : 0;
             System.debug('pw --> ' + pw);
@@ -86,7 +95,7 @@ public class ContractOverviewDocPDFController
         
         instList = [
             SELECT Id, Installation_Name__c, Vessel_Name__r.Vessel_IMO__c, Package__r.Package_Number__c, Invoice_Account__r.Account_ID__c,
-            Invoice_Account__c, Invoice_Account__r.Name, Invoice_Account__r.Email__c,Invoice_Account__r.Invoice_Emails__c, Installation_Price__c,
+            Invoice_Account__c, Invoice_Account__r.Name, Invoice_Account__r.Email__c,Invoice_Account__r.Invoice_Emails__c,
             Invoice_Account__r.Address1__c, Invoice_Account__r.Address2__c, Invoice_Account__r.Address3__c,
             Invoice_Account__r.Town_City__c, Invoice_Account__r.County_State__c, Invoice_Account__r.Postcode_Zipcode__c,
             Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, Package__r.InstallationCost__c, CurrencyIsoCode
@@ -131,7 +140,7 @@ public class ContractOverviewDocPDFController
         invWrapList.addAll(invWrapMap.values());
 
         Date today = Date.today();        
-        String title = contr.Account.Name + '-Contract Overview ';
+        String title = qt.SBQQ__Account__r.Name + '-Contract Overview ';
         List<ContentVersion> cvList = [SELECT ContentDocumentId FROM ContentVersion WHERE Title LIKE :title + '%'];
         version = (cvList != null && !cvList.isEmpty()) ? cvList.size() + 1 : 1;
         System.debug('title 2 --> ' + title);
@@ -140,7 +149,7 @@ public class ContractOverviewDocPDFController
         
         // Format the date dynamically
         formattedDate = DateTime.newInstance(today.year(), today.month(), today.day()).format('MM/yyyy');
-        Date renewalDate = contr.SBQQ__RenewalOpportunity__r.SBQQ__RenewedContract__r.Next_Renewal_Date__c;
+        Date renewalDate = qt.SBQQ__Opportunity2__r.SBQQ__RenewedContract__r.Next_Renewal_Date__c;
         if (renewalDate != null) {
             formattedRenewalDate = formatDateWithOrdinal(renewalDate);
         } else {

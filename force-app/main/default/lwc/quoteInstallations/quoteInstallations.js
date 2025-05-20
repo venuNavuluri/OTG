@@ -104,8 +104,6 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     {
         this.openSpinner = true;
         let quoteLineGroupId = event.target.dataset.lgid;
-        let qgindexVar = event.target.dataset.qgindex;
-        let quoteLineGroup = this.quoteLineGroups[qgindexVar]
         const uploadedFiles = event.detail.files;
         console.log('file --> ' + JSON.stringify(uploadedFiles));
         console.log('rec Id --> ' + this.recordId);
@@ -113,8 +111,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         createInstallations({
             conVerId : uploadedFiles[0].contentVersionId,
             qtId : this.recordId,
-            qlgId : quoteLineGroupId,
-            instPrice : quoteLineGroup.installationPrice
+            qlgId : quoteLineGroupId
         }).then(result => 
             {
                 console.log('result --> ' + result);
@@ -594,7 +591,6 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             let installation = quoteLineGroup.newInstallations[indexVar]
             installation.Quote__c = this.recordId;
             installation.Quote_Line_Group__c = quoteLineGroupId;
-            installation.Installation_Price__c = quoteLineGroup.installationPrice;
             console.log('installation rec --> '+JSON.stringify(installation))
             if(installation.showVessel){
                 delete installation.Organisation_Name__c

@@ -50,33 +50,6 @@ public class CreateInstallationsController
                 ];
                 
                 Package__c pack = [SELECT Id, Name, Quote__c FROM Package__c WHERE Id = :packId LIMIT 1];
-                
-                List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,SBQQ__Quote__c,
-                                                        SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
-                                                        (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,Package__c,
-                                                        Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Quote__c, Quote__r.Name
-                                                        FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
-                                                        (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c
-                                                        From SBQQ__LineItems__r)
-                                                        From SBQQ__QuoteLineGroup__c
-                                                        WHERE Package__c = :packId Order BY CreatedDate ASC];
-                List<Id> packIdList = new List<Id>();
-                Decimal installationPrice = 0;
-                Date dt = Date.today();
-                SBQQ__QuoteLineGroup__c qlg = quoteGroups[0];
-                for(SBQQ__QuoteLine__c ql : qlg.SBQQ__LineItems__r)
-                {
-                    //System.debug('1 --> ' + (ql.SBQQ__StartDate__c < dt));
-                    System.debug('2 --> ' + (ql.SBQQ__EndDate__c > dt));
-                    if((ql.SBQQ__StartDate__c <= dt && ql.SBQQ__EndDate__c >= dt) || (ql.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal' && ql.SBQQ__StartDate__c >= dt))
-                    {
-                        System.debug('ql --> ' + ql);
-                        installationPrice += ql.SBQQ__NetTotal__c;//SBQQ__NetPrice__c;
-                    }
-                }
-                installationPrice = (installationPrice == NULL || installationPrice == 0 || qlg.Installation_Quantity__c == NULL || qlg.Installation_Quantity__c == 0) ? 0 : installationPrice/qlg.Installation_Quantity__c;
-                installationPrice = installationPrice.setScale(2);
-                System.debug('installationPrice --> ' + installationPrice);
 
                 if (inst.Vessel_Name__c != NULL && !contr.Installations__r.isEmpty()) {
                     return 'Duplicate_Error';
@@ -89,7 +62,6 @@ public class CreateInstallationsController
                 inst.Quote__c = pack.Quote__c;
                 inst.Installation_Order_Status__c = STATUS_DRAFT;
                 inst.Installation_Start_Date__c = Date.today().addDays(30);
-                inst.Installation_Price__c = installationPrice;
                 
                 insert inst;
             }
@@ -297,7 +269,6 @@ public class CreateInstallationsController
         {
             SBQQ__Quote__c qt;
             String qtId = '';
-            Contract contr = [SELECT Id, Name, No_of_Installations__c FROM Contract WHERE Id = :contrId];
             try
             {
                 String quoteJSON = SBQQ.ServiceRouter.load('SBQQ.ContractManipulationAPI.ContractAmender', contrId, NULL);
@@ -342,9 +313,6 @@ public class CreateInstallationsController
             Decimal newInstallationQuantity = (pack.Installation_Quantity__c != null ? pack.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);
             pack.Installation_Quantity__c = newInstallationQuantity;
             update pack;
-
-            contr.No_of_Installations__c = (contr.No_of_Installations__c != NULL ? contr.No_of_Installations__c : 0) + (isTerminate ? -1 : 1);
-            update contr;
             
             SBQQ__QuoteLineGroup__c qlg= [SELECT Id, Name, Installation_Quantity__c FROM SBQQ__QuoteLineGroup__c WHERE Package__c = :packId AND SBQQ__Quote__c = :qt.Id];
             Decimal qlgnewInstallationQuantity = (qlg.Installation_Quantity__c != null ? qlg.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);

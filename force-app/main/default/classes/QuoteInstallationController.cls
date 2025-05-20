@@ -13,7 +13,7 @@ public class QuoteInstallationController {
     }
 
     @AuraEnabled
-    public static string createInstallations(String conVerId, String qtId, String qlgId, Decimal instPrice)
+    public static string createInstallations(String conVerId, String qtId, String qlgId)
     {
         try
         {
@@ -92,8 +92,7 @@ public class QuoteInstallationController {
                         Contract__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__MasterContract__c,
                         Installation_Order_Status__c = 'Draft',
                         Contract_Customer__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__Account__c,
-                        CurrencyISOCode = qlgMap.get(qlgId).SBQQ__Quote__r.CurrencyISOCode,
-                        Installation_Price__c = instPrice
+                        CurrencyISOCode = qlgMap.get(qlgId).SBQQ__Quote__r.CurrencyISOCode
                     );
                     instList.add(inst);
                     vesInstMap.put(ves.Vessel_IMO__c, inst);
