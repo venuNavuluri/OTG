@@ -45,7 +45,6 @@
                             <tr class="row">
                                 <th class="cell">Installation Id</th>
                                 <th class="cell">Installation Type</th>
-                                <th class="cell">Quote</th>
                                 <th class="cell">Vessel/Organization Name</th>
                                 <th class="cell">Invoice Account</th>
                                 <th class="cell">Client</th>
@@ -60,7 +59,6 @@
                                         <a href={installation.recordUrl}>{installation.Name}</a>
                                     </td>
                                     <td class="cell">{installation.Installation_Type__c}</td>
-                                    <td class="cell">{installation.Quote__r.Name}</td>
                                     <td class="cell"><a href={installation.vesselOrgLink}>{installation.vesselOrgName}</a></td>
                                     <td class="cell"><a href={installation.invAcctLink}>{installation.invAcctName}</a></td>
                                     <td class="cell"> {installation.clientName}</td>
@@ -68,7 +66,7 @@
                                     <td class="cell">
                                         <lightning-button-menu alternative-text="Actions">
                                             <lightning-menu-item value="Edit" label="Edit" name={installation.Id} onclick={editInstallation}></lightning-menu-item>
-                                            <lightning-menu-item value="Change Package" name={installation.Id} label="Change Package1" onclick={changePackage1}></lightning-menu-item>
+                                            <lightning-menu-item value="Change Package" name={installation.Id} label="Change Package" onclick={changePackage1}></lightning-menu-item>
                                         </lightning-button-menu>
                                     </td>
                                 </tr>

@@ -19,8 +19,7 @@ public class CreateInstallationsControllerTest {
         });
 
         SBQQ__Quote__c sbq = (SBQQ__Quote__c)TestDataFactory.createSObject('SBQQ__Quote__c', new Map<String, Object>{
-            'SBQQ__MasterContract__c' => con.id,
-                'SBQQ__StartDate__c' => Date.today()
+            'SBQQ__MasterContract__c' => con.id
         });
 
         Package__c pack = (Package__c)TestDataFactory.createSObject('Package__c', new Map<String, Object>{
@@ -68,15 +67,10 @@ public class CreateInstallationsControllerTest {
 
     @isTest
     static void testCreateInstallationLines() {
-        List<SBQQ__Subscription__c> subList = [SELECT Id,Package__c,SBQQ__Product__c,SBQQ__Product__r.Name,SBQQ__StartDate__c,SBQQ__EndDate__c, SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, SBQQ__NetPrice__c,CurrencyIsoCode FROM SBQQ__Subscription__c LIMIT 1];
-        List<Installation__c> instList = [SELECT Id, Name, Package__c FROM Installation__c WHERE Package__c = :subList[0].Package__c];
-        List<Id> instIdList = new List<Id>();
-        for(Installation__c inst : instList)
-        {
-            instIdList.add(inst.Id);
-        }
+        List<SBQQ__Subscription__c> subList = [SELECT Id,Package__c,SBQQ__Product__c,SBQQ__Product__r.Name,SBQQ__StartDate__c,SBQQ__EndDate__c,SBQQ__NetPrice__c,CurrencyIsoCode FROM SBQQ__Subscription__c LIMIT 1];
+
         Test.startTest();
-        CreateInstallationsController.createInstallationLines(subList, instIdList); 
+        CreateInstallationsController.createInstallationLines(subList);
         Test.stopTest();
 
         List<Installation_Line__c> instLines = [SELECT Name, Installation__c, Product__c, Start_Date__c, End_Date__c, Net_Total__c, CurrencyIsoCode FROM Installation_Line__c];
@@ -120,12 +114,10 @@ public class CreateInstallationsControllerTest {
     @isTest
     static void testCheckDuplicates() {
         Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-        Installation__c testInstallation = [SELECT Id, Vessel_Name__c FROM Installation__c LIMIT 1];
+        Installation__c testInstallation = [SELECT Vessel_Name__c FROM Installation__c LIMIT 1];
         
         Test.startTest();
         Boolean hasDuplicates = CreateInstallationsController.checkDuplicates(testContract.Id, testInstallation.Vessel_Name__c, null);
-        Installation__c inst = CreateInstallationsController.getContract(testInstallation.Id);
-        CreateInstallationsController.goToInstallationLineCreation(new List<Id>{testInstallation.Id});
         Test.stopTest();
         
         System.assert(hasDuplicates, 'There should be duplicates found.');
@@ -176,40 +168,4 @@ public class CreateInstallationsControllerTest {
         System.assert(installations.size() > 0, 'Installation records should be retrieved.');
     }
     
-    /*@IsTest
-    public static void testGetContractDates()
-    {
-        List<Installation__c> instList = [SELECT Id, Name, Contract__c FROM Installation__c WHERE Contract__c != NULL LIMIT 1];
-        CreateInstallationsController.getContractDates(instList[0].Id);
-    }*/
-    
-    @IsTest
-    public static void testModifyContract()
-    {
-        Test.startTest();
-        try
-        {
-            List<Installation__c> instList = [SELECT Id, Name, Contract__c, Package__c FROM Installation__c WHERE Contract__c != NULL AND Package__c != NULL];
-            CreateInstallationsController.modifyContract(instList[0].Id, Date.today(), instList[0].Contract__c, instList[0].Package__c, FALSE);
-            CreateInstallationsController.goToInstallationLineCreation(NULL);
-            CreateInstallationsController.createNewInstRecord(FALSE, NULL, NULL, NULL);
-            CreateInstallationsController.createInstallationLines(NULL, NULL);
-        }
-        catch(Exception ex)
-        {
-            
-        }
-        Test.stopTEst();
-    }
-    
-    @IsTest
-    public static void testNegative()
-    {
-        try
-        {
-            CreateInstallationsController.terminateRecords(NULL, Date.today(), '');
-        }
-        catch(Exception ex)
-        {}
-    }
 }

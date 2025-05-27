@@ -34,7 +34,6 @@ export default class CourseCaseForm extends LightningElement {
     @track countries = [];
     @track selectedCountryId = '';
     @track isSubmitted = false;
-    @track errors = {};
     
     caseId = '';  
     caseNumber = ''; 
@@ -96,7 +95,6 @@ export default class CourseCaseForm extends LightningElement {
         console.log('Certificate selected:', this.selectedCertificateId);
         this.certificationName = this.certificates.find(cert => cert.value === this.selectedCertificateId)?.label || '';
         this.fetchModules();
-        this.clearError('courseCertificate');
     }
 
     // Handle module change
@@ -107,7 +105,6 @@ export default class CourseCaseForm extends LightningElement {
         this.selectedModuleNames = this.modules
             .filter(module => selectedModuleIds.includes(module.value))
             .map(module => module.label);
-        this.clearError('courseModules');
     }
 
     // Handle form input changes
@@ -116,105 +113,27 @@ export default class CourseCaseForm extends LightningElement {
         if (fieldName === 'countries') {
             this.selectedCountryId = event.target.value;
             console.log('Country selected:', this.selectedCountryId);
-            this.clearError('countries');
         } else {
             this[fieldName] = event.target.value;
             console.log('Input changed:', fieldName, event.target.value);
-            this.clearError(fieldName);
         }
-    }
-
-    // Clear error for a specific field
-    clearError(fieldName) {
-        if (this.errors[fieldName]) {
-            this.errors = {...this.errors};
-            delete this.errors[fieldName];
-        }
-    }
-
-    // Validate all required fields
-    validateFields() {
-        this.errors = {};
-        let isValid = true;
-
-        // Required fields validation
-        const requiredFields = [
-           // { name: 'requestorFirstName', label: 'Requestor First Name' },
-           // { name: 'requestorLastName', label: 'Requestor Last Name' },
-            { name: 'requestorEmail', label: 'Requestor Email' },
-            { name: 'applicantFirstName', label: 'Applicant First Name' },
-            { name: 'applicantLastName', label: 'Applicant Last Name' },
-            { name: 'jobTitle', label: 'Job Title' },
-            { name: 'applicantEmail', label: 'Applicant Email' },
-           // { name: 'olpUsername', label: 'OLP Username' },
-           // { name: 'olpCompanyName', label: 'OLP Company Name' },
-            { name: 'vesselName', label: 'Vessel Name' },
-            { name: 'vesselIMO', label: 'Vessel IMO' },
-            { name: 'dob', label: 'Date of Birth' },
-           // { name: 'otherDetails', label: 'Other Details' },
-            { name: 'invoiceCompanyName', label: 'Invoice Company Name' },
-            { name: 'invoiceEmail', label: 'Invoice Email' },
-            { name: 'invoiceAddress1', label: 'Address 1' },
-           // { name: 'invoiceTownCity', label: 'Town/City' },
-           // { name: 'invoiceState', label: 'State' },
-           // { name: 'invoiceZipcode', label: 'Postal Code/Zipcode' }
-        ];
-
-        requiredFields.forEach(field => {
-            if (!this[field.name]) {
-                this.errors[field.name] = `${field.label} is required`;
-                isValid = false;
-            }
-        });
-
-        // Email validation
-        if (this.requestorEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.requestorEmail)) {
-            this.errors.requestorEmail = 'Please enter a valid email address';
-            isValid = false;
-        }
-
-        if (this.applicantEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.applicantEmail)) {
-            this.errors.applicantEmail = 'Please enter a valid email address';
-            isValid = false;
-        }
-
-        if (this.invoiceEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.invoiceEmail)) {
-            this.errors.invoiceEmail = 'Please enter a valid email address';
-            isValid = false;
-        }
-
-        // Certificate validation
-        if (!this.selectedCertificateId) {
-            this.errors.courseCertificate = 'Please select a certificate';
-            isValid = false;
-        }
-
-        // Modules validation
-        if (this.selectedModuleIds.length === 0) {
-            this.errors.courseModules = 'Please select at least one module';
-            isValid = false;
-        }
-
-        // Country validation
-        if (!this.selectedCountryId) {
-            this.errors.countries = 'Please select a country';
-            isValid = false;
-        }
-
-        return isValid;
     }
 
     // Handle form submission
     handleSubmit() {
         console.log('Form submitted');
-        
-        // Validate fields
-        if (!this.validateFields()) {
-            // Show first error in toast
-            const firstError = Object.values(this.errors)[0];
-            if (firstError) {
-                this.showToast('Validation Error', firstError, 'error');
-            }
+        console.log('Selected Certificate ID:', this.selectedCertificateId);
+        console.log('Selected Module IDs:', this.selectedModuleIds);
+
+        if (!this.selectedCertificateId) {
+            console.error('Validation failed: Certificate not selected.');
+            this.showToast('Error', 'Please select a certificate.', 'error');
+            return;
+        }
+
+        if (this.selectedModuleIds.length === 0) {
+            console.error('Validation failed: No modules selected.');
+            this.showToast('Error', 'Please select at least one module.', 'error');
             return;
         }
 
@@ -317,7 +236,6 @@ export default class CourseCaseForm extends LightningElement {
         this.invoiceCompanyName = '';
         this.invoiceEmail = '';
         this.selectedCountryId = '';
-        this.errors = {};
     }
 
     // Show toast messages

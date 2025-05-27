@@ -79,8 +79,7 @@ public class OrderTriggerTest
             'SBQQ__BillingFrequency__c' => 'Annual',
             'Agreement_Type__c' => 'Asset Based Installation',
             'SBQQ__Primary__c' => TRUE,
-            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId(),
-                'SBQQ__StartDate__c' => Date.today()
+            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId()
                 });
         
         SBQQ__QuoteLineGroup__c sbqlg = (SBQQ__QuoteLineGroup__c)TestDataFactory.createSObject('SBQQ__QuoteLineGroup__c', new Map<String, Object>{
@@ -98,109 +97,6 @@ public class OrderTriggerTest
     }
     
     @IsTest
-    public static void testOrder()
-    {
-        SBQQ__Quote__c qt = [SELECT Id, Name FROM SBQQ__Quote__c LIMIT 1];
-        qt.SBQQ__Status__c = 'Approved';
-        update qt;
-        List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Quote__c = :qt.Id];
-        packList[0].Installation_Quantity__c = 1;
-        packList[1].Installation_Quantity__c = 1;
-        update packList;
-        System.debug('size package --> ' + packList.size());
-        Vessel__c ves1 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
-            'Name' => 'Test1',
-                'Vessel_IMO__c' => '123'
-        });
-        Vessel__c ves2 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
-            'Name' => 'Test2',
-                'Vessel_IMO__c' => '1234'
-        });
-        try
-        {
-        Installation__c inst1 = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
-            'Package__c' => packList[0].id,
-            'Vessel_Name__c' => ves1.id,
-                'Quote__c' => qt.Id,
-                'Installation_Order_Status__c' => 'Draft'
-        });
-        System.debug('inst1 --> ' + inst1);
-        //inst1.Installation_Order_Status__c = 'Active';
-        //update inst1;
-        System.debug('inst1 --> ' + inst1);
-            Installation__c inst2 = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
-                'Package__c' => packList[1].id,
-                    'Vessel_Name__c' => ves2.id,
-                    'Quote__c' => qt.Id,
-                'Installation_Order_Status__c' => 'Draft'
-                    });
-            //inst2.Installation_Order_Status__c = 'Active';
-            //update inst2;
-        }
-        catch(Exception ex)
-        {
-            System.debug('ex --> ' + ex);
-            System.debug('ex Line --> ' + ex.getLineNumber());
-        }
-        Order ord = (Order)TestDataFactory.createSObject('Order', new Map<String, Object>{
-            'SBQQ__Quote__c' => qt.Id
-        });
-        OrderTriggerHandler.updateOrderEndDate(new List<Order>{ord});
-    }
-    
-    @IsTest
-    public static void testOrderValidation()
-    {
-        SBQQ__Quote__c qt = [SELECT Id, Name FROM SBQQ__Quote__c LIMIT 1];
-        qt.SBQQ__Status__c = 'Approved';
-        update qt;
-        List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Quote__c = :qt.Id];
-        packList[0].Installation_Quantity__c = 1;
-        packList[1].Installation_Quantity__c = 1;
-        update packList;
-        System.debug('size package --> ' + packList.size());
-        Vessel__c ves1 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
-            'Name' => 'Test1',
-                'Vessel_IMO__c' => '123'
-        });
-        Vessel__c ves2 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
-            'Name' => 'Test2',
-                'Vessel_IMO__c' => '1234'
-        });
-        try
-        {
-            Installation__c inst1 = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
-                'Package__c' => packList[0].id,
-                    'Vessel_Name__c' => ves1.id,
-                    'Quote__c' => qt.Id
-                    });
-            System.debug('inst1 --> ' + inst1);
-            //inst1.Installation_Order_Status__c = 'Active';
-            //update inst1;
-            System.debug('inst1 --> ' + inst1);
-            /*Installation__c inst2 = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
-                'Package__c' => packList[1].id,
-                'Vessel_Name__c' => ves2.id,
-                'Quote__c' => qt.Id
-                });
-                inst2.Installation_Order_Status__c = 'Active';
-                update inst2;*/
-            
-            Order ord = (Order)TestDataFactory.createSObject('Order', new Map<String, Object>{
-                'SBQQ__Quote__c' => qt.id
-                    });
-            //OrderTriggerHandler.updateOrderEndDate(new List<Order>{ord});
-        }
-        catch(Exception ex)
-        {
-            System.debug('ex --> ' + ex);
-            System.debug('ex Line --> ' + ex.getLineNumber());
-        }
-    }
-    
-    
-    
-    /*@IsTest
     public static void test1()
     {
         //Order ord = [SELECT Id, Name FROM Order ORDER BY CreatedDate DESC LIMIT 1];
@@ -254,10 +150,7 @@ public class OrderTriggerTest
         {
             qt.Installation__c = inst1.Id;
             System.debug('qt --> ' + qt);
-            //update qt;
-            Order ord = (Order)TestDataFactory.createSObject('Order', new Map<String, Object>{
-            'SBQQ__Quote__c' => qt.Id
-        });
+            update qt;
         }
         catch(Exception ex)
         {
@@ -319,7 +212,7 @@ public class OrderTriggerTest
         System.debug('instList --> ' + instList);
         System.debug('int qty 1 --> ' + instList[0].Package__r.Installation_Quantity__c);
         System.debug('int qty 2 --> ' + instList[1].Package__r.Installation_Quantity__c);
-        //qt.SBQQ__Ordered__c = TRUE;
+        qt.SBQQ__Ordered__c = TRUE;
         try
         {
             qt.Installation__c = inst1.Id;
@@ -331,9 +224,9 @@ public class OrderTriggerTest
             System.debug('ex --> ' + ex.getStackTraceString());
             System.debug('ex --> ' + ex);
         }
-        Order ord = [SELECT Id, Name FROM Order WHERE SBQQ__Quote__c != NULL];
+        Order ord = [SELECT Id, Name FROM Order WHERE SBQQ__Quote__c = :qt.Id];
         
-        ActivateOrderController.activateOrder(ord.Id, Date.today());
+        ActivateOrderController.activateOrder(ord.Id);
     }
     
     @IsTest
@@ -397,5 +290,5 @@ public class OrderTriggerTest
             System.debug('ex --> ' + ex.getStackTraceString());
             System.debug('ex --> ' + ex);
         }
-    }*/
+    }
 }

@@ -22,4 +22,7 @@
             <button if:false={success} class="slds-button slds-button_brand" onclick={createOrder} title="Cancel">Yes</button>
         </footer>
     </template>
+    <template if:true={showSpinner} >
+        <lightning-spinner></lightning-spinner>
+    </template>
 </template>

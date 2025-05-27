@@ -14,39 +14,29 @@
                 <h2 class="slds-text-heading_medium slds-m-bottom_small">Requestor Information</h2>
                 <div class="slds-grid slds-wrap slds-gutters">
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Requestor First Name" 
-                                name="requestorFirstName" 
-                                value={requestorFirstName} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="Requestor First Name" 
+                            name="requestorFirstName" 
+                            value={requestorFirstName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Requestor Last Name" 
-                                name="requestorLastName" 
-                                value={requestorLastName} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="Requestor Last Name" 
+                            name="requestorLastName" 
+                            value={requestorLastName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Requestor Email" 
-                                type="email"
-                                name="requestorEmail" 
-                                value={requestorEmail} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.requestorEmail}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.requestorEmail}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Requestor Email" 
+                            type="email"
+                            name="requestorEmail" 
+                            value={requestorEmail} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                 </div>
             </div>
@@ -56,169 +46,137 @@
                 <h2 class="slds-text-heading_medium slds-m-bottom_small">Applicant Information</h2>
                 <div class="slds-grid slds-wrap slds-gutters">
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Applicant First Name" 
-                                name="applicantFirstName" 
-                                value={applicantFirstName} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.applicantFirstName}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.applicantFirstName}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Applicant First Name" 
+                            name="applicantFirstName" 
+                            value={applicantFirstName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Applicant Last Name" 
-                                name="applicantLastName" 
-                                value={applicantLastName} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.applicantLastName}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.applicantLastName}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Applicant Last Name" 
+                            name="applicantLastName" 
+                            value={applicantLastName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Job Title" 
-                                name="jobTitle" 
-                                value={jobTitle} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.jobTitle}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.jobTitle}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Job Title" 
+                            name="jobTitle" 
+                            value={jobTitle} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Applicant Email" 
-                                type="email" 
-                                name="applicantEmail" 
-                                value={applicantEmail} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.applicantEmail}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.applicantEmail}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Applicant Email" 
+                            type="email" 
+                            name="applicantEmail" 
+                            value={applicantEmail} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Date of Birth (DOB)" 
-                                type="date" 
-                                name="dob" 
-                                value={dob} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.dob}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.dob}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Date of Birth (DOB)" 
+                            type="date" 
+                            name="dob" 
+                            value={dob} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="OLP Username" 
-                                name="olpUsername" 
-                                value={olpUsername} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="OLP Username" 
+                            name="olpUsername" 
+                            value={olpUsername} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="OLP Company Name" 
-                                name="olpCompanyName" 
-                                value={olpCompanyName} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="OLP Company Name" 
+                            name="olpCompanyName" 
+                            value={olpCompanyName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-combobox 
-                                name="courseCertificate" 
-                                label="Course Certificate" 
-                                options={certificates} 
-                                value={selectedCertificateId} 
-                                onchange={handleCertificateChange}>
-                            </lightning-combobox>
-                            <template if:true={errors.courseCertificate}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.courseCertificate}</div>
-                            </template>
-                        </div>
+                        <lightning-combobox 
+                            name="courseCertificate" 
+                            label="Course Certificate" 
+                            options={certificates} 
+                            value={selectedCertificateId} 
+                            onchange={handleCertificateChange}>
+                        </lightning-combobox>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-checkbox-group 
-                                name="courseModules" 
-                                label="Course Modules" 
-                                options={modules} 
-                                value={selectedModuleIds} 
-                                onchange={handleModuleChange}>
-                            </lightning-checkbox-group>
-                            <template if:true={errors.courseModules}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.courseModules}</div>
-                            </template>
-                        </div>
+                        <lightning-checkbox-group 
+                            name="courseModules" 
+                            label="Course Modules" 
+                            options={modules} 
+                            value={selectedModuleIds} 
+                            onchange={handleModuleChange}>
+                        </lightning-checkbox-group>
                     </div>
                 </div>
             </div>
+            <!-- File Upload Section 
+            <div class="form-section">
+                <h2 class="slds-text-heading_medium slds-m-bottom_small">Certification Evidence</h2>
+                <lightning-file-upload 
+                    label="Upload Files" 
+                    name="fileUploader" 
+                    accept=".pdf,.jpg,.png,.docx" 
+                    record-id={caseId} 
+                    onuploadfinished={handleUploadFinished}>
+                </lightning-file-upload>
+            </div> -->
+
+            <!-- Show uploaded files 
+            <template if:true={uploadedFiles.length}>
+                <div class="slds-m-top_medium">
+                    <ul>
+                        <template for:each={uploadedFiles} for:item="file">
+                            <li key={file.documentId}>
+                                <span>{file.name}</span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template> -->
 
             <!-- Vessel Details Section -->
             <div class="form-section">
                 <h2 class="slds-text-heading_medium slds-m-bottom_small">Vessel Details</h2>
                 <div class="slds-grid slds-wrap slds-gutters">
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Vessel Name" 
-                                name="vesselName" 
-                                value={vesselName} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.vesselName}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.vesselName}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Vessel Name" 
+                            name="vesselName" 
+                            value={vesselName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Vessel IMO" 
-                                name="vesselIMO" 
-                                value={vesselIMO} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.vesselIMO}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.vesselIMO}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Vessel IMO" 
+                            name="vesselIMO" 
+                            value={vesselIMO} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12">
-                        <div class="slds-form-element">
-                            <lightning-textarea 
-                                label="Other Details" 
-                                name="otherDetails" 
-                                value={otherDetails} 
-                                onchange={handleInputChange}>
-                            </lightning-textarea>
-                        </div>
+                        <lightning-textarea 
+                            label="Other Details" 
+                            name="otherDetails" 
+                            value={otherDetails} 
+                            onchange={handleInputChange}>
+                        </lightning-textarea>
                     </div>
                 </div>
             </div>
@@ -228,90 +186,62 @@
                 <h2 class="slds-text-heading_medium slds-m-bottom_small">Purchase Options</h2>
                 <div class="slds-grid slds-wrap slds-gutters">
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Invoice Company Name" 
-                                name="invoiceCompanyName" 
-                                value={invoiceCompanyName} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.invoiceCompanyName}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.invoiceCompanyName}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Invoice Company Name" 
+                            name="invoiceCompanyName" 
+                            value={invoiceCompanyName} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Invoice Email" 
-                                type="email" 
-                                name="invoiceEmail" 
-                                value={invoiceEmail} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.invoiceEmail}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.invoiceEmail}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Invoice Email" 
+                            type="email" 
+                            name="invoiceEmail" 
+                            value={invoiceEmail} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Address 1" 
-                                name="invoiceAddress1" 
-                                value={invoiceAddress1} 
-                                required
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                            <template if:true={errors.invoiceAddress1}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.invoiceAddress1}</div>
-                            </template>
-                        </div>
+                        <lightning-input 
+                            label="Address 1" 
+                            name="invoiceAddress1" 
+                            value={invoiceAddress} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="Town / City" 
-                                name="invoiceTownCity" 
-                                value={invoiceTownCity} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="Town / City" 
+                            name="invoiceTownCity" 
+                            value={invoiceTownCity} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div> 
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="State" 
-                                name="invoiceState" 
-                                value={invoiceState} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="State" 
+                            name="invoiceState" 
+                            value={invoiceState} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div> 
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-input 
-                                label="PostalCode/Zipcode" 
-                                name="invoiceZipcode" 
-                                value={invoiceZipcode} 
-                                onchange={handleInputChange}>
-                            </lightning-input>
-                        </div>
+                        <lightning-input 
+                            label="PostalCode/Zipcode" 
+                            name="invoiceZipcode" 
+                            value={invoiceZipcode} 
+                            onchange={handleInputChange}>
+                        </lightning-input>
                     </div> 
                     <div class="slds-col slds-size_12-of-12 slds-medium-size_6-of-12">
-                        <div class="slds-form-element">
-                            <lightning-combobox 
-                                name="countries" 
-                                label="Country" 
-                                options={countries} 
-                                value={selectedCountryId} 
-                                onchange={handleInputChange}>
-                            </lightning-combobox>
-                            <template if:true={errors.countries}>
-                                <div class="slds-form-element__help slds-text-color_error">{errors.countries}</div>
-                            </template>
-                        </div>
+                        <lightning-combobox 
+                            name="countries" 
+                            label="Country" 
+                            options={countries} 
+                            value={selectedCountryId} 
+                            onchange={handleInputChange}>
+                        </lightning-combobox>
                     </div>                                                                                                    
                 </div>
             </div>

@@ -1,66 +1,63 @@
-import { api, LightningElement, track } from 'lwc';
-import { updateRecord } from 'lightning/uiRecordApi';
+import { LightningElement, api, track } from 'lwc';
+import { getRecord } from "lightning/uiRecordApi";
+import activate from '@salesforce/apex/ActivateOrderController.activateOrder';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { getDatasetVersions } from 'lightning/analyticsWaveApi';
+const FIELDS = ['Name','SBQQ__Account__c','SBQQ__Opportunity2__c, EndDate'];
 
-export default class ActivateOrder extends LightningElement{
+export default class ActivateOrder extends LightningElement
+{
     @api recordId;
-        @track showSpinner = false;
-        
-        createContract()
-        {
-            this.showSpinner = true;
-            updateRecord({
-                fields : {
-                Id : this.recordId,
-                Status : 'Activated',
-                Is_Activated__c : true,
-                SBQQ__Contracted__c : true,
-                } 
-            }).then(result => {
-                this.showSpinner = false;
-                this.showSpinner = false;
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Order Activated Successfully',
-                        variant: 'success'
-                    })
-                );
-                console.log('result --> ' + JSON.stringify(result));
-                this.dispatchEvent(new CloseActionScreenEvent());
+    @track message;
+    @track showMessage;
+    @track showSpinner = false;
+    @track orderActivatedDate;
 
-            }).catch(error => {
+    createContract(event)
+    {
+        this.showSpinner = true;
+        console.log('ordId --> ' + this.recordId);
+        activate({ordId : this.recordId, activatedDate : this.orderActivatedDate}).then(result => {
+            console.log('result --> ' + result);
+            if(result == 'SUCCESS')
+            {
                 this.showSpinner = false;
-                console.log('error --> ' + JSON.stringify(error));
+                /*this.message = 'Quote activated Successfully';
+                this.showMessage = true;*/
+                const event = new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Contract Created Successfully.',
+                    variant: 'success',
+                    mode: 'dismissable'
+                });
+                //setTimeout(this.dispatchEvent(event), 500);
                 this.dispatchEvent(new CloseActionScreenEvent());
-                
-                // Extract validation rule message
-                let errorMessage = 'An error occurred while Activating the Service Delivery Order';
-                
-                if (error.body?.output?.errors) {
-                    errorMessage = error.body.output.errors.map(err => err.message).join('. ');
-                } 
-                else if (error.body?.pageErrors) {
-                    errorMessage = error.body.pageErrors.map(err => err.message).join('. ');
-                }
-                else if (error.body?.message) {
-                    errorMessage = error.body.message;
-                }
-                
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error',
-                        message: errorMessage,
-                        variant: 'error',
-                        mode: 'sticky'
-                    })
-                );
+            }
+        }).catch(error => {
+            console.log('error --> ' + JSON.stringify(error));
+            /*this.message = 'Error occured activating Quote. Please contact the Technical support team for more details.';
+            this.showMessage = true;*/
+            this.showSpinner = false;
+            const event = new ShowToastEvent({
+                title: 'Failed',
+                message: 'Error occured while creating contract.',
+                variant: 'error',
+                mode: 'dismissable'
             });
-        }
-
-        close(event)
-        {
+            //setTimeout(this.dispatchEvent(event), 500);
             this.dispatchEvent(new CloseActionScreenEvent());
-        }
+        });
+    }
+
+    close(event)
+    {
+        this.dispatchEvent(new CloseActionScreenEvent());
+    }
+
+    updateFieldValue(event)
+    {
+        this.orderActivatedDate = event.target.value;
+        console.log('end --> ' + this.orderActivatedDate);
+    }
 }

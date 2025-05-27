@@ -78,8 +78,7 @@ public class QuoteInstallationControllerTest
             'SBQQ__BillingFrequency__c' => 'Annual',
             'Agreement_Type__c' => 'Asset Based Installation',
             'SBQQ__Primary__c' => TRUE,
-            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId(),
-                'SBQQ__StartDate__c' => Date.today()
+            'SBQQ__PricebookId__c' => Test.getStandardPriceBookId()
                 });
         
         Package__c pack = (Package__c)TestDataFactory.createSObject('Package__c', new Map<String, Object>{
@@ -130,11 +129,10 @@ public class QuoteInstallationControllerTest
         List<QuoteInstallationController.QuoteRecordWrapper> qrwList = (List<QuoteInstallationController.QuoteRecordWrapper>)JSON.deSerialize(st, List<QuoteInstallationController.QuoteRecordWrapper>.class);
         QuoteInstallationController.fetchQuoteLineGroupProducts(qrwList[0].qlg.Id);
         List<Vessel__c> vesList = [SELECT Id, Name, Vessel_IMO__c FROM Vessel__c ORDER BY Name];
-        List<SBQQ__QuoteLine__c> qlList = new List<SBQQ__QuoteLine__c>([SELECT Id, Name, SBQQ__Group__c, SBQQ__Product__c, CurrencyIsoCode, SBQQ__Product__r.Name, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetTotal__c, SBQQ__NetPrice__c FROM SBQQ__QuoteLine__c WHERE SBQQ__Group__c != NULL]);
         Installation__c inst1 = new Installation__c(
             Installation_Type__c = 'Vessel',
             Vessel_Name__c = vesList[0].Id,
-            Quote_Line_Group__c = qlList[0].SBQQ__Group__c
+            Quote_Line_Group__c = qrwList[0].qlg.Id
         );
         List<Installation__c> instList = new List<Installation__c>();
         instList.add(inst1);
@@ -162,19 +160,7 @@ public class QuoteInstallationControllerTest
         ContVerFile1.PathOnClient='title.csv';
         insert ContVerFile1;
         
-        
-        try
-        {
-            QuoteInstallationController.createInstallations(contVerFile1.Id, qt.Id, qrwList[0].qlg.Id);
-            //QuoteInstallationController.createRecords(qt.Id, qlList[0].SBQQ__Group__c, 1, NULL, invAcc.Id, NULL);
-        }
-        catch(Exception ex){}
-        
-        try
-        {
-            //QuoteInstallationController.createInstallations(contVerFile1.Id, qt.Id, qrwList[0].qlg.Id);
-            QuoteInstallationController.createRecords(qt.Id, qlList[0].SBQQ__Group__c, 1, NULL, invAcc.Id, NULL);
-        }
-        catch(Exception ex){}
+        QuoteInstallationController.createInstallations(contVerFile1.Id, qt.Id, qrwList[0].qlg.Id);
+        QuoteInstallationController.createRecords(qt.Id, qrwList[0].qlg.Id, 1, NULL, invAcc.Id, NULL);
     }
 }

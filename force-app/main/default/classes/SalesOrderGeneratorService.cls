@@ -121,7 +121,6 @@ public class SalesOrderGeneratorService {
         }
     }
 
-    @TestVisible
     private static List<BillingPeriod> generateBillingPeriods(Date contractStart, Date contractEnd, Integer interval, Date installStart) {
     List<BillingPeriod> periods = new List<BillingPeriod>();
 
@@ -153,8 +152,6 @@ public class SalesOrderGeneratorService {
 
     return periods;
 }
-    
-    @TestVisible
     private static Date getAccuratePeriodEnd(Date startDate, Integer interval) {
     // Try adding interval months
     Date tentativeEnd = startDate.addMonths(interval);
@@ -191,7 +188,6 @@ public class SalesOrderGeneratorService {
         }
     }
 
-    @TestVisible
     private static Integer getBillingCycleMonths(String billingFrequency) {
         if (billingFrequency == 'Monthly') return 1;
         if (billingFrequency == 'Quarterly') return 3;

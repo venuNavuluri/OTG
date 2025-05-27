@@ -18,7 +18,7 @@ public class QuoteInstallationController {
         try
         {
             ContentVersion conVer = [SELECT Id, VersionData FROM ContentVersion WHERE Id = :conVerId];
-            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, Package__c, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__SalesRep__r.Email, SBQQ__Quote__r.CurrencyISOCode FROM SBQQ__QuoteLineGroup__c WHERE Id = :qlgId]);
+            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Quote__r.SBQQ__SalesRep__r.Email, SBQQ__Quote__r.CurrencyISOCode FROM SBQQ__QuoteLineGroup__c WHERE Id = :qlgId]);
             String st = conVer.VersionData.toString();
             System.debug('conVer --> ' + conVer.VersionData.toString());
             System.debug('st --> ' + st);
@@ -86,7 +86,7 @@ public class QuoteInstallationController {
                         Installation_Type__c = 'Vessel',
                         Invoice_Account__c = invAccMap.get(vesIMORecMap.get(ves.Vessel_IMO__c).split(',')[1]).Id,
                         Vessel_Name__c = ves.Id,
-                        Quote__c = qlgMap.get(qlgId).SBQQ__Quote__c,
+                        Quote__c = qtId,
                         Quote_Line_Group__c = qlgId,
                         Package__c = qlgMap.get(qlgId).Package__c,
                         Contract__c = qlgMap.get(qlgId).SBQQ__Quote__r.SBQQ__MasterContract__c,
@@ -162,7 +162,6 @@ public class QuoteInstallationController {
         }
         catch (Exception ex)
         {
-            System.debug(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
@@ -203,46 +202,28 @@ public class QuoteInstallationController {
     @AuraEnabled
     public static string fetchQuoteLineGroups(String quoteId){
         try {
-            List<SBQQ__Quote__c> qtList = [SELECT Id, Name, SBQQ__Type__c, SBQQ__MasterContract__c, SBQQ__MasterContract__r.SBQQ__Quote__c FROM SBQQ__Quote__c WHERE Id = :quoteId];
-            List<Id> qtIdList = new List<Id>();
-            if(qtList[0].SBQQ__Type__c == 'Amendment')
-            {
-                List<SBQQ__Quote__c> allQtList = [SELECT Id, Name, SBQQ__Type__c, SBQQ__MasterContract__c FROM SBQQ__Quote__c WHERE SBQQ__MasterContract__c = :qtList[0].SBQQ__MasterContract__c];
-                qtIdList.add(qtList[0].SBQQ__MasterContract__r.SBQQ__Quote__c);
-                for(SBQQ__Quote__c qt : allQtList)
-                {
-                    qtIdList.add(qt.Id);
-                }
-            }
-            qtIdList.add(quoteId);
-            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,SBQQ__Quote__c,
+            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,
                                                         SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
-                                                        (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,Package__c,
-                                                        Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Quote__c, Quote__r.Name
+                                                        (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
+                                                        Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name
                                                         FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
                                                         (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c
                                                         From SBQQ__LineItems__r)
                                                         From SBQQ__QuoteLineGroup__c
-                                                        Where SBQQ__Quote__c =:qtIdList Order BY CreatedDate ASC];
+                                                        Where SBQQ__Quote__c =:quoteId Order By Name Asc];
             List<Id> packIdList = new List<Id>();
             for(SBQQ__QuoteLineGroup__c qlg : quoteGroups)
             {
                 packIdList.add(qlg.Package__c);
             }
             Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, 
-                                                                    (SELECT Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name, Quote__c, Quote__r.Name,Package__c,
+                                                                    (SELECT Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
                                                                     Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
                                                                     FROM Package__c WHERE Id IN :packIdList]);
             List<QuoteRecordWrapper> qrwList = new List<QuoteRecordWrapper>();
-            Map<Id, QuoteRecordWrapper> qrwPackMap = new Map<Id, QuoteRecordWrapper>();
             for(SBQQ__QuoteLineGroup__c qlg : quoteGroups)
             {
-                
                 QuoteRecordWrapper qrw = new QuoteRecordWrapper();
-                if(qrwPackMap.get(qlg.Package__c) != NULL)
-                {
-                    qrw = qrwPackMap.get(qlg.Package__c);
-                }
                 qrw.qlg = qlg;
                 qrw.pack = packMap.get(qlg.Package__c);
                 Date dt = Date.today();//.addDays(366);
@@ -263,10 +244,8 @@ public class QuoteInstallationController {
                 qrw.userPrice = qrw.userPrice.setScale(2);
                 qrw.installationPrice = qrw.installationPrice.setScale(2);
                 System.debug('qrw --> ' + qrw);
-                //qrwList.add(qrw);
-                qrwPackMap.put(qlg.Package__c, qrw);
+                qrwList.add(qrw);
             }
-            qrwList.addAll(qrwPackMap.values());
             System.debug('qrwList --> ' + JSON.serialize(qrwList));
             return JSON.serialize(qrwList);
             
@@ -314,19 +293,18 @@ public class QuoteInstallationController {
             {
                 qlgIdList.add(inst.Quote_Line_Group__c);
             }
-            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, SBQQ__Quote__c, SBQQ__Quote__r.CurrencyISOCode, SBQQ__Quote__r.SBQQ__Account__c, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c FROM SBQQ__QuoteLineGroup__c WHERE Id IN :qlgIdList]);
+            Map<Id, SBQQ__QuoteLineGroup__c> qlgMap = new Map<Id, SBQQ__QuoteLineGroup__c>([SELECT Id, Name, SBQQ__Quote__r.CurrencyISOCode, SBQQ__Quote__r.SBQQ__Account__c, Package__c, SBQQ__Quote__r.SBQQ__MasterContract__c, SBQQ__Quote__r.SBQQ__Type__c FROM SBQQ__QuoteLineGroup__c WHERE Id IN :qlgIdList]);
             for(Installation__c inst : (List<Installation__c>)sobjList)
             {
                 inst.Installation_Order_Status__c = 'Draft';
                 inst.CurrencyIsoCode = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.CurrencyISOCode;
                 inst.Contract_Customer__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__Account__c;
-                inst.Quote__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__c;
                 inst.Package__c = qlgMap.get(inst.Quote_Line_Group__c).Package__c;
                 inst.Contract__c = qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__MasterContract__c != NULL ? qlgMap.get(inst.Quote_Line_Group__c).SBQQ__Quote__r.SBQQ__MasterContract__c : NULL;
             }
             insert sobjList;
             //createInstallationLines((List<Installation__c>)sObjList, qlgIdList);
-            return [Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name, Quote__r.Name,Package__c,
+            return [Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,
             Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name From Installation__c Where Id IN:sobjList];
         }
         catch (Exception ex)

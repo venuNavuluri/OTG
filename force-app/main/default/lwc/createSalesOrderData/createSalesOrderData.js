@@ -10,6 +10,7 @@ export default class CreateSalesOrderRecords extends LightningElement
     @track showConfirmation = true;
     @track message = '';
     @track soCreated;
+    @track showSpinner = false;
     
     @wire(getRecord, { recordId : "$recordId", fields : [SALES_ORDERS_CREATED]}) ContractRecord({error, data}) {
         if(data)
@@ -30,6 +31,7 @@ export default class CreateSalesOrderRecords extends LightningElement
 
     createRecords()
     {
+        this.showSpinner = true;
         createRecords({
             conId : this.recordId
         }).then(result => {
@@ -38,11 +40,13 @@ export default class CreateSalesOrderRecords extends LightningElement
             {
                 this.message = 'Sales Order created Successfully.';
                 this.showConfirmation = false;
+                this.showSpinner = false;
             }
             else
             {
                 this.message = 'Error occured while creating Sales Orders.';
                 this.showConfirmation = false;
+                this.showSpinner = false;
             }
         }).catch(error => {
             console.log('error --> ' + error);
