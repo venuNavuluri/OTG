@@ -7,10 +7,12 @@ trigger QuoteTrigger on SBQQ__Quote__c (before insert, after insert, before upda
     if(Trigger.isInsert && Trigger.isBefore)
     {
         new QuoteTriggerHandler().beforeinsert();
+        QuoteTriggerHandler.handleBeforeInsert(Trigger.new);
     }
     if(Trigger.isAfter && Trigger.isInsert)
     {
         new QuoteTriggerHandler().afterinsert();
+        //QuoteTriggerHandler.handleAfterInsert(Trigger.new);
     }
     if(Trigger.isBefore && Trigger.isUpdate)
     {

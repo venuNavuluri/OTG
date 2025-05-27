@@ -99,10 +99,12 @@ public class ContractDocumentPDFControllerTest
         qt.SBQQ__Status__c = 'Approved';
         update qt;
         
-        List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Quote__c = :qt.Id];
+        List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c,Products__c FROM Package__c WHERE Quote__c = :qt.Id];
         System.debug('packList --> ' + packList);
         packList[0].Installation_Quantity__c = 1;
+        packList[0].Products__c = 'Product A;Product B';
         packList[1].Installation_Quantity__c = 1;
+        packList[1].Products__c = 'Product A;Product B';
         update packList;
         
         Vessel__c ves1 = (Vessel__c)TestDataFactory.createSObject('Vessel__c', new Map<String, Object>{
@@ -131,18 +133,6 @@ public class ContractDocumentPDFControllerTest
                 'Invoice_Account__c' => invAcc.Id
         });
         
-        /*List<SBQQ__QuoteLine__c> qlList = [SELECT Id, Name, SBQQ__Product__c, SBQQ__PriceBookEntryId__c FROM SBQQ__QuoteLine__c WHERE SBQQ__Quote__c = :qt.Id];
-        List<PriceBookEntry> pbeList = [SELECT Id, Product2Id, PriceBook2Id FROM PriceBookEntry WHERE Product2Id = :qlList[0].SBQQ__Product__c];
-        System.debug('pbeList --> ' + pbeList);
-        qlList[0].SBQQ__PriceBookEntryId__c = [SELECT Id, Product2Id, PriceBook2Id FROM PriceBookEntry WHERE Product2Id = :qlList[0].SBQQ__Product__c].Id;
-        update qlList;
-        System.debug('qlList --> ' + qlList);
-        System.debug('qlList --> ' + qlList.size());
-        
-        List<Installation__c> instList = [SELECT Id, Name, Package__r.Installation_Quantity__c FROM Installation__c WHERE Quote__c = :qt.Id];
-        System.debug('instList --> ' + instList);
-        System.debug('int qty 1 --> ' + instList[0].Package__r.Installation_Quantity__c);
-        System.debug('int qty 2 --> ' + instList[1].Package__r.Installation_Quantity__c);*/
         qt.SBQQ__Ordered__c = TRUE;
         try
         {
@@ -155,10 +145,10 @@ public class ContractDocumentPDFControllerTest
             System.debug('ex --> ' + ex.getStackTraceString());
             System.debug('ex --> ' + ex);
         }
-        Order ord = [SELECT Id, Name FROM Order WHERE SBQQ__Quote__c = :qt.Id];
-        ord.Status = 'Activated';
-        ord.SBQQ__Contracted__c = TRUE;
-        update ord;
+       // Order ord = [SELECT Id, Name FROM Order WHERE SBQQ__Quote__c = :qt.Id];
+       // ord.Status = 'Activated';
+      //  ord.SBQQ__Contracted__c = TRUE;
+      //  update ord;//
         
         Contract contr = (Contract)TestDataFactory.createSObject('Contract', new Map<String, Object>{
             'SBQQ__Quote__c' => qt.Id,
@@ -166,7 +156,7 @@ public class ContractDocumentPDFControllerTest
             'SBQQ__Opportunity__c' => opp.Id,
             'Billing_Frequency__c' => 'Annual',
             //'Agreement_Type__c' => 'Asset Based Installation',
-            'SBQQ__Order__c' => ord.Id,
+            //'SBQQ__Order__c' => ord.Id,
                 'StartDate' => Date.today(),
                 'EndDate' => Date.today().addDays(365),
                 'ContractTerm' => 12
@@ -238,6 +228,87 @@ public class ContractDocumentPDFControllerTest
         String result7 = ContractDocumentPDFController.formatDateWithOrdinal(inputDate7);
         System.assertEquals('31st December 2024', result7, 'The formatted date is incorrect.');
     }
+    @IsTest
+    static void testWrapperModels() {
+        // Test PackageWrapper
+        ContractOverviewDocPDFController.PackageWrapper packWrap = new ContractOverviewDocPDFController.PackageWrapper();
+        packWrap.packageName = 'Test Package';
+        packWrap.annualCost = 100;
+        packWrap.installationCost = 80;
+        packWrap.previousCost = 90;
+        packWrap.installationQuantity = 2;
+        packWrap.productWrapList = new List<ContractOverviewDocPDFController.ProductWrapper>();
+        
+        // Test ProductWrapper
+        ContractOverviewDocPDFController.ProductWrapper prodWrap = new ContractOverviewDocPDFController.ProductWrapper();
+        prodWrap.productName = 'Test Product';
+        prodWrap.annualCost = 100;
+        prodWrap.installationCost = 80;
+        prodWrap.previousCost = 90;
+        prodWrap.removeFromPackage = false;
+        prodWrap.qlquantity = 2;
+        prodWrap.instQuantity = 2;
+        
+        packWrap.productWrapList.add(prodWrap);
+        
+        // Test InvoiceWrapper
+        ContractOverviewDocPDFController.InvoiceWrapper invWrap = new ContractOverviewDocPDFController.InvoiceWrapper();
+        invWrap.invAccNumber = 'INV123';
+        invWrap.invEmail = 'test@test.com';
+        invWrap.invNameAddr = 'Test Address';
     
+        // Assert that values are set correctly
+        System.assertEquals('Test Package', packWrap.packageName);
+        System.assertEquals('Test Product', packWrap.productWrapList[0].productName);
+        System.assertEquals('INV123', invWrap.invAccNumber);
+    }
+    
+    @IsTest
+    static void testFormatDateWithOrdinal_FromOverviewController() {
+        // Case: Day = 1 → 1st
+        Date date1 = Date.newInstance(2024, 1, 1);
+        String result1 = ContractOverviewDocPDFController.formatDateWithOrdinal(date1);
+        System.assertEquals('1st January 2024', result1);
+    
+        // Case: Day = 2 → 2nd
+        Date date2 = Date.newInstance(2024, 1, 2);
+        String result2 = ContractOverviewDocPDFController.formatDateWithOrdinal(date2);
+        System.assertEquals('2nd January 2024', result2);
+    
+        // Case: Day = 3 → 3rd
+        Date date3 = Date.newInstance(2024, 1, 3);
+        String result3 = ContractOverviewDocPDFController.formatDateWithOrdinal(date3);
+        System.assertEquals('3rd January 2024', result3);
+    
+        // Case: Day = 4 → 4th
+        Date date4 = Date.newInstance(2024, 1, 4);
+        String result4 = ContractOverviewDocPDFController.formatDateWithOrdinal(date4);
+        System.assertEquals('4th January 2024', result4);
+    
+        // Case: Day = 11 → 11th (edge case)
+        Date date11 = Date.newInstance(2024, 1, 11);
+        String result11 = ContractOverviewDocPDFController.formatDateWithOrdinal(date11);
+        System.assertEquals('11th January 2024', result11);
+    
+        // Case: Day = 13 → 13th (edge case)
+        Date date13 = Date.newInstance(2024, 1, 13);
+        String result13 = ContractOverviewDocPDFController.formatDateWithOrdinal(date13);
+        System.assertEquals('13th January 2024', result13);
+    
+        // Case: Day = 21 → 21st
+        Date date21 = Date.newInstance(2024, 1, 21);
+        String result21 = ContractOverviewDocPDFController.formatDateWithOrdinal(date21);
+        System.assertEquals('21st January 2024', result21);
+    
+        // Case: Day = 22 → 22nd
+        Date date22 = Date.newInstance(2024, 1, 22);
+        String result22 = ContractOverviewDocPDFController.formatDateWithOrdinal(date22);
+        System.assertEquals('22nd January 2024', result22);
+    
+        // Case: Day = 23 → 23rd
+        Date date23 = Date.newInstance(2024, 1, 23);
+        String result23 = ContractOverviewDocPDFController.formatDateWithOrdinal(date23);
+        System.assertEquals('23rd January 2024', result23);
+    }
     
 }

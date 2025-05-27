@@ -33,7 +33,7 @@ public class ContractDocumentPDFController {
         qtLineList = [
             SELECT Id, Name, SBQQ__Product__c, SBQQ__Quantity__c, SBQQ__Product__r.Name, SBQQ__Group__c, SBQQ__Group__r.Package__c,
             SBQQ__Group__r.Package__r.Package_Name__c, SBQQ__Group__r.Package__r.Package_Number__c, SBQQ__Group__r.Package__r.Installation_Quantity__c,
-            SBQQ__Group__r.Package__r.Previous_Cost__c, SBQQ__Group__r.Package__r.Annual_Cost__c, 
+            SBQQ__Group__r.Package__r.InstallationCost__c,
             SBQQ__Group__r.Package__r.Installation_Cost__c, Remove_Product_from_Package__c,SBQQ__Group__r.Current_Price__c
             FROM SBQQ__QuoteLine__c
             WHERE SBQQ__Quote__c = :qt.Id AND SBQQ__Group__r.Package__r.Installation_Quantity__c > 0
@@ -57,9 +57,8 @@ public class ContractDocumentPDFController {
                 {
                     ProductWrapper pw = new ProductWrapper();
                     pw.productName = ql.SBQQ__Product__r.Name;
-                    pw.annualCost = ql.SBQQ__Group__r.Package__r.Annual_Cost__c;
                     pw.previousCost = ql.SBQQ__Group__r.Current_Price__c;
-                    pw.installationCost = ql.SBQQ__Group__r.Package__r.Installation_Cost__c;
+                    pw.installationCost = ql.SBQQ__Group__r.Package__r.InstallationCost__c;
                     pw.removeFromPackage = ql.Remove_Product_from_Package__c;
                     pw.qlquantity = ql.SBQQ__Quantity__c;
                     pw.instQuantity = ql.SBQQ__Group__r.Package__r.Installation_Quantity__c;

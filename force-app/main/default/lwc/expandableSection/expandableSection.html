@@ -1,21 +1,31 @@
 <template>
     <div class="slds-section slds-is-open" data-id={id}>
         <!--section header-->
-        <h3 class="slds-section__title">
-            <button type="button" aria-controls={id} class="slds-button slds-section__title-action" data-buttonid={id}
+        <h3 class="slds-section__title" style="background-color: rgba(98,150,215,1);">
+            <button type="button" aria-controls={id} 
+              class="slds-button slds-section__title-action  slds-grid slds-wrap slds-grid_align-spread" data-buttonid={id} style="background-color: aliceblue;"
                 onclick={toggleSection}>
-                <lightning-icon icon-name="utility:switch" alternative-text="button icon" size="x-small"
-                    class="slds-section__title-action-icon slds-button__icon_left"></lightning-icon>
-                <span class="slds-truncate" title={label}><strong>{label}</strong></span>
-                <div class="">
-                    <span class="slds-truncate slds-p-left_xx-large" ><!--&nbsp;&nbsp;--><strong>No of Installations</strong> : {noOfInstallations}</span>
-                    <span class="slds-truncate" >&nbsp;&nbsp;<strong>Remaining Installations</strong> : {remainingInstallations}</span>
-                </div>
-                <div class="slds-p-right_small">
-                    <span class="slds-truncate slds-p-left_xx-large" ><!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-->
-                        <strong>Installation Price</strong> :&nbsp;{currencyCode}&nbsp;{installationPrice}</span>
-                    <span class="slds-truncate slds-p-left_xx-large" >&nbsp;&nbsp;<strong>User Price</strong> :&nbsp;{currencyCode}&nbsp;{userPrice}</span>
-                </div>
+
+                <!--div class="slds-grid slds-grid_vertical-align-center">
+                    <lightning-icon icon-name="utility:switch" alternative-text="button icon" size="x-small"
+                        class="slds-section__title-action-icon slds-button__icon_left"></lightning-icon>
+                    
+                 </div-->
+
+                <div class="slds-grid slds-wrap slds-col slds-grid_align-end">  
+                    <lightning-icon icon-name="utility:switch" alternative-text="button icon" size="x-small"
+                        class="slds-section__title-action-icon slds-button__icon_left slds-grid slds-grid_vertical-align-center"></lightning-icon>  
+                    <div class="slds-grid slds-nowrap slds-p-horizontal_medium">
+                        <span class="slds-truncate" title={label}><strong>{label}</strong></span>
+                        <span class="slds-truncate slds-p-horizontal_medium" ><!--&nbsp;&nbsp;--><strong>No of Installations</strong> : {noOfInstallations}</span>
+                        <span class="slds-truncate slds-p-left_medium" >&nbsp;&nbsp;<strong>Remaining Installations</strong> : {remainingInstallations}</span>
+                    </div>
+                    <div class="slds-grid slds-nowrap slds-p-horizontal_medium">
+                        <span class="slds-truncate " ><!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-->
+                            <strong>Installation Price</strong> :&nbsp;{currencyCode}&nbsp;{installationPrice}</span>
+                        <span class="slds-truncate slds-p-left_medium" >&nbsp;&nbsp;<strong>User Price</strong> :&nbsp;{currencyCode}&nbsp;{userPrice}</span>
+                    </div>
+                </div>   
             </button>
         </h3>
         <!--section body-->
