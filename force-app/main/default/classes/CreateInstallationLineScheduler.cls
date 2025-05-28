@@ -5,15 +5,18 @@ public class CreateInstallationLineScheduler implements Schedulable
     {
         try
         {
-            List<Order> ordList = [SELECT Id, Name, SBQQ__Quote__c, SBQQ__Quote__r.Installation__c FROM Order WHERE Id = :ordId AND SBQQ__Quote__r.Installation__c != NULL];
+            List<Order> ordList = [SELECT Id, Name, SBQQ__Quote__c, SBQQ__Quote__r.Installation__c FROM Order WHERE Id = :ordId]; //AND SBQQ__Quote__r.Installation__c != NULL];
             if(ordList != NULL && !ordList.isEmpty())
             {
-                Installation__c inst = new Installation__c(
-                    Id = ordList[0].SBQQ__Quote__r.Installation__c,
-                    Installation_Order_Status__c = 'Active'
-                );
-                CreateInstallationsController.goToInstallationLineCreation(new List<Id>{inst.Id});
-                update inst;
+                List<Installation__c> instList = [SELECT Id, Name,Installation_Order_Status__c FROM Installation__c WHERE Quote__c = :ordList[0].SBQQ__Quote__c AND Installation_Order_Status__c = 'Draft'];
+                List<Id> instIdList = new List<Id>();
+                for(Installation__c inst : instList)
+                {
+                    inst.Installation_Order_Status__c = 'Active';
+                    instIdList.add(inst.Id);
+                }
+                CreateInstallationsController.goToInstallationLineCreation(instIdList);
+                update instList;
             }
         }
         catch(Exception ex)

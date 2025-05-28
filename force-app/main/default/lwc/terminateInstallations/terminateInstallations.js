@@ -1,6 +1,6 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import terminateInstallationRecord from '@salesforce/apex/CreateInstallationsController.terminateSingleRecord';
-import getContractDates from '@salesforce/apex/CreateInstallationsController.getContractDates';
+import getContractDates from '@salesforce/apex/CreateInstallationsController.getContractDetails';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 

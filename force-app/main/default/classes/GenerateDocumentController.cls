@@ -34,11 +34,13 @@ public class GenerateDocumentController
             
             List<ContentDocumentLink> cdlList = [SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId = :recId];
             System.debug('cdlList --> ' + cdlList);
-            ContentVersion ContVerFileExist = new ContentVersion();
+            List<ContentVersion> ContVerFileExist = new List<ContentVersion>();
             if(cdlList != NULL && !cdlList.isEmpty())
             {
+                System.debug('title --> ' + title);
                 //String totalTitle = title + qt.SBQQ__Account__r.Name + ' ' + name;
                 ContVerFileExist = [SELECT Id, Title, VersionData, PathOnClient, ContentDocumentId FROM ContentVersion WHERE ContentDocumentId =: cdlList[0].ContentDocumentId AND Title LIKE: title + '%' ORDER BY CreatedDate DESC LIMIT 1];
+                
                 //ContVerFile.VersionData = Test.isRunningTest() ? Blob.valueOf('Test') : pr.getContentAsPDF();
                 //update ContVerFile;
             }
@@ -49,11 +51,15 @@ public class GenerateDocumentController
             ContVerFile.Title = recId.getSObjectType() == Schema.Contract.SObjectType ? title + td.day() + '_' + td.month() + '_' + td.year() : title; 
             ContVerFile.ContentLocation= 's';
             ContVerFile.PathOnClient = title + qt.SBQQ__Account__r.Name + ' ' + name + '.pdf';
-            ContVerFile.ContentDocumentId = (cdlList != NULL && !cdlList.isEmpty() ? ContVerFileExist.ContentDocumentId : NULL);
+            ContVerFile.ContentDocumentId = (cdlList != NULL && !cdlList.isEmpty() && ContVerFileExist != NULL && !ContVerFileExist.isEmpty() ? ContVerFileExist[0].ContentDocumentId : NULL);
             insert ContVerFile;
             
-            if(cdlList == NULL || cdlList.isEmpty())
+            System.debug('contverfile --> ' + ContVerFile);
+            System.debug('ContVerFileExist --> ' + ContVerFileExist);
+            
+            if(cdlList == NULL || cdlList.isEmpty() || ContVerFileExist == NULL || ContVerFileExist.isEmpty())
             {
+                System.debug('In if');
                 Id conDoc = [SELECT ContentDocumentId FROM ContentVersion WHERE Id =:ContVerFile.Id].ContentDocumentId;
                 ContentDocumentLink cDe = new ContentDocumentLink();
                 cDe.ContentDocumentId = conDoc;

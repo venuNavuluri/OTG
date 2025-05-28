@@ -2,75 +2,6 @@ public class InstallationTriggerHandler {
 
     public static Boolean byPassSOcreation = FALSE;
 
-    /*public static void beforeInsert(List<Installation__c> instList) {
-        try {
-            String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
-
-            if (currentUserAlias == 'duser') {
-                return;  // Skip logic for "duser"
-            }
-
-            Set<String> contractCustomerSet = new Set<String>();
-            Map<String, Installation__c> contVessStatusMap = new Map<String, Installation__c>();
-            Map<String, Installation__c> contOrgStatusMap = new Map<String, Installation__c>();
-            Map<String, Installation__c> conInstMap = new Map<String, Installation__c>();
-
-            for (Installation__c inst : instList) {
-                if (inst.Contract_Customer__c != null) {
-                    contractCustomerSet.add(inst.Contract_Customer__c);
-                }
-
-                if (inst.Vessel_Name__c != null) {
-                    contVessStatusMap.put(inst.Contract_Customer__c + '-' + inst.Vessel_Name__c, inst);
-                } else if (inst.Organisation_Name__c != null) {
-                    contOrgStatusMap.put(inst.Contract_Customer__c + '-' + inst.Organisation_Name__c, inst);
-                }
-
-                if (inst.Contract__c != null) {
-                    conInstMap.put(inst.Contract__c, inst);
-                }
-            }
-
-            List<Installation__c> instRecList = [
-                SELECT Id, Contract_Customer__c, Organisation_Name__c, Vessel_Name__c, Installation_Order_Status__c 
-                FROM Installation__c 
-                WHERE Contract_Customer__c IN :contractCustomerSet 
-                AND Installation_Order_Status__c = 'Active'
-            ];
-
-            for (Installation__c existingInst : instRecList) {
-                if (contOrgStatusMap.containsKey(existingInst.Contract_Customer__c + '-' + existingInst.Organisation_Name__c)) {
-                    contOrgStatusMap.get(existingInst.Contract_Customer__c + '-' + existingInst.Organisation_Name__c)
-                        .addError('Duplicate installation record for Organisation: ' + existingInst.Organisation_Name__c);
-                } else if (contVessStatusMap.containsKey(existingInst.Contract_Customer__c + '-' + existingInst.Vessel_Name__c)) {
-                    contVessStatusMap.get(existingInst.Contract_Customer__c + '-' + existingInst.Vessel_Name__c)
-                        .addError('Duplicate installation record for Vessel: ' + existingInst.Vessel_Name__c);
-                }
-            }
-
-            if (!conInstMap.isEmpty()) {
-                List<Contract> conList = [
-                    SELECT Id, StartDate, EndDate 
-                    FROM Contract 
-                    WHERE Id IN :conInstMap.keySet() 
-                    AND StartDate != null 
-                    AND EndDate != null
-                ];
-
-                for (Contract con : conList) {
-                    Installation__c inst = conInstMap.get(con.Id);
-                    inst.Installation_Start_Date__c = con.StartDate;
-                    inst.Installation_End_Date__c = con.EndDate;
-                }
-            }
-
-        } catch (Exception ex) {
-            Logger.error('beforeInsert - Exception: ', ex);
-            Logger.savelog();
-            throw new AuraHandledException('An error occurred during beforeInsert processing.');
-        }
-    }*/
-
     public static void beforeInsert(List<Installation__c> instList)
     {
         try
@@ -125,7 +56,7 @@ public class InstallationTriggerHandler {
                 }
             }
 
-            if (!conInstMap.isEmpty()) {
+            /*if (!conInstMap.isEmpty()) {
                 List<Contract> conList = [
                     SELECT Id, StartDate, EndDate 
                     FROM Contract 
@@ -139,7 +70,7 @@ public class InstallationTriggerHandler {
                     inst.Installation_Start_Date__c = con.StartDate;
                     inst.Installation_End_Date__c = con.EndDate;
                 }
-            }
+            }*/
 
         } catch (Exception ex) {
             System.debug('Exception ex --> ' + ex);
@@ -154,131 +85,177 @@ public class InstallationTriggerHandler {
     public static void afterUpdate(List<Installation__c> instList, Map<Id, Installation__c> oldInstMap) {
         try {
             String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
-
+    
             List<Id> instIdList = new List<Id>();
+            Map<Id, Date> terminationDates = new Map<Id, Date>();
             List<Installation__c> activeInstList = new List<Installation__c>();
-
+    
             for (Installation__c inst : instList) {
+                Installation__c oldInst = oldInstMap.get(inst.Id);
+    
                 if (currentUserAlias != 'duser') {
-                    if (inst.Auto_Termination__c && (inst.Installation_Order_Status__c == 'Terminated' && oldInstMap.get(inst.Id).Installation_Order_Status__c != 'Terminated')) {
+                    if (inst.Installation_Order_Status__c == 'Terminated' && oldInst.Installation_Order_Status__c != 'Terminated') {
                         instIdList.add(inst.Id);
-                    } else if (inst.Installation_Order_Status__c == 'Active' && oldInstMap.get(inst.Id).Installation_Order_Status__c != 'Active') {
-                        if(inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal'){
-                          activeInstList.add(inst);  
+                        terminationDates.put(inst.Id, inst.Termination_End_Date__c); // Assuming this field exists
+                    } else if (inst.Installation_Order_Status__c == 'Active' && oldInst.Installation_Order_Status__c != 'Active') {
+                        if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
+                            activeInstList.add(inst);
                         }
                     }
                 }
             }
-
+    
             if (!instIdList.isEmpty()) {
-                handleTerminatedInstallations(instIdList);
+                for (Id instId : instIdList) {
+                    Date terminationDate = terminationDates.get(instId);
+                    if (terminationDate != null) {
+                        handleTerminatedInstallations(new List<Id>{ instId }, terminationDate);
+                    }
+                }
             }
-
+    
             if (!activeInstList.isEmpty()) {
-              //  CreateSalesOrderService.createSORecords(activeInstList);
+                CreateSalesOrderService.createSORecords(activeInstList);
             }
-
+    
         } catch (Exception ex) {
             Logger.error('afterUpdate - Exception: ', ex);
             Logger.savelog();
-            //throw new AuraHandledException('An error occurred during afterUpdate processing.');
         }
     }
 
-    private static void handleTerminatedInstallations(List<Id> instIdList) {
+    private static void handleTerminatedInstallations(List<Id> instIdList, Date terminationDate) {
         try {
+            Logger.info('Handling Terminated Installations for: ' + instIdList + ' with Termination Date: ' + terminationDate);
+    
             List<Sales_Order__c> soList = [
                 SELECT Id, Status__c, Start_Date__c, End_Date__c, Installation__c, Contract__c, Invoice_Account__c, CurrencyIsoCode 
                 FROM Sales_Order__c 
                 WHERE Installation__c IN :instIdList
             ];
-
+    
             if (soList.isEmpty()) {
+                Logger.info('No Sales Orders found for termination.');
                 return;
             }
-
+    
             List<Sales_Order__c> soListToUpdate = new List<Sales_Order__c>();
             List<Sales_Order__c> newCreditSalesOrders = new List<Sales_Order__c>();
             Map<Id, Id> oldToNewSalesOrderMap = new Map<Id, Id>();
-
+    
             for (Sales_Order__c so : soList) {
                 if (so.Status__c == 'Unbilled') {
+                    Logger.info('Cancelling Unbilled SO: ' + so.Id);
                     so.Status__c = 'Cancelled';
                     soListToUpdate.add(so);
-                } else if (so.Status__c == 'Billed' && so.End_Date__c >= Date.today() && so.Start_Date__c <= Date.today()) {
-                    Sales_Order__c newCreditSO = new Sales_Order__c(
-                        Status__c = 'Unbilled',
-                        Credit_Note__c = TRUE,
-                        Start_Date__c = Date.today(),
-                        End_Date__c = so.End_Date__c,
-                        Contract__c = so.Contract__c,
-                        Invoice_Account__c = so.Invoice_Account__c,
-                        CurrencyIsoCode = so.CurrencyIsoCode,
-                        Installation__c = so.Installation__c
-                    );
-                    newCreditSalesOrders.add(newCreditSO);
-
-                    so.Status__c = 'Cancelled';
-                    soListToUpdate.add(so);
-                    oldToNewSalesOrderMap.put(so.Id, null);  // Temporary mapping for new IDs
-                }
-            }
-
-            if (!soListToUpdate.isEmpty()) {
-                update soListToUpdate;
-            }
-
-            if (!newCreditSalesOrders.isEmpty()) {
-                insert newCreditSalesOrders;
-
-                for (Sales_Order__c newSO : newCreditSalesOrders) {
-                    for (Id oldSOId : oldToNewSalesOrderMap.keySet()) {
-                        if (oldToNewSalesOrderMap.get(oldSOId) == null) {
-                            oldToNewSalesOrderMap.put(oldSOId, newSO.Id);
-                        }
+                } 
+                else if (so.Status__c == 'Billed') {
+                    Boolean createCreditNote = false;
+                    Date creditStart;
+    
+                    if (terminationDate < so.Start_Date__c) {
+                        // Full credit note
+                        Logger.info('Creating Full Credit Note for SO: ' + so.Id);
+                        creditStart = so.Start_Date__c;
+                        createCreditNote = true;
+                    } else if (terminationDate >= so.Start_Date__c && terminationDate <= so.End_Date__c) {
+                        // Partial credit note (prorated)
+                        Logger.info('Creating Partial Credit Note for SO: ' + so.Id + ' from Termination Date: ' + terminationDate);
+                        creditStart = terminationDate;
+                        createCreditNote = true;
+                    } else {
+                        // Termination after SO period, no action
+                        Logger.info('Termination Date after SO: ' + so.Id + ' range. Skipping.');
+                        continue;
+                    }
+    
+                    if (createCreditNote) {
+                        Sales_Order__c creditSO = new Sales_Order__c(
+                            Status__c = 'Unbilled',
+                            Credit_Note__c = TRUE,
+                            Start_Date__c = creditStart,
+                            End_Date__c = so.End_Date__c,
+                            Contract__c = so.Contract__c,
+                            Invoice_Account__c = so.Invoice_Account__c,
+                            CurrencyIsoCode = so.CurrencyIsoCode,
+                            Installation__c = so.Installation__c
+                        );
+    
+                        newCreditSalesOrders.add(creditSO);
+                        oldToNewSalesOrderMap.put(so.Id, null);
+    
+                        so.Status__c = 'Terminated';
+                        soListToUpdate.add(so);
                     }
                 }
             }
-            
-            System.debug('oldToNewSalesOrderMap --> ' + oldToNewSalesOrderMap);
-
-            createSalesOrderItems(oldToNewSalesOrderMap);
-
+    
+            if (!soListToUpdate.isEmpty()) {
+                update soListToUpdate;
+                Logger.info('Updated ' + soListToUpdate.size() + ' Sales Orders to Cancelled');
+            }
+    
+            if (!newCreditSalesOrders.isEmpty()) {
+                insert newCreditSalesOrders;
+                Logger.info('Inserted ' + newCreditSalesOrders.size() + ' Credit Note Sales Orders');
+    
+                Integer index = 0;
+                for (Id oldSOId : oldToNewSalesOrderMap.keySet()) {
+                    if (oldToNewSalesOrderMap.get(oldSOId) == null && index < newCreditSalesOrders.size()) {
+                        oldToNewSalesOrderMap.put(oldSOId, newCreditSalesOrders[index].Id);
+                        index++;
+                    }
+                }
+            }
+    
+            Logger.info('Final Credit Note Mapping: ' + oldToNewSalesOrderMap);
+            Logger.saveLog();
+    
+            createSalesOrderItems(oldToNewSalesOrderMap, terminationDate);
+    
         } catch (Exception ex) {
-            Logger.error('handleTerminatedInstallations - Exception: ', ex);
-            Logger.savelog();
+            Logger.error('handleTerminatedInstallations - Exception: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
+            Logger.saveLog();
             throw ex;
         }
     }
 
-    @Testvisible
-    private static void createSalesOrderItems(Map<Id, Id> oldToNewSalesOrderMap) {
+    @TestVisible
+    private static void createSalesOrderItems(Map<Id, Id> oldToNewSalesOrderMap, Date terminationDate) {
         try {
             List<Sales_Order_Item__c> oldSOItems = [
                 SELECT Id, Sales_Order__c, Amount__c, CurrencyIsoCode, Installation_Line__c, Name,
-                       Sales_Order__r.Start_Date__c, Sales_Order__r.End_Date__c
+                    Sales_Order__r.Start_Date__c, Sales_Order__r.End_Date__c
                 FROM Sales_Order_Item__c 
                 WHERE Sales_Order__c IN :oldToNewSalesOrderMap.keySet()
             ];
-            
-            System.debug('oldSOItems --> ' + oldSOItems);
 
-            if (oldSOItems.isEmpty()) {
-                return;
-            }
+            if (oldSOItems.isEmpty()) return;
 
             List<Sales_Order_Item__c> newSOItems = new List<Sales_Order_Item__c>();
 
             for (Sales_Order_Item__c oldSOItem : oldSOItems) {
                 Id newSOId = oldToNewSalesOrderMap.get(oldSOItem.Sales_Order__c);
-                if (newSOId != null) {
-                    Decimal totalDays = oldSOItem.Sales_Order__r.Start_Date__c.daysBetween(oldSOItem.Sales_Order__r.End_Date__c);
-                    Decimal remainingDays = Date.today().daysBetween(oldSOItem.Sales_Order__r.End_Date__c);
-                    Decimal proratedAmount = (oldSOItem.Amount__c / totalDays) * remainingDays;
+                if (newSOId == null) continue;
 
+                Date soStart = oldSOItem.Sales_Order__r.Start_Date__c;
+                Date soEnd = oldSOItem.Sales_Order__r.End_Date__c;
+
+                Decimal creditAmount = 0;
+
+                if (terminationDate < soStart) {
+                    // Full credit
+                    creditAmount = oldSOItem.Amount__c;
+                } else if (terminationDate >= soStart && terminationDate <= soEnd) {
+                    Decimal totalDays = soStart.daysBetween(soEnd) + 1;
+                    Decimal remainingDays = terminationDate.daysBetween(soEnd) + 1;
+                    creditAmount = (oldSOItem.Amount__c / totalDays) * remainingDays;
+                }
+
+                if (creditAmount > 0) {
                     newSOItems.add(new Sales_Order_Item__c(
                         Sales_Order__c = newSOId,
-                        Amount__c = proratedAmount.abs() * -1,
+                        Amount__c = -creditAmount.setScale(2),
                         CurrencyIsoCode = oldSOItem.CurrencyIsoCode,
                         Installation_Line__c = oldSOItem.Installation_Line__c,
                         Name = oldSOItem.Name
@@ -288,11 +265,13 @@ public class InstallationTriggerHandler {
 
             if (!newSOItems.isEmpty()) {
                 insert newSOItems;
+                Logger.info('Inserted Credit Note Items: ' + newSOItems.size());
+                Logger.saveLog();
             }
 
         } catch (Exception ex) {
-            Logger.error('createSalesOrderItems - Exception: ', ex);
-            Logger.savelog();
+            Logger.error('createSalesOrderItems - Exception: ' + ex.getMessage());
+            Logger.saveLog();
             throw ex;
         }
     }
