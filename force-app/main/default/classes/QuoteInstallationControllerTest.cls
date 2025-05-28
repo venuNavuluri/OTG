@@ -127,6 +127,7 @@ public class QuoteInstallationControllerTest
         QuoteInstallationController qic = new QuoteInstallationController();
         SBQQ__Quote__c qt = [SELECT Id, Name FROM SBQQ__Quote__c LIMIT 1];
         String st = QuoteInstallationController.fetchQuoteLineGroups(qt.Id);
+        Decimal InsPrice = 100.0;
         List<QuoteInstallationController.QuoteRecordWrapper> qrwList = (List<QuoteInstallationController.QuoteRecordWrapper>)JSON.deSerialize(st, List<QuoteInstallationController.QuoteRecordWrapper>.class);
         QuoteInstallationController.fetchQuoteLineGroupProducts(qrwList[0].qlg.Id);
         List<Vessel__c> vesList = [SELECT Id, Name, Vessel_IMO__c FROM Vessel__c ORDER BY Name];
@@ -150,7 +151,7 @@ public class QuoteInstallationControllerTest
         ContVerFile.PathOnClient='title.csv';
         insert ContVerFile;
         
-        QuoteInstallationController.createInstallations(contVerFile.Id, qt.Id, qrwList[0].qlg.Id);
+        QuoteInstallationController.createInstallations(contVerFile.Id, qt.Id, qrwList[0].qlg.Id,InsPrice);
         
         String stCsv1 = 'VesselIMO,InvoiceAccount\n';
         //stCsv += '123,' + invAcc.Account_Id__c + '\n';
@@ -165,7 +166,7 @@ public class QuoteInstallationControllerTest
         
         try
         {
-            QuoteInstallationController.createInstallations(contVerFile1.Id, qt.Id, qrwList[0].qlg.Id);
+            QuoteInstallationController.createInstallations(contVerFile1.Id, qt.Id, qrwList[0].qlg.Id, InsPrice);
             //QuoteInstallationController.createRecords(qt.Id, qlList[0].SBQQ__Group__c, 1, NULL, invAcc.Id, NULL);
         }
         catch(Exception ex){}

@@ -44,7 +44,7 @@ public class ContractTriggerHandler {
 
         // 🔁 Requery contracts to get all required fields, including SBQQ__Quote__r
         Map<Id, Contract> queriedContracts = new Map<Id, Contract>([
-            SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c ,Subscription_System__c
+            SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c 
             FROM Contract
             WHERE Id IN :contractIds
         ]);
@@ -110,7 +110,7 @@ public class ContractTriggerHandler {
 
         // Step 2: Bulk Fetch Quotes
         Map<Id, SBQQ__Quote__c> quoteMap = new Map<Id, SBQQ__Quote__c>(
-            [SELECT Id, SBQQ__Type__c, Agreement_Type__c, SBQQ__BillingFrequency__c, Total_Installations__c
+            [SELECT Id, SBQQ__Type__c, Agreement_Type__c, SBQQ__BillingFrequency__c
              FROM SBQQ__Quote__c WHERE Id IN :quoteIds]
         );
 
@@ -145,7 +145,7 @@ public class ContractTriggerHandler {
             if (quote != null && opp != null) {
                 // Update contract fields directly within before trigger
                 con.Legal_Entity__c = opp.Legal_Entity__c;
-                con.No_of_Installations__c = quote.Total_Installations__c;
+                con.No_of_Installations__c = opp.Number_of_Installations__c;
                 con.Business_Unit__c = opp.Business_Unit__c;
                 con.Unit_of_Measure__c = quote.Agreement_Type__c;
                 con.Default_Delivery_Method__c = opp.SBQQ__PrimaryQuote__r.SBQQ__DeliveryMethod__c;
@@ -157,7 +157,6 @@ public class ContractTriggerHandler {
                 con.CustomerSignedTitle = opp.Customer_Signed_By__r.Job_Title__c;
                 con.Agreement_Type__c = opp.AgreementType__c;
                 con.Payment_Terms__c = opp.SBQQ__PrimaryQuote__r.SBQQ__PaymentTerms__c;
-                con.Subscription_System__c = 'Salesforce CPQ'; // Added on 26-05-2025
 
                 // Handle Renewal Contracts
                 if (quote.SBQQ__Type__c == 'Renewal') {

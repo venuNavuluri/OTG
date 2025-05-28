@@ -43,9 +43,7 @@ public with sharing class UpdatePackageController
             {
                 instList.add(new Installation__c(
                     Id = swapInstId,
-                    Installation_Order_Status__c = 'Terminated',
-                    Termination_End_Date__c = Date.today(),
-                    Termination_Reason__c = 'This has been terminated on Quote-Manage Installations.'
+                    Installation_Order_Status__c = 'Terminated'
                 ));
             }
             update instList;

@@ -3,7 +3,6 @@ public class OrderTriggerHandler
     public static void onBeforeInsert(List<Order> orderList)
     {
         validateInstallationCount(orderList);
-        // updateOrderEndDate(orderList);
     }
     
     public static void onAfterInsert(Map<Id, Order> orderMap)
@@ -12,86 +11,20 @@ public class OrderTriggerHandler
         createContract(orderMap.keySet());
     }
     
-    public static void onAfterUpdate(Map<Id, Order> oldOrderMap, List<Order> newOrderList)
+     public static void onAfterUpdate(Map<Id, Order> oldOrderMap, List<Order> newOrderList)
     {
         List<Order> ordToCreateInst = new List<Order>();
-        List<Order> activatedAmendmentOrders = new List<Order>(); // Added on 07/05/2025
-        
-        // Query additional fields we need for processing
-        Map<Id, Order> ordersWithDetails = new Map<Id, Order>([
-            SELECT Id, Status, OpportunityId, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Type
-            FROM Order
-            WHERE Id IN :newOrderList
-        ]);
-        
         for(Order ord : newOrderList)
         {
-            Order currentOrder = ordersWithDetails.get(ord.Id);
-            
             if(ord.Status == 'Activated' && (ord.Status != oldOrderMap.get(ord.Id).Status))
             {
                 ordToCreateInst.add(ord);
-                
-                // Check if this is an Amendment order - Added on 07/05/2025
-                if(currentOrder.SBQQ__Quote__r != null && currentOrder.Type == 'Amendment') {
-                    activatedAmendmentOrders.add(currentOrder);
-                }
             }
         }
         System.debug('ordToCreateInst --> ' + ordToCreateInst);
         updateOrderIdOnInstallation(ordToCreateInst);
+    }
         
-        // Update Opportunity stage for activated Amendment orders - Added on 07/05/2025
-        if(!activatedAmendmentOrders.isEmpty()) {
-            updateOpportunityStageForActivatedAmendment(activatedAmendmentOrders);
-        }
-    }
-    
-    // New method to update Opportunity stage - Added on 07/05/2025
-    private static void updateOpportunityStageForActivatedAmendment(List<Order> orders) {
-        try {
-            // Get related Opportunity IDs
-            Set<Id> opportunityIds = new Set<Id>();
-            for(Order ord : orders) {
-                if(ord.OpportunityId != null) {
-                    opportunityIds.add(ord.OpportunityId);
-                }
-            }
-            
-            if(!opportunityIds.isEmpty()) {
-                // Query opportunities with their current stage
-                List<Opportunity> opportunities = [
-                    SELECT Id, StageName
-                    FROM Opportunity
-                    WHERE Id IN :opportunityIds
-                    AND StageName != 'Completed' // Only update if not already Completed
-                ];
-                
-                if(!opportunities.isEmpty()) {
-                    // Update Opportunities to Completed
-                    List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
-                    for(Opportunity opp : opportunities) {
-                        opportunitiesToUpdate.add(new Opportunity(
-                            Id = opp.Id,
-                            StageName = 'Completed',
-                            CloseDate = System.today() // Ensure CloseDate is set
-                        ));
-                    }
-                    
-                    // Update with allOrNone false to prevent one failure from blocking others
-                    Database.update(opportunitiesToUpdate, false);
-                    system.debug('opportunitiesToUpdate---'+ opportunitiesToUpdate);
-                }
-            }
-        } catch(Exception ex) {
-            Logger.error('Error in updateOpportunityStageForActivatedAmendment: ' + 
-                         ex.getMessage() + '\n\n' + 
-                         ex.getLineNumber() + '\n\n' + 
-                         ex.getStackTraceString());
-            Logger.saveLog();
-        }
-    }
-    
     public static void validateInstallationCount(List<Order> orderList)
     {
         try

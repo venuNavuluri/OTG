@@ -5,7 +5,7 @@ public with sharing class InstallationsRenewalService {
         Logger.saveLog();
         
         Map<Id, List<SBQQ__Subscription__c>> subsByInstallation = fetchSubscriptionsByInstallations(installations);
-        List<Installation__c> processedInstallations = new List<Installation__c>();
+        List<Installation__c> validInstallationsForSO = new List<Installation__c>();
 
         for (Installation__c inst : installations) {
             Date installStartDate = inst.Contract__r.StartDate;
@@ -15,17 +15,31 @@ public with sharing class InstallationsRenewalService {
                 Logger.info('Creating installation lines for Installation: ' + inst.Id + ' with ' + subsForInst.size() + ' subscriptions.');
                 Logger.saveLog();
                 ActivateInstallationController.createInstallationLines(inst, subsForInst, installStartDate);
-                processedInstallations.add(inst);
+
+                Integer lineCount = [
+                    SELECT COUNT()
+                    FROM Installation_Line__c
+                    WHERE Installation__c = :inst.Id
+                ];
+
+                if (lineCount > 0) {
+                    validInstallationsForSO.add(inst);
+                    Logger.info('Installation lines created for Installation: ' + inst.Id);
+                    Logger.saveLog();
+                } else {
+                    Logger.warn('No installation lines created for Installation: ' + inst.Id);
+                    Logger.saveLog();
+                }
             } else {
                 Logger.warn('No subscriptions found for Installation: ' + inst.Id);
                 Logger.saveLog();
             }
         }
 
-        if (!processedInstallations.isEmpty()) {
-            Logger.info('Generating Sales Orders for ' + processedInstallations.size() + ' processedInstallations.');
+        if (!validInstallationsForSO.isEmpty()) {
+            Logger.info('Generating Sales Orders for ' + validInstallationsForSO.size() + ' installations.');
             Logger.saveLog();
-            SalesOrderGeneratorService.generateSalesOrders(processedInstallations, true);
+            SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true);
         } else {
             Logger.info('No valid installations found for Sales Order generation.');
             Logger.saveLog();
