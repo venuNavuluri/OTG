@@ -66,9 +66,9 @@ public class ContractDocumentPDFController {
                     prdNameMap.put(packageNumber + '-' + ql.SBQQ__Product__r.Name, pw);
                 }
                 /*else
-{
-ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Name);
-}*/
+                {
+                    ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Name);
+                }*/
                 packIdList.add(ql.SBQQ__Group__r.Package__c);
             }
         }
@@ -89,7 +89,7 @@ ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Nam
             Invoice_Account__c, Invoice_Account__r.Name, Invoice_Account__r.Email__c,Invoice_Account__r.Invoice_Emails__c,
             Invoice_Account__r.Address1__c, Invoice_Account__r.Address2__c, Invoice_Account__r.Address3__c,
             Invoice_Account__r.Town_City__c, Invoice_Account__r.County_State__c, Invoice_Account__r.Postcode_Zipcode__c,
-            Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode
+            Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode, Package__r.InstallationCost__c
             FROM Installation__c
             WHERE Package__c IN :packIdList AND Installation_Order_Status__c != 'Terminated'
         ];
@@ -110,44 +110,25 @@ ProductWrapper pw = prdNameMap.get(packageNumber + '-' + ql.SBQQ__Product__r.Nam
                 totalInstallationCost += inst.Package__r.Installation_Cost__c;
             }
             
-            if (inst.Invoice_Account__c != NULL && 
-                inst.Invoice_Account__r != NULL && 
-                invWrapMap.get(inst.Invoice_Account__r.Account_ID__c) == NULL) 
+            if(inst.Invoice_Account__c != NULL && invWrapMap.get(inst.Invoice_Account__r.Account_ID__c) == NULL)
             {
                 InvoiceWrapper invWrap = new InvoiceWrapper();
-                
-                // Ensure Account_ID__c is not null before using it
-                if (inst.Invoice_Account__r.Account_ID__c != NULL) {
-                    invWrap.invAccNumber = inst.Invoice_Account__r.Account_ID__c;
-                } else {
-                    System.debug('Warning: Account_ID__c is NULL for Invoice_Account__r');
-                }
-                
-                // Build invNameAddr safely, avoiding null values
+                invWrap.invAccNumber = inst.Invoice_Account__r.Account_ID__c;
+                /*invWrap.invNameAddr = inst.Invoice_Account__r.Name + ', ' + inst.Invoice_Account__r.Address1__c + ', ' + 
+                    inst.Invoice_Account__r.Address2__c + ', ' + inst.Invoice_Account__r.Address3__c + ', ' + 
+                    inst.Invoice_Account__r.Town_City__c + ', ' + inst.Invoice_Account__r.County_State__c + ', ' +
+                    inst.Invoice_Account__r.Postcode_Zipcode__c + ', ' + inst.Invoice_Account__r.Country__r.Name;*/
                 invWrap.invNameAddr = inst.Invoice_Account__r.Name + ', ' + 
                     (inst.Invoice_Account__r.Address1__c != NULL ? inst.Invoice_Account__r.Address1__c + ', ' : '') + 
                     (inst.Invoice_Account__r.Address2__c != NULL ? inst.Invoice_Account__r.Address2__c + ', ' : '') +
                     (inst.Invoice_Account__r.Address3__c != NULL ? inst.Invoice_Account__r.Address3__c + ', ' : '') + 
                     (inst.Invoice_Account__r.Town_City__c != NULL ? inst.Invoice_Account__r.Town_City__c + ', ' : '') +
-                    (inst.Invoice_Account__r.County_State__c != NULL ? inst.Invoice_Account__r.County_State__c + ', ' : '') +
+                    (inst.Invoice_Account__r.County_State__c != NULL ? inst.Invoice_Account__r.County_State__c + ', ' : '' ) +
                     (inst.Invoice_Account__r.Postcode_Zipcode__c != NULL ? inst.Invoice_Account__r.Postcode_Zipcode__c + ', ' : '') +
-                    (inst.Invoice_Account__r.Country__r != NULL && inst.Invoice_Account__r.Country__r.Name != NULL ? inst.Invoice_Account__r.Country__r.Name : '');
-                
-                // Ensure Invoice_Emails__c is not null before calling replaceAll()
-                if (inst.Invoice_Account__r.Invoice_Emails__c != NULL) {
-                    invWrap.invEmail = inst.Invoice_Account__r.Invoice_Emails__c.replaceAll(';', '\n');
-                } else {
-                    invWrap.invEmail = ''; // Assign empty string if null
-                    System.debug('Warning: Invoice_Emails__c is NULL for Invoice_Account__r');
-                }
-                
-                // Ensure Account_ID__c is not null before using it as a key in the map
-                if (inst.Invoice_Account__r.Account_ID__c != NULL) {
-                    invWrapMap.put(inst.Invoice_Account__r.Account_ID__c, invWrap);
-                    hasInv = TRUE;
-                } else {
-                    System.debug('Warning: Account_ID__c is NULL, not adding to invWrapMap');
-                }
+                    (inst.Invoice_Account__r.Country__c != NULL ? inst.Invoice_Account__r.Country__r.Name : '');
+                invWrap.invEmail = inst.Invoice_Account__r.Invoice_Emails__c != NULL ? inst.Invoice_Account__r.Invoice_Emails__c.replaceAll(';', '\n') : '';
+                invWrapMap.put(inst.Invoice_Account__r.Account_ID__c, invWrap);
+                hasInv = TRUE;
             }
         }
         

@@ -104,6 +104,8 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     {
         this.openSpinner = true;
         let quoteLineGroupId = event.target.dataset.lgid;
+        let qgindexVar = event.target.dataset.qgindex;
+        let quoteLineGroup = this.quoteLineGroups[qgindexVar]
         const uploadedFiles = event.detail.files;
         console.log('file --> ' + JSON.stringify(uploadedFiles));
         console.log('rec Id --> ' + this.recordId);
@@ -111,7 +113,8 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         createInstallations({
             conVerId : uploadedFiles[0].contentVersionId,
             qtId : this.recordId,
-            qlgId : quoteLineGroupId
+            qlgId : quoteLineGroupId,
+            instPrice : quoteLineGroup.installationPrice
         }).then(result => 
             {
                 console.log('result --> ' + result);
@@ -247,14 +250,19 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
 
     fetchInstallations(){
         console.log('recId --> ' + this.recordId);
+        console.log('qlg --> ' + JSON.stringify(this.quoteLineGroups));
         fetchInitialConfiguration({quoteId:this.recordId})
         .then(result => {
             if(result && result.length){
-                //console.log('result --> ' + JSON.stringify(result));
+                console.log('result --> ' + JSON.stringify(result));
                 let resultArray = JSON.parse(result);
                 let qlgArray = [];
+                console.log('resArr -> ' + JSON.stringify(resultArray));
+                console.log('res length --> ' + resultArray.length);
+                var index = 0;
                 for(let listItem of resultArray){
-                    //console.log('qlg --> ' + JSON.stringify(listItem));
+                    console.log('index' + index);index++;
+                    console.log('listItem --> ' + JSON.stringify(listItem));
                     let quoteLineGroup = listItem.qlg;
                     /*quoteLineGroup.installations = quoteLineGroup.Installations__r?.records
                     if(!quoteLineGroup.installations){
@@ -264,7 +272,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     quoteLineGroup.installationPrice = listItem.installationPrice;
                     quoteLineGroup.userPrice = listItem.userPrice;
                     quoteLineGroup.installations = [];
-                    let packInstList = listItem.pack.Installations__r?.records;
+                    let packInstList = (listItem.pack != null && listItem.pack != undefined) ? listItem.pack.Installations__r?.records : [];
                     if(!packInstList)
                     {
                         packInstList = [];
@@ -279,6 +287,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     quoteLineGroup.existingInstallations = []
                     for(let installExisting of quoteLineGroup.installations){
                         this.prepareRecordForTable(installExisting)
+                        console.log('instExisting --> ' + JSON.stringify(installExisting));
                         quoteLineGroup.existingInstallations.push(installExisting)
                     }
                     if(quoteLineGroup.remainingInstallations > 0 || quoteLineGroup.Installation_Quantity__c ==  null){
@@ -295,23 +304,37 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                             }
                         }
                         console.log('length --> ' + prodList.length);
+                        console.log('prdList --> ' + JSON.stringify(prodList));
                         if(prodList.length){
-                            quoteLineGroup.productsString = prodList.join(',')
+                            console.log('in if304');
+                            quoteLineGroup.productsString = prodList.join(',');
+                            console.log('in if 306');
                         }
                         else
                         {
+                            console.log('in else 310');
                             quoteLineGroup.productsString = '';
+                            console.log('in else 312');
                         }
                     }
+                    console.log('qlgArray1 --> ' + JSON.stringify(qlgArray));
                     qlgArray.push(quoteLineGroup);
+                    console.log('qlgArray2 --> ' + JSON.stringify(qlgArray));
+                    console.log('length --> ' + qlgArray.length);
                 }
+                console.log('check');
+                console.log('qlgs01 --> ' + this.quoteLineGroups);
+                console.log('qlgs1 --> ' + JSON.stringify(this.quoteLineGroups));
                 this.quoteLineGroups = qlgArray;
+                console.log('qlgs2 --> ' + JSON.stringify(this.quoteLineGroups));
             }
             console.log('qlg --> ' + JSON.stringify(this.quoteLineGroups));
             console.log('arr length --> ' + this.quoteLineGroups.length);
             if(this.quoteLineGroups.length > 1)
             {
+                console.log('1');
                 this.renderChangePackage = true;
+                console.log("2");
             }
         })
         .catch(error => {
@@ -339,9 +362,15 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             installExisting.deliveryContactName = installExisting.Delivery_Contact__r.Name
         }
         console.log('inst qt Id --> ' + installExisting.Quote__c)
+        console.log('exists inst id --> ' + this.recordId);
         if(installExisting.Quote__c == this.recordId)
         {
             installExisting.rowStyle = 'highLight';
+        }
+
+        if(installExisting.Quote__c == undefined)
+        {
+            installExisting.Quote__r = {Name : ''};
         }
     }
 
@@ -584,6 +613,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             let installation = quoteLineGroup.newInstallations[indexVar]
             installation.Quote__c = this.recordId;
             installation.Quote_Line_Group__c = quoteLineGroupId;
+            installation.Installation_Price__c = quoteLineGroup.installationPrice;
             console.log('installation rec --> '+JSON.stringify(installation))
             if(installation.showVessel){
                 delete installation.Organisation_Name__c
@@ -596,6 +626,10 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             .then(result => {
                 installation.Id = result[0].Id
                 installation.Name = result[0].Name
+                installation.Quote__c = this.recordId;
+                console.log('result --> ' + JSON.stringify(result));
+                installation.Quote__r = result[0].Quote__r;
+                console.log('resul1t --> ' + JSON.stringify(result));
                 this.displayToast('Installation created Succesfully','Success','success','dismissable')
                 installation.showVessel == installation.Installation_Type__c == 'Vessel'
                 quoteLineGroup.remainingInstallations = quoteLineGroup.remainingInstallations != null ? quoteLineGroup.remainingInstallations-1:0;
@@ -643,16 +677,23 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
 
     changePackage1(event)
     {
+        console.log('changepackage1');
         var instId = event.target.name;
+        this.changeInstId = instId;
         var inst;
         this.quoteLineGroups.forEach(qlg => {
-            qlg.existingInstallations.forEach(inst => {
-                if(instId == inst.Id)
+            qlg.existingInstallations.forEach(install=> {
+                console.log('instId --> ' + instId);
+                console.log('inst.Id --> ' + install.Id);
+                console.log('compare --> ' + (instId == install.Id));
+                if(instId == install.Id)
                 {
-                    inst = inst;
+                    inst = install;
+                    //break;
                 }
             })
         });
+        console.log('inst --> ' + JSON.stringify(inst));
         fetchPackages({
             qtId : this.recordId
         }).then(result => {
@@ -674,7 +715,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             this.showChangePackage = true;
             console.log('packageOptions --> ' + this.packageOptions);
         }).catch(error => {
-            console.log('error --> ' + error);
+            console.log('error --> ' + JSON.stringify(error));
         });
     }
 
@@ -805,7 +846,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 this.quoteLineGroups = [];
                 this.fetchInstallations();
             }).catch(error => {
-                console.log('error --> ' + error);
+                console.log('error --> ' + JSON.stringify(error));
             });
         }
         else if(selectedRecords.length > 1)

@@ -5,26 +5,34 @@ public with sharing class CreateOrderFromQuoteController
     {
         try
         {
+            VRConfiguration__c vrConfig = VRConfiguration__c.getOrgDefaults();
+            // Bypass validation by setting the custom setting field to true
+            vrConfig.Quote_Ordered_Validation__c = true;
+            upsert vrConfig; 
+            
             System.debug('qtid --> ' + qtId);
             SBQQ__Quote__c qt = new SBQQ__Quote__c(
                 Id = qtId,
                 SBQQ__Ordered__c = TRUE
-               
-                
+ 
             );
             update qt;
             System.debug('qt --> ' + qt);
-             //PDF generation logic
-           
+
+            vrConfig.Quote_Ordered_Validation__c = false;
+            upsert vrConfig; 
+            //PDF generation logic
+            
             //QuotePDFGenerator.PDFGenerate(new set<id>{qt.Id},'SBQQ__Quote__c');
             return 'SUCCESS';
         } catch (Exception ex) {
+            System.debug('ex --> ' + ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
-
+    
     @AuraEnabled(cacheable=true)
     public static String validateInstallationCount(String qtId)
     {

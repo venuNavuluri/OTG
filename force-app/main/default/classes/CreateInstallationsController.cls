@@ -1,136 +1,508 @@
-public with sharing class ActivateInstallationController {
+public class CreateInstallationsController
+{
+    // Constants for hardcoded values
+    private static final String STATUS_DRAFT = 'Draft';
+    private static final String STATUS_TERMINATED = 'Terminated';
+    private static final String STATUS_FUTURE_TERMINATED = 'Future Terminated';
+
+
+    @AuraEnabled
+    public static List<Package__c> getPackages(String contrId) {
+        try {
+            return [
+                SELECT Id, Name, Contract__c, Installation_Quantity__c 
+                FROM Package__c 
+                WHERE Contract__c = :contrId
+            ];
+        } catch (Exception ex) {
+            throw new AuraHandledException('Error fetching packages.');
+        }
+    }
     
     @AuraEnabled
-    public static String activateInstallation(String recId, Date startDate) {
-        SavePoint sp = Database.setSavePoint();
+    public static String createNewInstRecord(Boolean isTerminate, String packId, String contrId, Installation__c inst) {
         try {
-            Logger.info('Activating installation for Id: ' + recId + ' with startDate: ' + startDate);
-            Logger.saveLog();
+            if (!isTerminate) {
+                Contract contr = [
+                    SELECT Id, Name, CurrencyIsoCode, AccountId, 
+                        (SELECT Id FROM Installations__r WHERE Vessel_Name__c = :inst.Vessel_Name__c) 
+                    FROM Contract 
+                    WHERE Id = :contrId 
+                    LIMIT 1
+                ];
+                
+                Package__c pack = [SELECT Id, Name, Quote__c FROM Package__c WHERE Id = :packId LIMIT 1];
+                
+                List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,SBQQ__Quote__c,
+                                                        SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
+                                                        (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,Package__c,
+                                                        Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Quote__c, Quote__r.Name
+                                                        FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
+                                                        (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c
+                                                        From SBQQ__LineItems__r)
+                                                        From SBQQ__QuoteLineGroup__c
+                                                        WHERE Package__c = :packId Order BY CreatedDate ASC];
+                List<Id> packIdList = new List<Id>();
+                Decimal installationPrice = 0;
+                Date dt = Date.today();
+                SBQQ__QuoteLineGroup__c qlg = quoteGroups[0];
+                for(SBQQ__QuoteLine__c ql : qlg.SBQQ__LineItems__r)
+                {
+                    //System.debug('1 --> ' + (ql.SBQQ__StartDate__c < dt));
+                    System.debug('2 --> ' + (ql.SBQQ__EndDate__c > dt));
+                    if((ql.SBQQ__StartDate__c <= dt && ql.SBQQ__EndDate__c >= dt) || (ql.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal' && ql.SBQQ__StartDate__c >= dt))
+                    {
+                        System.debug('ql --> ' + ql);
+                        installationPrice += ql.SBQQ__NetTotal__c;//SBQQ__NetPrice__c;
+                    }
+                }
+                installationPrice = (installationPrice == NULL || installationPrice == 0 || qlg.Installation_Quantity__c == NULL || qlg.Installation_Quantity__c == 0) ? 0 : installationPrice/qlg.Installation_Quantity__c;
+                installationPrice = installationPrice.setScale(2);
+                System.debug('installationPrice --> ' + installationPrice);
 
-            updateInstallationStartDate(recId, startDate);
+                if (inst.Vessel_Name__c != NULL && !contr.Installations__r.isEmpty()) {
+                    return 'Duplicate_Error';
+                }
 
-            Installation__c inst = [
-                SELECT Id, Name, Contract__c, Quote_Line_Group__c, Package__c
-                FROM Installation__c
-                WHERE Id = :recId
-                LIMIT 1
-            ];
-
-            deleteExistingInstallationLinesAndSalesOrders(inst.Id);
-
-            List<SBQQ__Subscription__c> subscriptions = fetchSubscriptionsFromOrderItems(inst.Quote_Line_Group__c, inst.Package__c);
-
-            if (!subscriptions.isEmpty()) {
-                createInstallationLines(inst, subscriptions, startDate);
+                inst.Contract__c = contrId;
+                inst.Contract_Customer__c = contr.AccountId;
+                inst.CurrencyIsoCode = contr.CurrencyIsoCode;
+                inst.Package__c = packId;
+                inst.Quote__c = pack.Quote__c;
+                inst.Installation_Order_Status__c = STATUS_DRAFT;
+                inst.Installation_Start_Date__c = Date.today().addDays(30);
+                inst.Installation_Price__c = installationPrice;
+                
+                insert inst;
             }
 
-            inst.Installation_Order_Status__c = 'Active';
-            update inst;
+            Date startDate = isTerminate ? inst.Termination_End_Date__c : Date.today().addDays(30);
+            modifyContract(inst.Id, Date.today(), contrId, inst.Package__c, false);
+            //System.enqueueJob(new ModifyContractQueueable(inst.Id, startDate, contrId, packId, isTerminate));
 
-            CreateSalesOrderService.createSORecords(new List<Installation__c>{inst});
-
-            Logger.info('Installation activation and SO creation completed for Id: ' + recId);
+            return 'SUCCESS' + (isTerminate ? '' : ': ' + inst.Id);
+        } catch (Exception ex) {
+            Logger.error('Error in createNewInstRecord: ' + ex.getMessage());
+            throw new AuraHandledException('Error creating installation record.');
+        }
+    }
+    
+    public static void goToInstallationLineCreation(List<Id> instIdList)
+    {
+        try
+        {
+            List<Installation__c> instList = [SELECT Id, Name, Contract__c, Order__c, Order__r.SBQQ__Quote__c, Order__r.SBQQ__Quote__r.SBQQ__Type__c FROM Installation__c WHERE Id IN :instIdList];
+            List<Id> contrIdList = new List<Id>();
+            List<Id> ordIdList = new List<Id>();
+            Boolean isAmendment = FALSE;
+            String amendedOrd = '';
+            for(Installation__c inst : instList)
+            {
+                contrIdList.add(inst.Contract__c);
+                if(inst.Order__c != NULL)
+                {
+                    ordIdList.add(inst.Order__c);
+                }
+                System.debug('type --> ' + inst.Order__r.SBQQ__Quote__r.SBQQ__Type__c);
+                if(!isAmendment && inst.Order__r.SBQQ__Quote__r.SBQQ__Type__c == 'Amendment')
+                {
+                    isAmendment = TRUE;
+                    amendedOrd = inst.Order__c;
+                }
+            }
+            System.debug('con --> ' + contrIdList);
+            System.debug('amdord --> ' + amendedOrd);
+            List<SBQQ__Subscription__c> subList = new List<SBQQ__Subscription__c>();//[SELECT Id, Name, CurrencyIsoCode, SBQQ__NetPrice__c, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__Product__c, SBQQ__Product__r.Name, Package__c, SBQQ__Contract__c, SBQQ__OrderProduct__c, SBQQ__OrderProduct__r.SBQQ__ContractAction__c FROM SBQQ__Subscription__c WHERE SBQQ__Contract__c IN :contrIdList AND SBQQ__OrderProduct__r.OrderId IN :ordIdList];
+            if(isAmendment)
+            {
+                subList = [SELECT Id, Name, CurrencyIsoCode, SBQQ__NetPrice__c, SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__Product__c, SBQQ__Product__r.Name, Package__c, SBQQ__Contract__c, SBQQ__OrderProduct__c, SBQQ__OrderProduct__r.SBQQ__ContractAction__c FROM SBQQ__Subscription__c WHERE SBQQ__Contract__c IN :contrIdList AND Related_Order_Id__c = :amendedOrd];
+                System.debug('subList --> ' + subList);
+            }
+            else
+            {
+                if(ordIdList.isEmpty())
+                {
+                    subList = [SELECT Id, Name, CurrencyIsoCode, SBQQ__NetPrice__c, SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__Product__c, SBQQ__Product__r.Name, Package__c, SBQQ__Contract__c, SBQQ__OrderProduct__c, SBQQ__OrderProduct__r.SBQQ__ContractAction__c FROM SBQQ__Subscription__c WHERE SBQQ__Contract__c IN :contrIdList];
+                }
+                else
+                {
+                    subList = [SELECT Id, Name, CurrencyIsoCode, SBQQ__NetPrice__c, SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__Product__c, SBQQ__Product__r.Name, Package__c, SBQQ__Contract__c, SBQQ__OrderProduct__c, SBQQ__OrderProduct__r.SBQQ__ContractAction__c FROM SBQQ__Subscription__c WHERE SBQQ__Contract__c IN :contrIdList AND SBQQ__OrderProduct__r.OrderId IN :ordIdList];
+                }
+            }
+            System.debug('subList --> ' + subList);
+            createInstallationLines(subList, instIdList);
+        }
+        catch(Exception ex)
+        {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
+        }
+    }
+    
+    public static void createInstallationLines(List<SBQQ__Subscription__c> subList, List<Id> instIdList)
+    {
+        try
+        {
+            Map<Id, List<SBQQ__Subscription__c>> packIdSubListMap = new Map<Id, List<SBQQ__Subscription__c>>();
+            for(SBQQ__Subscription__c sub : subList)
+            {
+                if(packIdSubListMap.get(sub.Package__c) == NULL)
+                {
+                    packIdSubListMap.put(sub.Package__c, new List<SBQQ__Subscription__c>());
+                }
+                packIdSubListMap.get(sub.Package__c).add(sub);
+            }
+            Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, Quote__r.SBQQ__Type__c, Quote__r.Auto_Installation__c, (SELECT Id, Name, Auto_Installation__c, Installation_Order_Status__c, Quote__r.SBQQ__Type__c, Installation_Start_Date__c, Installation_End_Date__c FROM Installations__r) FROM Package__c WHERE Id IN :packIdSubListMap.keySet()]);
+            List<Installation_Line__c> instLines = new List<Installation_Line__c>();
+            for(Id packId : packIdSubListMap.keySet())
+            {
+                List<SBQQ__Subscription__c> subscList = packIdSubListMap.get(packId);
+                if(subscList != NULL && !subscList.isEmpty())
+                {
+                    for(SBQQ__Subscription__c sub : subscList)
+                    {
+                        if(packMap.get(packId) != NULL && packMap.get(packId).Installations__r != NULL && !packMap.get(packId).Installations__r.isEmpty())
+                        {
+                            for(Installation__c inst : packMap.get(packId).Installations__r)
+                            {
+                                //if((inst.Quote__r.SBQQ__Type__c == 'Renewal' || inst.Quote__r.SBQQ__Type__c == 'Quote') || (inst.Installation_Order_Status__c != 'Active' && inst.Auto_Installation__c))
+                                if(instIdList.contains(inst.Id))
+                                   // (!packMap.get(packId).Quote__r.Auto_Installation__c || inst.Auto_Installation__c)
+                                {
+                                    instLines.add(new Installation_Line__c(
+                                        Name = sub.SBQQ__Product__r.Name,
+                                        Installation__c = inst.Id,
+                                        Subscription__c = sub.Id,
+                                        Product__c = sub.SBQQ__Product__c,
+                                        Start_Date__c = sub.SBQQ__SegmentStartDate__c,
+                                        //End_Date__c = inst.Installation_End_date__c > sub.SBQQ__SegmentEndDate__c ? inst.Installation_End_date__c : sub.SBQQ__SegmentEndDate__c,
+                                        End_Date__c = sub.SBQQ__SegmentEndDate__c,
+                                        Net_Total__c = sub.SBQQ__NetPrice__c,
+                                        CurrencyIsoCode = sub.CurrencyIsoCode
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            System.debug('instLines --> ' + instLines);
+            if(!instLines.isEmpty())
+            {
+                insert instLines;
+            }
+        }
+        catch(Exception ex)
+        {
+
+        }
+    }
+    
+    @AuraEnabled
+    public static Boolean checkDuplicates(String contrId, String vesId, String orgId)
+    {
+        try
+        {
+            List<Installation__c> instList;
+            if(vesId != NULL && vesId != '')
+            {
+                instList = [SELECT Id, Name, Vessel_Name__c, Organisation_Name__c FROM Installation__c WHERE Vessel_Name__c = :vesId AND Contract__c = :contrId];
+            }
+            else
+            {
+                instList = [SELECT Id, Name, Vessel_Name__c, Organisation_Name__c FROM Installation__c WHERE Organisation_Name__c = :orgId AND Contract__c = :contrId];
+            }
+            if(!instList.isEmpty())
+            {
+                return TRUE;
+            }
+            else
+            {
+                return FALSE;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+    
+    @AuraEnabled
+    public static string terminateSingleRecord(String instId, Date endDate, String reason)
+    {
+        return terminateRecords(new List<String>{instId}, endDate, reason);
+    }
+    
+    @AuraEnabled
+    public static string terminateRecords(List<String> instIdList, Date endDate, String reason) {
+        try {
+            // Fetch contract dates for validation
+            List<Installation__c> installList = [SELECT Contract__c, Package__c FROM Installation__c WHERE Id = :instIdList[0] LIMIT 1];
+            Id contractId = installList[0].Contract__c;
+            Contract contr = [SELECT StartDate, EndDate FROM Contract WHERE Id = :contractId LIMIT 1];
+
+            // Validate termination date
+            if (endDate < contr.StartDate || endDate > contr.EndDate) {
+                throw new AuraHandledException('Termination date should be within the contracting period.');
+            }
+
+            List<Installation__c> instList = new List<Installation__c>();
+            for (String instId : instIdList) {
+                instList.add(new Installation__c(
+                    Id = instId,
+                    Installation_Order_Status__c = endDate > Date.today() ? STATUS_FUTURE_TERMINATED : STATUS_TERMINATED,
+                    Termination_End_Date__c = endDate,
+                    Termination_Reason__c = reason,
+                    Auto_Termination__c = true
+                ));
+            }
+
+            if (!instList.isEmpty()) {
+                update instList;
+            }
+            modifyContract(instList[0].Id, endDate, contractId, installList[0].Package__c, true);
+
+            //System.enqueueJob(new ModifyContractQueueable(instList[0].Id, endDate, contractId, instList[0].Package__c, true));
             return 'SUCCESS';
-
         } catch (Exception ex) {
-            Database.rollback(sp);
-            Logger.error('Error in activateInstallation: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
-            Logger.saveLog();
-            throw new AuraHandledException('Installation activation failed: ' + ex.getMessage());
+            Logger.error('Error in terminateRecords: ' + ex.getMessage());
+            throw new AuraHandledException('Error terminating records.');
         }
     }
-
-    private static void updateInstallationStartDate(Id instId, Date startDate) {
-        update new Installation__c(Id = instId, Installation_Start_Date__c = startDate);
-    }
-
-    private static void deleteExistingInstallationLinesAndSalesOrders(Id installationId) {
+    
+    @future(callout=true)
+    public static void modifyContract(Id instId, Date startDate, Id contrId, Id packId, Boolean isTerminate) {
         try {
-            List<Sales_Order__c> relatedSOs = [SELECT Id FROM Sales_Order__c WHERE Installation__c = :installationId];
-            if (!relatedSOs.isEmpty()) {
-                delete relatedSOs;
-                Logger.info('Deleted ' + relatedSOs.size() + ' Sales Orders for Installation: ' + installationId);
+            SBQQ__Quote__c qt;
+            String qtId = '';
+            Contract contr = [SELECT Id, Name, No_of_Installations__c FROM Contract WHERE Id = :contrId];
+            
+            try {
+                String quoteJSON = SBQQ.ServiceRouter.load('SBQQ.ContractManipulationAPI.ContractAmender', contrId, NULL);
+                Logger.debug('quoteJSON --> ' + quoteJSON);
+                Logger.saveLog();
+                
+                JSONParser jp = JSON.createParser(quoteJSON);
+                jp.nextToken();
+                while (jp.nextToken() != NULL) {
+                    if (jp.getCurrentName() == 'record') {
+                        while (jp.nextToken() != NULL) {
+                            if (jp.getText() == 'Id') {
+                                qtId = jp.getText();
+                                break;
+                            }
+                        }
+                        break;
+                    } else {
+                        jp.skipChildren();
+                    }
+                }
+                Logger.debug('Parsed Quote Id from JSON: ' + qtId);
+                Logger.saveLog();
+                
+                qt = [SELECT Id, Name, SBQQ__Status__c,SBQQ__Opportunity2__c, SBQQ__Ordered__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE Id = :qtId ORDER BY CreatedDate DESC LIMIT 1];
+            } catch (Exception ex) {
+                qt = [SELECT Id, Name, SBQQ__Status__c, SBQQ__Ordered__c,SBQQ__Opportunity2__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE SBQQ__MasterContract__c = :contrId ORDER BY CreatedDate DESC LIMIT 1];
+            }
+            
+            Package__c pack = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Id = :packId AND Contract__c = :contrId];
+            Decimal newInstallationQuantity = (pack.Installation_Quantity__c != null ? pack.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);
+            pack.Installation_Quantity__c = newInstallationQuantity;
+            
+            try {
+                Logger.debug('Updating Package: ' + pack);
+                Logger.saveLog();
+                update pack;
+            } catch (Exception ex) {
+                Logger.error('Package update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
                 Logger.saveLog();
             }
-
-            List<Installation_Line__c> existingLines = [SELECT Id FROM Installation_Line__c WHERE Installation__c = :installationId];
-            if (!existingLines.isEmpty()) {
-                delete existingLines;
-                Logger.info('Deleted ' + existingLines.size() + ' Installation Lines for Installation: ' + installationId);
+            
+            contr.No_of_Installations__c = (contr.No_of_Installations__c != null ? contr.No_of_Installations__c : 0) + (isTerminate ? -1 : 1);
+            try {
+                Logger.debug('Updating Contract: ' + contr);
                 Logger.saveLog();
+                update contr;
+            } catch (Exception ex) {
+                    Logger.error('Contract update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                    Logger.saveLog();
+            }
+            
+            SBQQ__QuoteLineGroup__c qlg = [SELECT Id, Name, Installation_Quantity__c FROM SBQQ__QuoteLineGroup__c WHERE Package__c = :packId AND SBQQ__Quote__c = :qt.Id];
+            Decimal qlgnewInstallationQuantity = (qlg.Installation_Quantity__c != null ? qlg.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);
+            qlg.Installation_Quantity__c = qlgnewInstallationQuantity;
+            
+            try {
+                update qlg;
+            } catch (Exception ex) {
+                    Logger.error('QLG update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                    Logger.saveLog();
+            }
+            
+            if (isTerminate) {
+                qt.Auto_Termination__c = TRUE;
+                qt.Installation__c = instId;
+                List<Installation__c> inst = [SELECT Id, Name, Termination_End_Date__c, Contract__r.StartDate, Contract__r.EndDate, Contract__r.Billing_Frequency__c FROM Installation__c WHERE Id = :instId];
+                qt.SBQQ__StartDate__c = inst[0].Termination_End_Date__c;
+                qt.SBQQ__EndDate__c = inst[0].Contract__r.EndDate;
+                qt.SBQQ__BillingFrequency__c = inst[0].Contract__r.Billing_Frequency__c;
+            } else {
+                qt.Auto_Installation__c = TRUE;
+                qt.Installation__c = instId;
+                qt.SBQQ__StartDate__c = Date.today();
+            }
+            
+            try {
+                update qt;
+            } catch (Exception ex) {
+                    Logger.error('Quote update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                    Logger.saveLog();
+            }
+            if (qt.SBQQ__Opportunity2__c != null) {
+                try {
+                    Opportunity opp = [
+                        SELECT Id, Name, StageName, Sales_Type__c, Agreement_Type__c, Existing_Opportunity_Type__c,
+                        Contract_Term__c, Description, NextStep, Product_Group__c, Contact_Name__c,
+                        SBQQ__AmendedContract__c,
+                        SBQQ__AmendedContract__r.ContractTerm,
+                        SBQQ__AmendedContract__r.Agreement_Type__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Sales_Type__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Product_Group__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Contact_Name__c
+                        FROM Opportunity
+                        WHERE Id = :qt.SBQQ__Opportunity2__c
+                    ];
+                    
+                    if (opp.SBQQ__AmendedContract__c != null) {
+                        opp.Existing_Opportunity_Type__c = 'Account Growth';
+                        opp.Contract_Term__c = String.valueOf(opp.SBQQ__AmendedContract__r.ContractTerm);
+                        opp.Description = (isTerminate ? 'Amendment - Auto Termination' : 'Amendment - Auto Installation');
+                        opp.NextStep = (isTerminate ? 'Amendment - Auto Termination' : 'Amendment - Auto Installation');
+                        if(opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__c != null){
+                            opp.Product_Group__c = opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Product_Group__c;
+                            opp.Contact_Name__c = opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Contact_Name__c;
+                            opp.Sales_Type__c = opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Sales_Type__c;
+                        }
+                        update opp;
+                    } 
+                } catch (Exception ex) {
+                        Logger.error('Opportunity update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                        Logger.saveLog();
+                }
+            }
+            
+            if (!isTerminate) {
+                Installation__c inst = new Installation__c();
+                inst.Id = instId;
+                inst.Quote__c = qt.Id;
+                inst.Quote_Line_Group__c = qlg.Id;
+                inst.Auto_Installation__c = TRUE;
+                
+                try {
+                    Logger.debug('Updating Installation: ' + inst);
+                    Logger.saveLog();
+                    update inst;
+                } catch (Exception ex) {
+                        Logger.error('Installation update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                        Logger.saveLog();
+                }
             }
         } catch (Exception ex) {
-            Logger.error('Error while deleting Installation Lines or Sales Orders: ' + ex.getMessage());
+            Logger.error('Unexpected error in modifyContract: ' + ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
             Logger.saveLog();
-            throw ex;
         }
     }
-
-    private static List<SBQQ__Subscription__c> fetchSubscriptionsFromOrderItems(Id quoteLineGroupId, Id packageId) {
-        Logger.info('Fetching Subscriptions using Order Items for Quote Line Group: ' + quoteLineGroupId + ' and Package: ' + packageId);
-        Logger.saveLog();
-
-        List<OrderItem> orderItems = [
-            SELECT Id
-            FROM OrderItem
-            WHERE Quote_Line_Group__c = :quoteLineGroupId
-            AND Package__c = :packageId
+    
+    @AuraEnabled
+    public static List<InstallationData> getInstallations(String contrId)
+    {
+        try
+        {
+            List<InstallationData> instDataList = new List<InstallationData>();
+            for(Installation__c inst : [SELECT Id, Name, Invoice_Account__c, Contract_Customer__c, Contract_Customer__r.Name, Installation_Order_Status__c, Installation_Start_date__c, Installation_End_date__c, Vessel_IMO__c, Vessel_Status__c, Invoice_Account__r.Name, Vessel_Name__c, Vessel_Name__r.Name, Contract__c, Contract__r.Name FROM Installation__c WHERE Contract__c = :contrId AND Installation_Order_Status__c != 'Terminated'])
+            {
+                InstallationData instData = new InstallationData();
+                instData.InstId = inst.Id;
+                instData.InstUrl = '/' + inst.Id;
+                instData.InstName = inst.Name;
+                instData.VesselName = inst.Vessel_Name__r.Name;
+                instData.VesselIMO = inst.Vessel_IMO__c;
+                instData.VesselStatus = inst.Vessel_Status__c;
+                instData.InstStatus = inst.Installation_Order_Status__c;
+                instData.startDate = inst.Installation_Start_Date__c;
+                instData.endDate = inst.Installation_End_date__c;
+                instData.CustContractName = inst.Contract_Customer__r.Name;
+                instData.CustContractId = inst.Contract_Customer__c;
+                instData.CustContractUrl = '/' + inst.Contract_Customer__c;
+                instDataList.add(instData);
+            }
+            return instDataList;
+        }
+        catch (Exception ex)
+        {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+    
+    @AuraEnabled
+    public static List<Installation__c> getInstallationRecs(String contrId)
+    {
+        try
+        {
+            return [SELECT Id, Name, Invoice_Account__c, Invoice_Account__r.Name, Vessel_Name__c, Vessel_Name__r.Name, Contract__c, Contract__r.Name FROM Installation__c WHERE Contract__c = :contrId AND Installation_Order_Status__c != 'Terminated'];
+        }
+        catch (Exception ex)
+        {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getContractDetails(Id recordId) {
+        Map<String, Object> contractDetails = new Map<String, Object>();
+    
+        Installation__c installation = [
+            SELECT Contract__r.StartDate, Contract__r.EndDate, Contract__r.Status
+            FROM Installation__c
+            WHERE Id = :recordId
+            LIMIT 1
         ];
-
-        if (orderItems.isEmpty()) {
-            Logger.warn('No Order Items found matching the provided Quote Line Group and Package.');
-            Logger.saveLog();
-            return new List<SBQQ__Subscription__c>();
+    
+        if (installation.Contract__r != null) {
+            contractDetails.put('startDate', installation.Contract__r.StartDate);
+            contractDetails.put('endDate', installation.Contract__r.EndDate);
+            contractDetails.put('status', installation.Contract__r.Status);
         }
-
-        Set<Id> orderItemIds = new Set<Id>();
-        for (OrderItem oi : orderItems) {
-            orderItemIds.add(oi.Id);
-        }
-
-        List<SBQQ__Subscription__c> subscriptions = [
-            SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c,
-                   SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, CurrencyIsoCode,
-                   SBQQ__OrderProduct__c, SBQQ__QuoteLine__c
-            FROM SBQQ__Subscription__c
-            WHERE SBQQ__OrderProduct__c IN :orderItemIds
-        ];
-
-        Logger.info('Fetched ' + subscriptions.size() + ' Subscriptions from Order Items.');
-        Logger.saveLog();
-
-        return subscriptions;
+    
+        return contractDetails;
     }
-
-    private static void createInstallationLines(Installation__c inst, List<SBQQ__Subscription__c> subscriptions, Date startDate) {
-        List<Installation_Line__c> instLines = new List<Installation_Line__c>();
-
-        for (SBQQ__Subscription__c sub : subscriptions) {
-            instLines.add(new Installation_Line__c(
-                Name = sub.SBQQ__Product__r.Name,
-                Installation__c = inst.Id,
-                Subscription__c = sub.Id,
-                Quote_Line__c = sub.SBQQ__QuoteLine__c,
-                Product__c = sub.SBQQ__Product__c,
-                Start_Date__c = sub.SBQQ__SegmentStartDate__c,
-                End_Date__c = sub.SBQQ__SegmentEndDate__c,
-                Net_Total__c = sub.SBQQ__NetPrice__c,
-                CurrencyIsoCode = sub.CurrencyIsoCode
-            ));
-        }
-
-        if (!instLines.isEmpty()) {
-            insert instLines;
-            Logger.info('Inserted ' + instLines.size() + ' Installation Lines for Installation: ' + inst.Id);
-            Logger.saveLog();
-        }
-    }
-
-    private static Decimal calculateProratedAmount(Decimal netPrice, Date segmentStart, Date segmentEnd, Date instStart) {
-        Integer totalSegmentDays = segmentStart.daysBetween(segmentEnd) + 1;
-        Integer remainingDays = instStart.daysBetween(segmentEnd) + 1;
-        if (totalSegmentDays <= 0 || remainingDays <= 0) return 0;
-        return (netPrice / totalSegmentDays * remainingDays).setScale(2);
+    
+    public class InstallationData
+    {
+        @AuraEnabled
+        public String InstId;
+        @AuraEnabled
+        public String InstUrl;
+        @AuraEnabled
+        public String InstName;
+        @AuraEnabled
+        public String VesselName;
+        @AuraEnabled
+        public String VesselIMO;
+        @AuraEnabled
+        public String VesselStatus;
+        @AuraEnabled
+        public String InstStatus;
+        @AuraEnabled
+        public String CustContractId;
+        @AuraEnabled
+        public String CustContractUrl;
+        @AuraEnabled
+        public String CustContractName;
+        @AuraEnabled
+        public Date startDate;
+        @AuraEnabled
+        public Date endDate;
     }
 }

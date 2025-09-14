@@ -2,6 +2,8 @@ trigger bg_Account_au on Account (after update)
 {
     List<Account> replicasToRecalculate = new List<Account>();
     List<Account> ultimateParentAccountChanges = new List<Account>();
+    
+    List<Account> paymentTermsChangedAccounts = new List<Account>();
 
     for (Account acc : Trigger.new)
     {
@@ -20,6 +22,10 @@ trigger bg_Account_au on Account (after update)
         {
             ultimateParentAccountChanges.add(acc);
         }
+        
+        if (acc.Customer_Payment_Terms__c != oldAcc.Customer_Payment_Terms__c) {
+            paymentTermsChangedAccounts.add(acc);
+        }
     }
 
     if (!replicasToRecalculate.isEmpty())
@@ -30,5 +36,9 @@ trigger bg_Account_au on Account (after update)
     if (!ultimateParentAccountChanges.isEmpty())
     {
         bg_AccountUtils.PopulateHierarchyFieldsFromUltimateParent(ultimateParentAccountChanges);
+    }
+    
+    if (!paymentTermsChangedAccounts.isEmpty()) {
+        bg_AccountUtils.updateNonApprovedQuotesForAccounts(paymentTermsChangedAccounts);
     }
 }

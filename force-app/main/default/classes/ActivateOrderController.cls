@@ -1,15 +1,19 @@
 public class ActivateOrderController
 {
     @AuraEnabled
-    public static string activateOrder(String ordId)
+    public static string activateOrder(String ordId, Date activatedDate)
     {
         System.debug('ordId --> ' + ordId);
         try
         {
+            activatedDate = activatedDate == NULL ? Date.today() : activatedDate;
             Order ord = new Order(
                 Id = ordId,
                 Status = 'Activated',
-                SBQQ__Contracted__c = TRUE
+                SBQQ__Contracted__c = TRUE,
+                Is_Activated__c = TRUE,
+                //EffectiveDate = activatedDate,
+                ActivatedDate = activatedDate
             );
             update ord;
             

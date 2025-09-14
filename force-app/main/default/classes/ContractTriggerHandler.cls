@@ -6,11 +6,10 @@ public class ContractTriggerHandler {
     }
 
     public static void onBeforeUpdate() {
-         if (!isExecuting) {
-            isExecuting = true;
+        if (checkRecursion()) {
             updatePreviousContract((List<Contract>)Trigger.new);
-            updateSubscriptionValue((List<Contract>)Trigger.new, (Map<Id, Contract>)Trigger.oldMap);
-            isExecuting = false;
+           // updateSubscriptionValue((List<Contract>)Trigger.new, (Map<Id, Contract>)Trigger.oldMap);
+            
         }
     }
 
@@ -20,81 +19,76 @@ public class ContractTriggerHandler {
     }
     
     public static void onAfterUpdate() {
-        activateContracts((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
+        if (!isSystemUser()) {
+            activateContracts((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
+        }
+    }
+
+    private static Boolean checkRecursion() {
+        if (isExecuting) return false;
+        isExecuting = true;
+        return true;
+    }
+
+    private static Boolean isSystemUser() {
+        return [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias == 'duser';
     }
     
     /**
      * Activates contracts and processes related installations.
      */
     public static void activateContracts(Map<Id, Contract> newContrMap, Map<Id, Contract> oldContrMap) {
-        if (isExecuting) return;  // Prevent recursion
-        isExecuting = true;
+    try {
+        Set<Id> contractIds = newContrMap.keySet();
+        Logger.info('Processing contract activation for contract IDs: ' + contractIds);
 
-        try {
-            // Bypass logic if current user is 'duser'
-            String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
-            if (currentUserAlias == 'duser') return;
+        // 🔁 Requery contracts to get all required fields, including SBQQ__Quote__r
+        Map<Id, Contract> queriedContracts = new Map<Id, Contract>([
+            SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c ,Subscription_System__c
+            FROM Contract
+            WHERE Id IN :contractIds
+        ]);
 
-            Set<Id> contractIds = newContrMap.keySet();
-            List<Id> activeContrList = new List<Id>();
+        List<Id> activeContrList = new List<Id>();
 
-            // Bulk Fetch Contracts to avoid multiple queries inside loop
-            Map<Id, Contract> contrMap = new Map<Id, Contract>([
-                SELECT Id, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c 
-                FROM Contract WHERE Id IN :contractIds
-            ]);
+        for (Id contrId : contractIds) {
+            Contract newContr = queriedContracts.get(contrId);
+            Contract oldContr = oldContrMap.get(contrId);
 
-           // Identify activated contracts
-            for (Id contrId : contractIds) {
-                Contract newContr = newContrMap.get(contrId);
-                Contract oldContr = oldContrMap.get(contrId);
-            
-                // Ensure oldContr exists to avoid NullPointerException
-                if (oldContr != null && newContr.Status == 'Activated' && oldContr.Status != 'Activated') {
-                    if (contrMap.containsKey(contrId)) {
-                        String quoteType = contrMap.get(contrId).SBQQ__Quote__r.SBQQ__Type__c;
-                        if (quoteType == 'Renewal') {
-                            activeContrList.add(contrId);
-                        }
-                    }
+            if (newContr.Status == 'Activated' && oldContr.Status != 'Activated') {
+                if (newContr.SBQQ__Quote__r != null && newContr.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
+                    activeContrList.add(contrId);
                 }
             }
-
-            // Fetch Installations related to active contracts
-            if (!activeContrList.isEmpty()) {
-                List<Installation__c> instList = [
-                    SELECT Id, Name, Contract__c, Contract__r.SBQQ__Quote__r.SBQQ__Type__c, 
-                    Contract__r.StartDate, Contract__r.EndDate, 
-                    Order__c, Order__r.SBQQ__Quote__c, 
-                    Quote_Line_Group__r.SBQQ__Quote__c, Order__r.ActivatedDate
-                    FROM Installation__c 
-                    WHERE Contract__c IN :activeContrList 
-                    AND Installation_Order_Status__c != 'Terminated'
-                    ORDER BY CreatedDate DESC
-                ];
-                activate(instList);
-            }
-
-            updateNextContract(newContrMap);
-            
-        } catch (Exception ex) {
-            Logger.error(ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
-            Logger.saveLog();
-        } finally {
-            isExecuting = false; // Reset recursion flag
         }
+
+        Logger.info('Activated Renewal Contracts: ' + activeContrList);
+
+        if (!activeContrList.isEmpty()) {
+            List<Installation__c> instList = [
+                SELECT Id, Name, Contract__c, Contract__r.SBQQ__Quote__r.SBQQ__Type__c, 
+                       Contract__r.StartDate, Contract__r.EndDate, 
+                       Order__c, Order__r.SBQQ__Quote__c, 
+                       Quote_Line_Group__r.SBQQ__Quote__c, Order__r.ActivatedDate
+                FROM Installation__c 
+                WHERE Contract__c IN :activeContrList 
+                AND Installation_Order_Status__c = 'Active'
+                ORDER BY CreatedDate DESC
+            ];
+            activateInstallations(instList);
+        } 
+        updateNextContract(queriedContracts);
+
+    } catch (Exception ex) {
+        Logger.error('Error in activateContracts: ' + ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
+    } finally {
+        isExecuting = false;
+        Logger.saveLog();
     }
+}
 
    public static void updatePreviousContract(List<Contract> newContrList) {
-    try {
-        // Retrieve the current user's alias
-        String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
-        
-        // Bypass the logic if the current user alias is 'duser'
-        if (currentUserAlias == 'duser') {
-            return;
-        }
-
+    try {        
         Set<Id> quoteIds = new Set<Id>();
         Set<Id> opportunityIds = new Set<Id>();
 
@@ -112,13 +106,13 @@ public class ContractTriggerHandler {
 
         // Step 2: Bulk Fetch Quotes
         Map<Id, SBQQ__Quote__c> quoteMap = new Map<Id, SBQQ__Quote__c>(
-            [SELECT Id, SBQQ__Type__c, Agreement_Type__c, SBQQ__BillingFrequency__c
+            [SELECT Id, SBQQ__Type__c, Agreement_Type__c, SBQQ__BillingFrequency__c, Total_Installations__c
              FROM SBQQ__Quote__c WHERE Id IN :quoteIds]
         );
 
         // Step 3: Bulk Fetch Opportunities
         Map<Id, Opportunity> opportunityMap = new Map<Id, Opportunity>(
-            [SELECT Id, Name, SBQQ__RenewedContract__c, Legal_Entity__c, Number_of_Installations__c, Business_Unit__c,
+            [SELECT Id, Name, SBQQ__RenewedContract__c, Legal_Entity__c, Number_of_Installations__c, Business_Unit__c,AgreementType__c,
               Customer_Signed_By__c, Contract_Agreement_Signed_Date__c, Company_Signed_By__c, Company_Signed_Date__c, Contact_Name__r.Job_Title__c,Customer_Signed_By__r.Job_Title__c,
                     SBQQ__RenewedContract__r.Subscription_System__c, 
                     SBQQ__RenewedContract__r.Agreement_Type__c,
@@ -130,10 +124,12 @@ public class ContractTriggerHandler {
                     SBQQ__RenewedContract__r.Original_Fixed_Term_End_Date__c,
                     SBQQ__RenewedContract__r.Original_Fixed_Term__c,
                     SBQQ__RenewedContract__r.Subscription_Value__c,
+             		SBQQ__RenewedContract__r.SBQQ__RenewalUpliftRate__c,
                     SBQQ__PrimaryQuote__c, 
                     SBQQ__PrimaryQuote__r.SBQQ__DeliveryMethod__c,
                     SBQQ__PrimaryQuote__r.SBQQ__StartDate__c, 
-                    SBQQ__PrimaryQuote__r.SBQQ__EndDate__c
+                    SBQQ__PrimaryQuote__r.SBQQ__EndDate__c,
+             		SBQQ__PrimaryQuote__r.SBQQ__PaymentTerms__c
              FROM Opportunity WHERE Id IN :opportunityIds]
         );
 
@@ -145,7 +141,7 @@ public class ContractTriggerHandler {
             if (quote != null && opp != null) {
                 // Update contract fields directly within before trigger
                 con.Legal_Entity__c = opp.Legal_Entity__c;
-                con.No_of_Installations__c = opp.Number_of_Installations__c;
+                con.No_of_Installations__c = quote.Total_Installations__c;
                 con.Business_Unit__c = opp.Business_Unit__c;
                 con.Unit_of_Measure__c = quote.Agreement_Type__c;
                 con.Default_Delivery_Method__c = opp.SBQQ__PrimaryQuote__r.SBQQ__DeliveryMethod__c;
@@ -155,6 +151,9 @@ public class ContractTriggerHandler {
                 con.CompanySignedId = opp.Company_Signed_By__c;
                 con.CompanySignedDate = opp.Company_Signed_Date__c;
                 con.CustomerSignedTitle = opp.Customer_Signed_By__r.Job_Title__c;
+                con.Agreement_Type__c = opp.AgreementType__c;
+                con.Payment_Terms__c = opp.SBQQ__PrimaryQuote__r.SBQQ__PaymentTerms__c;
+                con.Subscription_System__c = 'Salesforce CPQ'; // Added on 26-05-2025
 
                 // Handle Renewal Contracts
                 if (quote.SBQQ__Type__c == 'Renewal') {
@@ -165,12 +164,14 @@ public class ContractTriggerHandler {
                     con.Subscription_System__c = opp.SBQQ__RenewedContract__r.Subscription_System__c;
                     con.Agreement_Type__c = opp.SBQQ__RenewedContract__r.Agreement_Type__c;
                     con.Next_Renewal_Date__c = opp.SBQQ__RenewedContract__r.Next_Renewal_Date__c;
-                    //con.Renewal_Month__c = opp.SBQQ__RenewedContract__r.Renewal_Month__c;
+                    //con.SBQQ__RenewalUpliftRate__c = 0;
+                    system.debug('con.SBQQ__RenewalUpliftRate__c' + con.SBQQ__RenewalUpliftRate__c);
                     //con.Agreement_ID__c = opp.SBQQ__RenewedContract__r.Agreement_ID__c;
                     con.Original_Fixed_Term_Start_Date__c = opp.SBQQ__RenewedContract__r.Original_Fixed_Term_Start_Date__c;
                     con.Original_Fixed_Term_End_Date__c = opp.SBQQ__RenewedContract__r.Original_Fixed_Term_End_Date__c;
                     con.Original_Fixed_Term__c = opp.SBQQ__RenewedContract__r.Original_Fixed_Term__c;
                     con.Subscription_Value__c = opp.SBQQ__RenewedContract__r.Subscription_Value__c;
+                    con.Payment_Terms__c = opp.SBQQ__RenewedContract__r.Payment_Terms__c;
                 }
             }
         }
@@ -207,14 +208,7 @@ public class ContractTriggerHandler {
     }
 
     public static void updateContractDetails(Map<Id, Contract> contractMap) {
-        // Retrieve the current user's alias
-        String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
-
-        // Bypass the logic if the current user alias is 'duser'
-        if (currentUserAlias == 'duser') {
-            return; // Exit the method
-        }
-
+        
         try {
             if (contractMap.isEmpty()) {
                 return; 
@@ -260,7 +254,6 @@ public class ContractTriggerHandler {
                 installationRecord.Quote_Line_Group__c = installationRecord.Package__r.Quote_Line_Group__c;
                 Contract relatedContract = contractMap.get(installationRecord.Contract__c);
                 if (installationRecord.Contract__r.SBQQ__Quote__r.SBQQ__Type__c != 'Renewal') {
-                    // installationRecord.Installation_Order_Status__c = 'Active';
                     if (installationRecord.Installation_Start_date__c == null && installationRecord.Installation_End_date__c == null) {
                         if (relatedContract != null) {
                             installationRecord.Installation_Start_date__c = relatedContract.StartDate;
@@ -281,43 +274,28 @@ public class ContractTriggerHandler {
         }
     }
 
-    public static void activate(List<Installation__c> instList) {
-        try {
-            List<Id> instIdList = new List<Id>();
-            List<Installation__c> newQTInstList = new List<Installation__c>();
-            if (instList != null && !instList.isEmpty()) {
-                for (Installation__c inst : instList) {
-                    inst.Installation_End_date__c = Date.valueOf(inst.Contract__r.EndDate);
-                    inst.Quote__c = inst.Order__r.SBQQ__Quote__c;
-                    inst.Order__c = inst.Order__r.Id;
-                    if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
-                        newQTInstList.add(inst);
-                    }
-                    instIdList.add(inst.Id);
-                }
-                update instList;
-                if (!newQTInstList.isEmpty()) {
-                    InstallationsRenewalService.processRenewalInstallations(newQTInstList);
-                }
+    private static void activateInstallations(List<Installation__c> instList) {
+        Logger.info('Start: activateInstallations | Total Installations: ' + instList.size());
+        Logger.saveLog();
+    
+        List<Installation__c> renewalInsts = new List<Installation__c>();
+    
+        for (Installation__c inst : instList) {
+            inst.Installation_End_date__c = inst.Contract__r.EndDate;
+            inst.Quote__c = inst.Order__r?.SBQQ__Quote__c;
+            
+            if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
+                renewalInsts.add(inst);
             }
-        } catch (Exception ex) {
-            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
-            Logger.saveLog();
         }
+    
+        if (!instList.isEmpty()) {
+            update instList;
+        }
+    
+        if (!renewalInsts.isEmpty()) {
+            InstallationsRenewalService.processRenewalInstallations(renewalInsts);
+        } 
     }
 
-    public static void updateSubscriptionValue(List<Contract> newContrList, Map<Id, Contract> oldContrMap) {
-        List<AggregateResult> agrList = [SELECT SBQQ__Contract__c, SUM(SBQQ__NetPrice__c) FROM SBQQ__Subscription__c WHERE SBQQ__Contract__c IN :oldContrMap.keySet() GROUP BY SBQQ__Contract__c];
-        Map<Id, Decimal> subMap = new Map<Id, Decimal>();
-        if (agrList != null && !agrList.isEmpty()) {
-            for (AggregateResult agr : agrList) {
-                subMap.put((Id)agr.get('SBQQ__Contract__c'), (Decimal)agr.get('expr0'));
-            }
-            for (Contract con : newContrList) {
-                if (con.Status == 'Activated' && oldContrMap.get(con.Id).Status != 'Activated') {
-                    con.Subscription_Value__c = subMap.get(con.Id);
-                }
-            }
-        }
-    }
 }

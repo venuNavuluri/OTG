@@ -34,7 +34,7 @@ public class LeadReferralController {
             //Customer_Type__c = (String)leadData.get('companyType'),
             Is_this_an_existing_customer_of_LR_or_LR__c = (String)leadData.get('existingCustomer'),
             Title = (String)leadData.get('jobTitle'),
-            Description = (String)leadData.get('message'),
+            Description = DateTime.now().format('dd MMMM yyyy') + ' - OTG web to lead form: ' + (String)leadData.get('message'),
             Phone = (String)leadData.get('phone'),
             Website = (String)leadData.get('website'),
             Account_Salesforce_URL__c = (String)leadData.get('AccountURL'),
