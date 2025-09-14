@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>sp1Send_Renewal_Reminder</name>
+        <label>Contract.Send_Renewal_Reminder</label>
+        <locationX>308</locationX>
+        <locationY>276</locationY>
+        <actionName>Contract.Send_Renewal_Reminder</actionName>
+        <actionType>emailAlert</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>SObjectRowId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>Contract.Send_Renewal_Reminder</nameSegment>
+    </actionCalls>
+    <apiVersion>55.0</apiVersion>
+    <description>Migrated from the: Send Renewal Reminder workflow rule
+Workflow rule description: Send Renewal Reminder&quot;</description>
+    <environments>Default</environments>
+    <label>Send Renewal Reminder</label>
+    <migratedFromWorkflowRuleName>Send Renewal Reminder</migratedFromWorkflowRuleName>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterFormula>AND(ISPICKVAL({!$Record.Status},&apos;Activated&apos;),NOT(ISBLANK({!$Record.Next_Renewal_Date__c})))</filterFormula>
+        <object>Contract</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <scheduledPaths>
+            <name>ScheduledPath1</name>
+            <connector>
+                <targetReference>sp1Send_Renewal_Reminder</targetReference>
+            </connector>
+            <label>ScheduledPath1</label>
+            <offsetNumber>-120</offsetNumber>
+            <offsetUnit>Days</offsetUnit>
+            <recordField>Next_Renewal_Date__c</recordField>
+            <timeSource>RecordField</timeSource>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

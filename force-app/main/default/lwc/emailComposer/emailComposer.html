@@ -1,0 +1,92 @@
+<template>
+    <lightning-quick-action-panel header="Send Email">
+        <div class="slds-p-around_medium">
+            <!-- From Address -->
+            <div class="slds-m-top_medium">
+                <label class="slds-form-element__label slds-text-title_bold slds-text-heading_medium" for="fromSelect">From</label>
+                <div class="slds-form-element__control">
+                    <select id="fromSelect" class="slds-select" onchange={handleFromChange} value={fromEmail}>
+                        <template if:true={orgWideEmails}>
+                            <template for:each={orgWideEmails} for:item="email">
+                                <option key={email} value={email}>{email}</option>
+                            </template>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <!-- To (read-only) -->
+            <div class="slds-m-top_medium">
+                <lightning-input 
+                    label="To" 
+                    value="Support@oceantg.com" 
+                    readonly
+                    class="slds-form-element__label slds-text-title_bold">
+                </lightning-input>
+            </div>
+
+            <!-- CC -->
+            <div class="slds-m-top_medium">
+                <lightning-input 
+                    label="CC" 
+                    value={recipientEmail} 
+                    class="slds-form-element__label slds-text-title_bold"
+                    onchange={handleCcChange}>
+                </lightning-input>
+            </div>
+
+            <!-- BCC -->
+            <div class="slds-m-top_medium">
+                <lightning-input 
+                    label="BCC" 
+                    value={bccEmails} 
+                    class="slds-form-element__label slds-text-title_bold "
+                    onchange={handleBccChange}>
+                </lightning-input>
+            </div>
+
+            <!-- Subject (read-only) -->
+            <div class="slds-m-top_medium">
+                <lightning-input 
+                    label="Subject" 
+                    value={emailSubject} 
+                    readonly
+                    class="slds-form-element__label slds-text-title_bold">
+                </lightning-input>
+            </div>
+
+            <!-- Email Body (custom read-only div) -->
+            <div class="slds-m-top_medium">
+                <label class="slds-form-element__label slds-text-title_bold" for="emailBody">Message</label>
+                <div 
+                    id="emailBody"
+                    class="slds-form-element__control slds-textarea readonly-message" 
+                    data-id="emailBody"
+                    lwc:dom="manual">
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="slds-m-top_medium slds-text-align_right">
+                <lightning-button 
+                    label="Cancel" 
+                    onclick={handleCancel}
+                    class="slds-m-right_small">
+                </lightning-button>
+                <lightning-button 
+                    variant="brand" 
+                    label="Send" 
+                    onclick={handleSend}
+                    disabled={isSending}>
+                </lightning-button>
+            </div>
+
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-is-relative slds-m-top_medium" style="height: 50px;">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+        </div>
+    </lightning-quick-action-panel>
+</template>

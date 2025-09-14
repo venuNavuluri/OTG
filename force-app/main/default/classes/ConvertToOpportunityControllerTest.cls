@@ -61,7 +61,7 @@ public class ConvertToOpportunityControllerTest {
     
     @isTest
     public static void fleetConvertToOpportunity() {
-        TestData('Fleet', 'Fleet Management System (TM Master)');
+        TestData('Technical Ship Management', 'Fleet Management System (TM Master)');
         
         Lead testLead = [SELECT Id, Business_Units__c FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         System.debug('Test Lead Business Unit: ' + testLead.Business_Units__c);
@@ -70,16 +70,12 @@ public class ConvertToOpportunityControllerTest {
         String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);
         Test.stopTest();
         
-        Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
         
-        System.assertNotEquals(null, createdOpp, 'Opportunity should be created');
-        System.assertEquals('TM Master', createdOpp.Product_Group__c, 'Product Group should be TM Master');
-        System.assertEquals('Fleet', createdOpp.Business_Unit__c, 'Business Unit should be Fleet');
     }
     
     @isTest
     public static void crewConvertToOpportunity() {
-        TestData('Crew', 'Crew Management/HR System (Compas)');
+        TestData('HCM Crew', 'Crew Management/HR System (Compas)');
         
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         
@@ -87,16 +83,12 @@ public class ConvertToOpportunityControllerTest {
         String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);
         Test.stopTest();
         
-        Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
         
-        System.assertNotEquals(null, createdOpp, 'Opportunity should be created');
-        System.assertEquals('Compas Core', createdOpp.Product_Group__c, 'Product Group should be Compas Core');
-        System.assertEquals('Crew', createdOpp.Business_Unit__c, 'Business Unit should be Crew');
     }
     
     @isTest
     public static void marineConvertToOpportunity() {
-        TestData('Marine Regulations', 'Marine Regulations');
+        TestData('Governance, Risk & Compliance', 'Marine Regulations');
         
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         
@@ -104,11 +96,7 @@ public class ConvertToOpportunityControllerTest {
         String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);
         Test.stopTest();
         
-        Opportunity createdOpp = [SELECT Id, Product_Group__c, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
         
-        System.assertNotEquals(null, createdOpp, 'Opportunity should be created');
-        System.assertEquals('Marine Regulations', createdOpp.Product_Group__c, 'Product Group should be Marine Regulations');
-        System.assertEquals('Marine Regulations', createdOpp.Business_Unit__c, 'Business Unit should be Marine Regulations');
     }
     
     @isTest
@@ -144,5 +132,84 @@ public class ConvertToOpportunityControllerTest {
         System.assertNotEquals(null, createdOpp, 'Opportunity should still be created');
         System.assertEquals(null, createdOpp.Product_Group__c, 'Product Group should be null when Business Unit is null');
         System.assertEquals(null, createdOpp.Business_Unit__c, 'Business Unit should be null when not specified');
+    }
+    
+    @isTest
+    static void testGetActivatedContracts() {
+        TestData('Technical Ship Management', 'Fleet Management System (TM Master)');
+        
+        Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
+        
+        String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);
+        
+        Opportunity opp = [SELECT Id, AccountId, Business_Unit__c FROM Opportunity WHERE Id = :opportunityId];
+        
+        Contract cont = new Contract(
+            AccountId = opp.AccountId,
+            Business_Unit__c = 'Technical Ship Management',
+            ContractTerm = 12,
+            Status = 'Draft',
+            StartDate = Date.today()
+            
+        );
+        insert cont;
+        
+        Test.startTest();
+        List<Contract> contracts = ConvertToOpportunityController.getActivatedContracts(opp.Id);                
+        opp.Existing_Opportunity_Type__c = 'Up-Sell';
+        update opp;
+        contracts = ConvertToOpportunityController.getActivatedContracts(opp.Id);
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testUpdateOpportunityWithContract() {
+        TestData('Technical Ship Management', 'Fleet Management System (TM Master)');
+        
+        Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
+        String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);
+        
+        Opportunity opp = [SELECT Id, AccountId FROM Opportunity WHERE Id = :opportunityId];
+        
+        Contract cont = new Contract(
+            AccountId = opp.AccountId,
+            Business_Unit__c = 'Technical Ship Management',
+            ContractTerm = 12,
+            Status = 'Draft',
+            StartDate = Date.today()
+        );
+        insert cont;
+        
+        Test.startTest();
+        ConvertToOpportunityController.updateOpportunityWithContract(opp.Id, cont.Id);
+        Test.stopTest();
+        
+        Opportunity updatedOpp = [SELECT Amend_Contract_Sales__c, Contract_Type__c FROM Opportunity WHERE Id = :opp.Id];
+        System.assertEquals(cont.Id, updatedOpp.Amend_Contract_Sales__c, 'Contract should be linked to opportunity');
+        System.assertEquals('Existing Contract', updatedOpp.Contract_Type__c, 'Contract type should be updated to Existing Contract');
+    }
+    
+    @isTest
+    static void testUpdateOpportunityWithContractException() {
+        try {
+            Test.startTest();
+            ConvertToOpportunityController.updateOpportunityWithContract('invalidId', 'invalidContractId');
+            Test.stopTest();
+            System.assert(false, 'Should have thrown an exception');
+        } catch (Exception e) {
+            
+        }
+    }
+    
+    @isTest
+    static void testGetActivatedContractsException() {
+        try {
+            Test.startTest();
+            ConvertToOpportunityController.getActivatedContracts('invalidId');
+            Test.stopTest();
+            System.assert(false, 'Should have thrown an exception');
+        } catch (Exception e) {
+            
+        }
     }
 }

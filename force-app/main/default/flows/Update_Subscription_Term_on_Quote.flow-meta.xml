@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <assignments>
+        <name>Convert_Picklist_to_Number</name>
+        <label>Convert Picklist to Number</label>
+        <locationX>528</locationX>
+        <locationY>647</locationY>
+        <assignmentItems>
+            <assignToReference>SubscriptionTerm</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>ContractTermCheck</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Quotes</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <name>Check_for_Approved_Quotes</name>
+        <label>Check for Approved Quotes</label>
+        <locationX>396</locationX>
+        <locationY>539</locationY>
+        <defaultConnector>
+            <targetReference>Convert_Picklist_to_Number</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Approved_Quotes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Through_Quotes.SBQQ__Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Approved</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Approved Quotes</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <formulas>
+        <name>ContractTermCheck</name>
+        <dataType>Number</dataType>
+        <expression>CASE(TEXT({!$Record.Contract_Term__c}), 
+    &quot;12&quot;, 12, 
+    &quot;24&quot;, 24, 
+    &quot;36&quot;, 36, 
+    &quot;48&quot;, 48, 
+    0)</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>QuoteEndDate</name>
+        <dataType>Date</dataType>
+        <expression>ADDMONTHS({!$Record.SBQQ__PrimaryQuote__r.SBQQ__StartDate__c},{!SubscriptionTerm}) -1</expression>
+    </formulas>
+    <interviewLabel>Update Subscription Term on Quote {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Update Subscription Term on Quote</label>
+    <loops>
+        <name>Loop_Through_Quotes</name>
+        <label>Loop Through Quotes</label>
+        <locationX>176</locationX>
+        <locationY>431</locationY>
+        <collectionReference>Get_Quote_Records</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Check_for_Approved_Quotes</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_Quote_Subscription_Term</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Quote_Records</name>
+        <label>Get Quote Records</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Through_Quotes</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity2__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>SBQQ__Quote__c</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Update_Quote_Subscription_Term</name>
+        <label>Update Quote - Subscription Term</label>
+        <locationX>176</locationX>
+        <locationY>923</locationY>
+        <faultConnector>
+            <targetReference>Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity2__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>SBQQ__EndDate__c</field>
+            <value>
+                <elementReference>QuoteEndDate</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>SBQQ__SubscriptionTerm__c</field>
+            <value>
+                <elementReference>SubscriptionTerm</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record.SBQQ__Quotes2__r</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Quote_Records</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Contract_Term__c</field>
+            <operator>IsChanged</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>SubscriptionTerm</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+</Flow>

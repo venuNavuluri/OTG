@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <decisions>
+        <name>Check_for_Business_Unit</name>
+        <label>Check for Business Unit</label>
+        <locationX>1271</locationX>
+        <locationY>323</locationY>
+        <defaultConnector>
+            <targetReference>Check_for_Free_Trail_Agreement</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Business_is_Fleet</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Technical Ship Management</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Fleet_Contract_Agreement</targetReference>
+            </connector>
+            <label>Business is Fleet</label>
+        </rules>
+        <rules>
+            <name>Business_is_Crew</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Crew</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Crew_Contract_Agreement</targetReference>
+            </connector>
+            <label>Business is Crew</label>
+        </rules>
+        <rules>
+            <name>Business_is_Marine_Regulation</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Governance, Risk &amp; Compliance</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Marine_Contract_Agreement</targetReference>
+            </connector>
+            <label>Business is Marine Regulation</label>
+        </rules>
+        <rules>
+            <name>Business_is_L_A</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Learning, Assessment and Competency</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_OLP_Contract_Agreement</targetReference>
+            </connector>
+            <label>Business is L&amp;A</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_for_Closed_Opportunity</name>
+        <label>Check for Closed Opportunity</label>
+        <locationX>2294</locationX>
+        <locationY>539</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Closed_Lost</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Closed Lost</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Contract_Reason</targetReference>
+            </connector>
+            <label>Closed Lost</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_for_Free_Trail_Agreement</name>
+        <label>Check for Free Trail Agreement</label>
+        <locationX>2492</locationX>
+        <locationY>431</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Agreement_Type_Free_Trail_Agreement</name>
+            <conditionLogic>1 AND ( 2 OR 3 ) AND 4 AND 5</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Closed Won</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Closed Lost</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Free_Trial_Agreement__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Free_Trial_Agreement__r.Agreement_Type__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Free Trial Agreement</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_for_Closed_Opportunity</targetReference>
+            </connector>
+            <label>Agreement Type - Free Trail Agreement</label>
+        </rules>
+    </decisions>
+    <description>Assign the Opportunity Agreement Type and Update on the Contract Agreement Type</description>
+    <environments>Default</environments>
+    <interviewLabel>Opportunity Agreement Type - Contract Update {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity Agreement Type - Contract Update</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Update_Contract_Reason</name>
+        <label>Update Contract - Reason</label>
+        <locationX>2162</locationX>
+        <locationY>647</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Agreement_Type__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Free Trial Agreement</stringValue>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Lost_Reason_Comments__c</field>
+            <value>
+                <elementReference>$Record.Lost_Reason_Comments__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Lost_Reason__c</field>
+            <value>
+                <elementReference>$Record.Lost_Reason__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status</field>
+            <value>
+                <stringValue>Terminated</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Terminated_Date__c</field>
+            <value>
+                <elementReference>$Record.LastModifiedDate</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Crew_Contract_Agreement</name>
+        <label>Update Crew Contract Agreement</label>
+        <locationX>578</locationX>
+        <locationY>431</locationY>
+        <faultConnector>
+            <targetReference>Crew_Opportunity_Error_Message</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Agreement_Type__c</field>
+            <value>
+                <elementReference>$Record.AgreementType__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Fleet_Contract_Agreement</name>
+        <label>Update Fleet Contract Agreement</label>
+        <locationX>50</locationX>
+        <locationY>431</locationY>
+        <faultConnector>
+            <targetReference>Fleet_Opportunity_Error_Message</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Agreement_Type__c</field>
+            <value>
+                <elementReference>$Record.AgreementType__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Marine_Contract_Agreement</name>
+        <label>Update Marine Contract Agreement</label>
+        <locationX>1106</locationX>
+        <locationY>431</locationY>
+        <faultConnector>
+            <targetReference>Marine_Opportunity_Error_Message</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Agreement_Type__c</field>
+            <value>
+                <elementReference>$Record.AgreementType__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_OLP_Contract_Agreement</name>
+        <label>Update OLP Contract Agreement</label>
+        <locationX>1634</locationX>
+        <locationY>431</locationY>
+        <faultConnector>
+            <targetReference>L_A_Opportunity_Error_Message</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SBQQ__Opportunity__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Agreement_Type__c</field>
+            <value>
+                <elementReference>$Record.AgreementType__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <start>
+        <locationX>1145</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_for_Business_Unit</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AgreementType__c</field>
+            <operator>IsChanged</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

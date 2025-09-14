@@ -5,20 +5,6 @@ public class CreateInstallationsController
     private static final String STATUS_TERMINATED = 'Terminated';
     private static final String STATUS_FUTURE_TERMINATED = 'Future Terminated';
 
-    @AuraEnabled
-    public static Installation__c getContract(String instId) {
-        try {
-            List<Installation__c> instList = [
-                SELECT Id, Name, Contract__r.StartDate, Contract__r.EndDate, Contract__c 
-                FROM Installation__c 
-                WHERE Id = :instId
-                LIMIT 1
-            ];
-            return instList.isEmpty() ? null : instList[0];
-        } catch (Exception e) {
-            throw new AuraHandledException('Error fetching contract.');
-        }
-    }
 
     @AuraEnabled
     public static List<Package__c> getPackages(String contrId) {
@@ -208,8 +194,7 @@ public class CreateInstallationsController
         }
         catch(Exception ex)
         {
-            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
-            Logger.saveLog();
+
         }
     }
     
@@ -238,8 +223,6 @@ public class CreateInstallationsController
         }
         catch (Exception ex)
         {
-            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
-            Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
         }
     }
@@ -286,105 +269,148 @@ public class CreateInstallationsController
             throw new AuraHandledException('Error terminating records.');
         }
     }
+    
     @future(callout=true)
-    public static void modifyContract(Id instId, Date startDate, Id contrId, Id packId, Boolean isTerminate)
-    {
-        try
-        {
+    public static void modifyContract(Id instId, Date startDate, Id contrId, Id packId, Boolean isTerminate) {
+        try {
             SBQQ__Quote__c qt;
             String qtId = '';
             Contract contr = [SELECT Id, Name, No_of_Installations__c FROM Contract WHERE Id = :contrId];
-            try
-            {
+            
+            try {
                 String quoteJSON = SBQQ.ServiceRouter.load('SBQQ.ContractManipulationAPI.ContractAmender', contrId, NULL);
-                System.debug('quoteJSON --> ' + quoteJSON);
+                Logger.debug('quoteJSON --> ' + quoteJSON);
+                Logger.saveLog();
+                
                 JSONParser jp = JSON.createParser(quoteJSON);
                 jp.nextToken();
-                while(jp.nextToken() != NULL)
-                {
-                    System.debug('ct --> ' + jp.getCurrentToken() + '-' + jp.getCurrentName());
-                    if(jp.getCurrentName() == 'record')
-                    {
-                        while(jp.nextToken() != NULL)
-                        {
-                            if(jp.getText() == 'Id')
-                            {
-                                System.debug('id --> ' + jp.nextToken() + '-' + jp.getText());
+                while (jp.nextToken() != NULL) {
+                    if (jp.getCurrentName() == 'record') {
+                        while (jp.nextToken() != NULL) {
+                            if (jp.getText() == 'Id') {
                                 qtId = jp.getText();
                                 break;
                             }
                         }
                         break;
-                    }
-                    else{
+                    } else {
                         jp.skipChildren();
                     }
                 }
-                System.debug('id --> ' + qtId);
-                qt = [SELECT Id, Name, SBQQ__Status__c, SBQQ__Ordered__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE Id = :qtId ORDER BY CreatedDate DESC LIMIT 1];
-            }
-            catch(Exception ex)
-            {
-                Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+                Logger.debug('Parsed Quote Id from JSON: ' + qtId);
                 Logger.saveLog();
-                qt = [SELECT Id, Name, SBQQ__Status__c, SBQQ__Ordered__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE SBQQ__MasterContract__c = :contrId ORDER BY CreatedDate DESC LIMIT 1];
-                System.debug('qt --> ' + qt);
+                
+                qt = [SELECT Id, Name, SBQQ__Status__c,SBQQ__Opportunity2__c, SBQQ__Ordered__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE Id = :qtId ORDER BY CreatedDate DESC LIMIT 1];
+            } catch (Exception ex) {
+                qt = [SELECT Id, Name, SBQQ__Status__c, SBQQ__Ordered__c,SBQQ__Opportunity2__c, SBQQ__StartDate__c FROM SBQQ__Quote__c WHERE SBQQ__MasterContract__c = :contrId ORDER BY CreatedDate DESC LIMIT 1];
             }
             
-            Package__c pack = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Id = :packId AND Contract__c = :contrId];// AND Quote__c = :qt.Id];
+            Package__c pack = [SELECT Id, Name, Installation_Quantity__c FROM Package__c WHERE Id = :packId AND Contract__c = :contrId];
             Decimal newInstallationQuantity = (pack.Installation_Quantity__c != null ? pack.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);
             pack.Installation_Quantity__c = newInstallationQuantity;
-            update pack;
-
-            contr.No_of_Installations__c = (contr.No_of_Installations__c != NULL ? contr.No_of_Installations__c : 0) + (isTerminate ? -1 : 1);
-            update contr;
             
-            SBQQ__QuoteLineGroup__c qlg= [SELECT Id, Name, Installation_Quantity__c FROM SBQQ__QuoteLineGroup__c WHERE Package__c = :packId AND SBQQ__Quote__c = :qt.Id];
+            try {
+                Logger.debug('Updating Package: ' + pack);
+                Logger.saveLog();
+                update pack;
+            } catch (Exception ex) {
+                Logger.error('Package update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                Logger.saveLog();
+            }
+            
+            contr.No_of_Installations__c = (contr.No_of_Installations__c != null ? contr.No_of_Installations__c : 0) + (isTerminate ? -1 : 1);
+            try {
+                Logger.debug('Updating Contract: ' + contr);
+                Logger.saveLog();
+                update contr;
+            } catch (Exception ex) {
+                    Logger.error('Contract update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                    Logger.saveLog();
+            }
+            
+            SBQQ__QuoteLineGroup__c qlg = [SELECT Id, Name, Installation_Quantity__c FROM SBQQ__QuoteLineGroup__c WHERE Package__c = :packId AND SBQQ__Quote__c = :qt.Id];
             Decimal qlgnewInstallationQuantity = (qlg.Installation_Quantity__c != null ? qlg.Installation_Quantity__c : 0) + (isTerminate ? -1 : 1);
             qlg.Installation_Quantity__c = qlgnewInstallationQuantity;
-            update qlg;
             
-            //qt.SBQQ__Status__c = 'Approved';
-            System.debug('isTerminate --> ' + isTerminate);
-            if(isTerminate)
-            {
+            try {
+                update qlg;
+            } catch (Exception ex) {
+                    Logger.error('QLG update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                    Logger.saveLog();
+            }
+            
+            if (isTerminate) {
                 qt.Auto_Termination__c = TRUE;
                 qt.Installation__c = instId;
-                List<Installation__c> inst = [SELECT Id, Name, Termination_End_Date__c,Contract__r.StartDate, Contract__r.EndDate, Contract__r.Billing_Frequency__c FROM Installation__c WHERE Id = :instId];
+                List<Installation__c> inst = [SELECT Id, Name, Termination_End_Date__c, Contract__r.StartDate, Contract__r.EndDate, Contract__r.Billing_Frequency__c FROM Installation__c WHERE Id = :instId];
                 qt.SBQQ__StartDate__c = inst[0].Termination_End_Date__c;
                 qt.SBQQ__EndDate__c = inst[0].Contract__r.EndDate;
                 qt.SBQQ__BillingFrequency__c = inst[0].Contract__r.Billing_Frequency__c;
-            }
-            else
-            {
+            } else {
                 qt.Auto_Installation__c = TRUE;
                 qt.Installation__c = instId;
                 qt.SBQQ__StartDate__c = Date.today();
             }
-            System.debug('qt --> ' + qt);
-            update qt;
             
-            if(!isTerminate)
-            {
-                Installation__c inst = new Installation__c();
-                inst.Id = instId;
-                Inst.Quote__c = qt.Id;
-                inst.Quote_Line_Group__c = qlg.Id;
-                //inst.Installation_Start_Date__c = qt.SBQQ__StartDate__c;
-                inst.Auto_Installation__c = TRUE;
-                update inst;
-                
-                //goToInstallationLineCreation(new List<Id>{inst.Id});
-                
+            try {
+                update qt;
+            } catch (Exception ex) {
+                    Logger.error('Quote update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                    Logger.saveLog();
+            }
+            if (qt.SBQQ__Opportunity2__c != null) {
+                try {
+                    Opportunity opp = [
+                        SELECT Id, Name, StageName, Sales_Type__c, Agreement_Type__c, Existing_Opportunity_Type__c,
+                        Contract_Term__c, Description, NextStep, Product_Group__c, Contact_Name__c,
+                        SBQQ__AmendedContract__c,
+                        SBQQ__AmendedContract__r.ContractTerm,
+                        SBQQ__AmendedContract__r.Agreement_Type__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Sales_Type__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Product_Group__c,
+                        SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Contact_Name__c
+                        FROM Opportunity
+                        WHERE Id = :qt.SBQQ__Opportunity2__c
+                    ];
+                    
+                    if (opp.SBQQ__AmendedContract__c != null) {
+                        opp.Existing_Opportunity_Type__c = 'Account Growth';
+                        opp.Contract_Term__c = String.valueOf(opp.SBQQ__AmendedContract__r.ContractTerm);
+                        opp.Description = (isTerminate ? 'Amendment - Auto Termination' : 'Amendment - Auto Installation');
+                        opp.NextStep = (isTerminate ? 'Amendment - Auto Termination' : 'Amendment - Auto Installation');
+                        if(opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__c != null){
+                            opp.Product_Group__c = opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Product_Group__c;
+                            opp.Contact_Name__c = opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Contact_Name__c;
+                            opp.Sales_Type__c = opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__r.Sales_Type__c;
+                        }
+                        update opp;
+                    } 
+                } catch (Exception ex) {
+                        Logger.error('Opportunity update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                        Logger.saveLog();
+                }
             }
             
-        }
-        catch(Exception ex)
-        {
-            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            if (!isTerminate) {
+                Installation__c inst = new Installation__c();
+                inst.Id = instId;
+                inst.Quote__c = qt.Id;
+                inst.Quote_Line_Group__c = qlg.Id;
+                inst.Auto_Installation__c = TRUE;
+                
+                try {
+                    Logger.debug('Updating Installation: ' + inst);
+                    Logger.saveLog();
+                    update inst;
+                } catch (Exception ex) {
+                        Logger.error('Installation update failed: ' + ex.getMessage() + '\n' + ex.getLineNumber());
+                        Logger.saveLog();
+                }
+            }
+        } catch (Exception ex) {
+            Logger.error('Unexpected error in modifyContract: ' + ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
             Logger.saveLog();
-            System.debug('ex --> ' + ex);
-            System.debug('ex line --> ' + ex.getLineNumber());
         }
     }
     

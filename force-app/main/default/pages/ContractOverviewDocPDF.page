@@ -162,7 +162,7 @@
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Supplier</td>
-                        <td style="padding: 8px;">{!qt.Legal_Entity__r.Name}</td>
+                        <td style="padding: 8px;">{!contr.Legal_Entity__r.Name}</td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Supplier Website</td>
@@ -198,7 +198,7 @@
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Payment Terms</td>
-                        <td style="padding: 8px;">{!contr.SBQQ__Quote__r.SBQQ__PaymentTerms__c}</td>
+                        <td style="padding: 8px;">{!contr.Payment_Terms__c}</td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;">Renewal Date</td>
@@ -268,7 +268,7 @@
                             </td>
                             <td style="padding: 8px; vertical-align: top;">
                                 <apex:outputText id="annCost" value="{0, number}">
-                                    {!qt.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.previousCost}" />
+                                    {!contr.CurrencyIsoCode}&nbsp;<apex:param value="{!pack.previousCost}" />
                                 </apex:outputText>
                             </td>
                             <!--<td style="padding: 8px; vertical-align: top;">

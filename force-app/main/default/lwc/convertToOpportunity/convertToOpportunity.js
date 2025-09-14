@@ -5,6 +5,8 @@ import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import Account_Field from "@salesforce/schema/Lead.Account__c";
 //import { CloseActionScreenEvent } from "lightning/actions";
 
+import getActivatedContracts from '@salesforce/apex/ConvertToOpportunityController.getActivatedContracts';
+import updateOpportunityWithContract from '@salesforce/apex/ConvertToOpportunityController.updateOpportunityWithContract';
 const FIELDS = [Account_Field];
 
 export default class ConvertToOpportunity extends LightningElement
@@ -12,128 +14,94 @@ export default class ConvertToOpportunity extends LightningElement
     @track isConverting = false;
     @api recordId;
 
-    /*@wire(getRecord, {recordId : "$recordId", fields : FIELDS})
-    wiredRecord({error, data})
-    {
-        console.log('error --> ' + error);
-        console.log('data --> ' + JSON.stringify(data));
-        console.log('recordId --> ' + this.recordId);
+    @track showContractSelection = false;
+    @track contracts = [];
+    @track selectedContractId;
+    opportunityId;
 
-        if (error)
-        {
-            this.dispatchEvent(
-              new ShowToastEvent({
-                title: "Error occured",
-                message: "Unexpected Error occured, please contact Tech-Support Team",
-                variant: "error",
-              }),
-            );
-            this.dispatchEvent(new CloseActionScreenEvent());
-        }
-        else if (data)
-        {
-            this.recId = data.fields.id;
-            convertOpportunity({
-                recId : this.recordId
-            }).then((result) => {
-                
-                console.log("result --> " + result);
-                if(result != "Error" && result != "Exception")
-                {
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                          title: "Success",
-                          message: "Opportunity got created and you will be navigated to it.",
-                          variant: "success",
-                        }),
-                    );
-                    window.location.href = "/" + result;
-                }
-                else if(result == 'Error')
-                {
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                          title: "Error occured",
-                          message: "Lead Account or Contact is Empty. Please update Account or Contact fields with appropriate values.",
-                          variant: "error",
-                        }),
-                    );
-                }
-                else if(result == 'Exception')
-                {
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                          title: "Error occured",
-                          message: "Unexpected Error occured, please contact Tech-Support Team",
-                          variant: "error",
-                        }),
-                    );
-                }
-            }).catch(error => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                      title: "Error occured",
-                      message: "Unexpected Error occured, please contact Tech-Support Team",
-                      variant: "error",
-                    }),
-                );
-            });
-            setTimeout(5000);
-            this.dispatchEvent(new CloseActionScreenEvent());
-        }
-    }*/
-    convertLead(event)
-    {
+    convertLead(event) {
         console.log('recId rend--> ' + this.recordId);
         this.isConverting = true;
         convertOpportunity({
-            recId : this.recordId
+            recId: this.recordId
         }).then((result) => {
-            
             console.log("result --> " + result);
-            if(result != "Error" && !result.includes("Error"))
-            {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                      title: "Success",
-                      message: "Opportunity got created and you will be navigated to it.",
-                      variant: "success",
-                    }),
-                );
-                this.isConverting = false;
-                window.location.href = "/" + result;
-            }
-            else if(result == 'Error')
-            {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                      title: "Error occured",
-                      message: "Lead Account or Contact is Empty. Please update Account or Contact fields with appropriate values.",
-                      variant: "error",
-                    }),
-                );
-                this.isConverting = false;
-            }
-            else
-            {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                      title: "Error occured",
-                      message: result,
-                      variant: "error",
-                    }),
-                );
-                this.isConverting = false;
+            if(result != "Error" && !result.includes("Error")) {
+                this.opportunityId = result;
+                this.checkForUpSellOpportunity();
+            } else if(result == 'Error') {
+                this.showError("Lead Account or Contact is Empty. Please update Account or Contact fields with appropriate values.");
+            } else {
+                this.showError(result);
             }
         }).catch(error => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                  title: "Error occured",
-                  message: "Unexpected Error occured, please contact Tech-Support Team",
-                  variant: "error",
-                }),
-            );
-            this.isConverting = false;
+            this.showError("Unexpected Error occurred, please contact Tech-Support Team");
         });
+    }
+
+    checkForUpSellOpportunity() {
+        getActivatedContracts({
+            opportunityId: this.opportunityId
+        }).then(result => {
+            if (result && result.length > 0) {
+                    this.contractOptions = result.map(contract => ({
+                            label: contract.Contract_Flow_Label__c,
+                            value: contract.Id
+                        }));
+                    this.showContractSelection = true;
+                    this.isConverting = false;
+            } else {
+                this.navigateToOpportunity();
+            }
+        }).catch(error => {
+            this.showError("Error checking for contracts: " + error.body.message);
+        });
+    }
+
+    handleContractSelection(event) {
+        this.selectedContractId = event.detail.value;
+    }
+
+    handleSubmit() {
+        if (!this.selectedContractId) {
+            this.showError("Please select a contract to proceed");
+            return;
+        }
+
+        this.isConverting = true;
+        updateOpportunityWithContract({
+            opportunityId: this.opportunityId,
+            contractId: this.selectedContractId
+        }).then(() => {
+            this.navigateToOpportunity();
+        }).catch(error => {
+            this.showError("Error updating opportunity: " + error.body.message);
+        });
+    }
+
+    handleCancel() {
+        this.navigateToOpportunity();
+    }
+
+    navigateToOpportunity() {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: "Success",
+                message: "Opportunity was successfully created.",
+                variant: "success",
+            }),
+        );
+        window.location.href = "/" + this.opportunityId;
+    }
+
+    showError(message) {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: "Error occurred",
+                message: message,
+                variant: "error",
+            }),
+        );
+        this.isConverting = false;
     }
 }

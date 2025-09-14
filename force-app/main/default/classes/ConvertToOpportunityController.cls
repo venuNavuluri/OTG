@@ -6,8 +6,8 @@ public class ConvertToOpportunityController {
         try {
             System.debug('Querying Lead with ID: ' + recId);
             List<Lead> ldList = [SELECT Id, Name, Account__c, Account__r.OwnerId, Contact__c, 
-                                Campaign__c, Description, Products__c, Business_Units__c 
-                                FROM Lead WHERE Id = :recId];
+                                 Campaign__c, Description, Products__c, Business_Units__c 
+                                 FROM Lead WHERE Id = :recId];
             
             System.debug('Found Lead record: ' + ldList);
             
@@ -32,8 +32,8 @@ public class ConvertToOpportunityController {
                 lc.setContactId(ldList[0].Contact__c);
                 lc.setOwnerId(ldList[0].Account__r.OwnerId);
                 System.debug('Set AccountId: ' + ldList[0].Account__c + 
-                            ', ContactId: ' + ldList[0].Contact__c + 
-                            ', OwnerId: ' + ldList[0].Account__r.OwnerId);
+                             ', ContactId: ' + ldList[0].Contact__c + 
+                             ', OwnerId: ' + ldList[0].Account__r.OwnerId);
                 
                 String businessUnit = ldList[0].Business_Units__c;
                 String productGroup = '';
@@ -42,13 +42,13 @@ public class ConvertToOpportunityController {
                 // Determine product group based on business unit
                 if (businessUnit != null) {
                     System.debug('Determining Product Group based on Business Unit');
-                    if (businessUnit == 'Fleet') {
+                    if (businessUnit == 'Technical Ship Management') {
                         productGroup = 'TM Master';
                     } 
-                    else if (businessUnit == 'Crew') {
+                    else if (businessUnit == 'HCM Crew') {
                         productGroup = 'Compas Core';
                     } 
-                    else if (businessUnit == 'Marine Regulations') {
+                    else if (businessUnit == 'Governance, Risk & Compliance') {
                         productGroup = 'Marine Regulations';
                     }
                     System.debug('Determined Product Group: ' + productGroup);
@@ -69,7 +69,8 @@ public class ConvertToOpportunityController {
                     Description = ldList[0].Description, 
                     Contract_Term__c = '12',
                     Product_Group__c = productGroup,
-                    Business_Unit__c = businessUnit
+                    Business_Unit__c = businessUnit,
+                    Contract_Type__c = 'New Contract' 
                 );
                 
                 System.debug('Preparing Opportunity update with values: ' + opp);
@@ -80,7 +81,7 @@ public class ConvertToOpportunityController {
             }
             else {
                 String errorMsg = 'Error: Missing Account or Contact reference. Account: ' + 
-                                ldList[0].Account__c + ', Contact: ' + ldList[0].Contact__c;
+                    ldList[0].Account__c + ', Contact: ' + ldList[0].Contact__c;
                 System.debug(errorMsg);
                 return errorMsg;
             }
@@ -89,6 +90,39 @@ public class ConvertToOpportunityController {
             System.debug('Exception occurred: ' + ex.getMessage());
             System.debug('Stack trace: ' + ex.getStackTraceString());
             return Label.Error_Message_Convert_Opportunity + ex.getMessage();
+        }
+    }
+    
+    @AuraEnabled
+    public static List<Contract> getActivatedContracts(String opportunityId) {
+        try {
+            Opportunity opp = [SELECT Id, AccountId, Business_Unit__c, Existing_Opportunity_Type__c 
+                               FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
+            
+            if (opp.Existing_Opportunity_Type__c == 'Up-Sell') {
+                return [SELECT Id, ContractNumber, Contract_Flow_Label__c, Status, Business_Unit__c 
+                        FROM Contract 
+                        WHERE AccountId = :opp.AccountId 
+                        AND Status = 'Activated'
+                        AND Business_Unit__c = :opp.Business_Unit__c];
+            }
+            return new List<Contract>();
+        } catch (Exception e) {
+            throw new AuraHandledException('Error fetching contracts: ' + e.getMessage());
+        }
+    }
+    
+    @AuraEnabled
+    public static void updateOpportunityWithContract(String opportunityId, String contractId) {
+        try {            
+            Opportunity opp = new Opportunity(
+                Id = opportunityId,
+                Amend_Contract_Sales__c = contractId,
+                Contract_Type__c = 'Existing Contract' 
+            );
+            update opp;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error updating opportunity: ' + e.getMessage());
         }
     }
 }

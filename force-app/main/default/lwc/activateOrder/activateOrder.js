@@ -2,65 +2,94 @@ import { api, LightningElement, track } from 'lwc';
 import { updateRecord } from 'lightning/uiRecordApi';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import getOpportunityId from '@salesforce/apex/OrderTriggerHandler.getOpportunityId';
 
-export default class ActivateOrder extends LightningElement{
+export default class ActivateOrder extends LightningElement {
     @api recordId;
-        @track showSpinner = false;
-        
-        createContract()
-        {
-            this.showSpinner = true;
-            updateRecord({
-                fields : {
-                Id : this.recordId,
-                Status : 'Activated',
-                Is_Activated__c : true,
-                SBQQ__Contracted__c : true,
-                } 
-            }).then(result => {
-                this.showSpinner = false;
-                this.showSpinner = false;
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Order Activated Successfully',
-                        variant: 'success'
-                    })
-                );
-                console.log('result --> ' + JSON.stringify(result));
-                this.dispatchEvent(new CloseActionScreenEvent());
+    @track showSpinner = false;
 
-            }).catch(error => {
-                this.showSpinner = false;
-                console.log('error --> ' + JSON.stringify(error));
-                this.dispatchEvent(new CloseActionScreenEvent());
+    createContract() {
+        this.showSpinner = true;
+
+        getOpportunityId({ orderId: this.recordId })
+            .then(result => {
+                const oppId = result.opportunityId;
+                const orderType = result.orderType;
                 
-                // Extract validation rule message
-                let errorMessage = 'An error occurred while Activating the Service Delivery Order';
-                
-                if (error.body?.output?.errors) {
-                    errorMessage = error.body.output.errors.map(err => err.message).join('. ');
-                } 
-                else if (error.body?.pageErrors) {
-                    errorMessage = error.body.pageErrors.map(err => err.message).join('. ');
+                // Skip opportunity update for Service Delivery orders
+                if (orderType !== 'Service Delivery') {
+                    if (!oppId) {
+                        throw new Error('No Opportunity linked to this Order.');
+                    }
+                    
+                    return updateRecord({
+                        fields: {
+                            Id: oppId,
+                            StageName: 'Completed'
+                        }
+                    }).then(() => {
+                        return this.updateOrder();
+                    });
+                } else {
+                    return this.updateOrder();
                 }
-                else if (error.body?.message) {
-                    errorMessage = error.body.message;
-                }
-                
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error',
-                        message: errorMessage,
-                        variant: 'error',
-                        mode: 'sticky'
-                    })
-                );
+            })
+            .then(() => {
+                this.showSuccess();
+            })
+            .catch(error => {
+                this.handleError(error);
             });
+    }
+
+    updateOrder() {
+        return updateRecord({
+            fields: {
+                Id: this.recordId,
+                Status: 'Activated',
+                Is_Activated__c: true,
+                SBQQ__Contracted__c: true
+            }
+        });
+    }
+
+    showSuccess() {
+        this.showSpinner = false;
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: 'Order activated successfully' + 
+                         (this.orderType !== 'Service Delivery' ? ' and Opportunity completed' : ''),
+                variant: 'success'
+            })
+        );
+        this.dispatchEvent(new CloseActionScreenEvent());
+    }
+
+    handleError(error) {
+        this.showSpinner = false;
+        let errorMessage = 'An error occurred while updating the record.';
+        if (error.body?.output?.errors?.length) {
+            errorMessage = error.body.output.errors.map(e => e.message).join(' ');
+        } else if (error.body?.pageErrors?.length) {
+            errorMessage = error.body.pageErrors.map(e => e.message).join(' ');
+        } else if (error.body?.message) {
+            errorMessage = error.body.message;
+        } else if (error.message) {
+            errorMessage = error.message;
         }
 
-        close(event)
-        {
-            this.dispatchEvent(new CloseActionScreenEvent());
-        }
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Validation Error',
+                message: errorMessage,
+                variant: 'error',
+                mode: 'sticky'
+            })
+        );
+    }
+
+    close() {
+        this.dispatchEvent(new CloseActionScreenEvent());
+    }
 }

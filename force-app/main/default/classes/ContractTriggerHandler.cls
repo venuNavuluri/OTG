@@ -8,7 +8,7 @@ public class ContractTriggerHandler {
     public static void onBeforeUpdate() {
         if (checkRecursion()) {
             updatePreviousContract((List<Contract>)Trigger.new);
-            updateSubscriptionValue((List<Contract>)Trigger.new, (Map<Id, Contract>)Trigger.oldMap);
+           // updateSubscriptionValue((List<Contract>)Trigger.new, (Map<Id, Contract>)Trigger.oldMap);
             
         }
     }
@@ -44,7 +44,7 @@ public class ContractTriggerHandler {
 
         // 🔁 Requery contracts to get all required fields, including SBQQ__Quote__r
         Map<Id, Contract> queriedContracts = new Map<Id, Contract>([
-            SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c 
+            SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c ,Subscription_System__c
             FROM Contract
             WHERE Id IN :contractIds
         ]);
@@ -75,12 +75,8 @@ public class ContractTriggerHandler {
                 AND Installation_Order_Status__c = 'Active'
                 ORDER BY CreatedDate DESC
             ];
-            Logger.info('Found Installations to activate: ' + instList.size());
             activateInstallations(instList);
-        } else {
-            Logger.info('No activated Renewal contracts found to process.');
-        }
-
+        } 
         updateNextContract(queriedContracts);
 
     } catch (Exception ex) {
@@ -110,7 +106,7 @@ public class ContractTriggerHandler {
 
         // Step 2: Bulk Fetch Quotes
         Map<Id, SBQQ__Quote__c> quoteMap = new Map<Id, SBQQ__Quote__c>(
-            [SELECT Id, SBQQ__Type__c, Agreement_Type__c, SBQQ__BillingFrequency__c
+            [SELECT Id, SBQQ__Type__c, Agreement_Type__c, SBQQ__BillingFrequency__c, Total_Installations__c
              FROM SBQQ__Quote__c WHERE Id IN :quoteIds]
         );
 
@@ -145,7 +141,7 @@ public class ContractTriggerHandler {
             if (quote != null && opp != null) {
                 // Update contract fields directly within before trigger
                 con.Legal_Entity__c = opp.Legal_Entity__c;
-                con.No_of_Installations__c = opp.Number_of_Installations__c;
+                con.No_of_Installations__c = quote.Total_Installations__c;
                 con.Business_Unit__c = opp.Business_Unit__c;
                 con.Unit_of_Measure__c = quote.Agreement_Type__c;
                 con.Default_Delivery_Method__c = opp.SBQQ__PrimaryQuote__r.SBQQ__DeliveryMethod__c;
@@ -157,6 +153,7 @@ public class ContractTriggerHandler {
                 con.CustomerSignedTitle = opp.Customer_Signed_By__r.Job_Title__c;
                 con.Agreement_Type__c = opp.AgreementType__c;
                 con.Payment_Terms__c = opp.SBQQ__PrimaryQuote__r.SBQQ__PaymentTerms__c;
+                con.Subscription_System__c = 'Salesforce CPQ'; // Added on 26-05-2025
 
                 // Handle Renewal Contracts
                 if (quote.SBQQ__Type__c == 'Renewal') {
@@ -196,8 +193,7 @@ public class ContractTriggerHandler {
                 if (contr.Previous_Contract__c != null) {
                     contractsToUpdate.add(new Contract(
                         Id = contr.Previous_Contract__c,
-                        Next_Contract__c = contr.Id,
-                        SBQQ__RenewalUpliftRate__c = Null
+                        Next_Contract__c = contr.Id
                     ));
                 }
             }
@@ -258,7 +254,6 @@ public class ContractTriggerHandler {
                 installationRecord.Quote_Line_Group__c = installationRecord.Package__r.Quote_Line_Group__c;
                 Contract relatedContract = contractMap.get(installationRecord.Contract__c);
                 if (installationRecord.Contract__r.SBQQ__Quote__r.SBQQ__Type__c != 'Renewal') {
-                    // installationRecord.Installation_Order_Status__c = 'Active';
                     if (installationRecord.Installation_Start_date__c == null && installationRecord.Installation_End_date__c == null) {
                         if (relatedContract != null) {
                             installationRecord.Installation_Start_date__c = relatedContract.StartDate;
@@ -288,46 +283,19 @@ public class ContractTriggerHandler {
         for (Installation__c inst : instList) {
             inst.Installation_End_date__c = inst.Contract__r.EndDate;
             inst.Quote__c = inst.Order__r?.SBQQ__Quote__c;
-    
-            Logger.debug('Processing Installation: ' + inst.Id + ', Contract: ' + inst.Contract__c);
-            Logger.saveLog();
-    
+            
             if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
                 renewalInsts.add(inst);
-                Logger.info('Marked for Renewal Processing: ' + inst.Id);
             }
         }
     
         if (!instList.isEmpty()) {
             update instList;
-            Logger.info('Updated Installations with End Date and Quote.');
         }
     
         if (!renewalInsts.isEmpty()) {
-            Logger.info('Passing ' + renewalInsts.size() + ' installations to InstallationsRenewalService.');
-            Logger.saveLog();
             InstallationsRenewalService.processRenewalInstallations(renewalInsts);
-        } else {
-            Logger.info('No renewal installations to process.');
-            Logger.saveLog();
-        }
-    
-        Logger.info('End: activateInstallations');
-        Logger.saveLog();
+        } 
     }
 
-    public static void updateSubscriptionValue(List<Contract> newContrList, Map<Id, Contract> oldContrMap) {
-        List<AggregateResult> agrList = [SELECT SBQQ__Contract__c, SUM(SBQQ__NetPrice__c) FROM SBQQ__Subscription__c WHERE SBQQ__Contract__c IN :oldContrMap.keySet() GROUP BY SBQQ__Contract__c];
-        Map<Id, Decimal> subMap = new Map<Id, Decimal>();
-        if (agrList != null && !agrList.isEmpty()) {
-            for (AggregateResult agr : agrList) {
-                subMap.put((Id)agr.get('SBQQ__Contract__c'), (Decimal)agr.get('expr0'));
-            }
-            for (Contract con : newContrList) {
-                if (con.Status == 'Activated' && oldContrMap.get(con.Id).Status != 'Activated') {
-                    con.Subscription_Value__c = subMap.get(con.Id);
-                }
-            }
-        }
-    }
 }

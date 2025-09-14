@@ -39,7 +39,7 @@ public with sharing class leadSubmissionController {
              Company = (String)leadData.get('companyName'),
              Customer_Type__c = (String)leadData.get('companyType'),
              Title = (String)leadData.get('jobTitle'),
-             Description = (String)leadData.get('message'),
+             Description = DateTime.now().format('dd MMMM yyyy') + ' - OTG web to lead form: ' + (String)leadData.get('message'),
              Phone = (String)leadData.get('phone'),
              Website = (String)leadData.get('website'),
              Where_did_you_hear_about_us__c = (String)leadData.get('hearAboutUs'),

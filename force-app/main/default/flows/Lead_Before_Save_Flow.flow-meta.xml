@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>54.0</apiVersion>
+    <assignments>
+        <name>Update_Last_Status_Change_Date</name>
+        <label>Update Last Status Change Date</label>
+        <locationX>50</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Last_Status_Change_Date__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_if_Reason_for_close_is_updated</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Update_No_of_Days_in_New</name>
+        <label>Update No. of Days in New</label>
+        <locationX>314</locationX>
+        <locationY>503</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.No_of_Days_in_New__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NewStatusDays</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Update_Last_Status_Change_Date</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Update_No_of_Days_in_Working</name>
+        <label>Update No. of Days in Working</label>
+        <locationX>578</locationX>
+        <locationY>503</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.No_of_Days_in_Working__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoOfDaysInWorking</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Update_Last_Status_Change_Date</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <name>Check_if_Reason_for_close_is_updated</name>
+        <label>Check if Reason for close is updated</label>
+        <locationX>666</locationX>
+        <locationY>845</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Close_Reason_is_updated</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Reason_For_Closing__c</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Status_to_closed</targetReference>
+            </connector>
+            <label>Close Reason is updated</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Previous_Status</name>
+        <label>Check Previous Status</label>
+        <locationX>666</locationX>
+        <locationY>395</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Update_Last_Status_Change_Date</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>If_Previous_Status_is_New</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record__Prior.Status</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>New</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_No_of_Days_in_New</targetReference>
+            </connector>
+            <label>If Previous Status is New</label>
+        </rules>
+        <rules>
+            <name>If_Previous_Status_is_Working</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record__Prior.Status</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Working</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_No_of_Days_in_Working</targetReference>
+            </connector>
+            <label>If Previous Status is Working</label>
+        </rules>
+        <rules>
+            <name>If_Previous_Status_is_Closed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record__Prior.Status</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Lost/Closed</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_if_Reason_for_close_is_updated</targetReference>
+            </connector>
+            <label>If Previous Status is Closed</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Status_change</name>
+        <label>Check Status change</label>
+        <locationX>666</locationX>
+        <locationY>287</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>If_record_is_created</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.CreatedDate</leftValueReference>
+                <operator>EqualTo</operator>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Status</leftValueReference>
+                <operator>NotEqualTo</operator>
+            </conditions>
+            <connector>
+                <targetReference>Update_Last_Status_Change_Date</targetReference>
+            </connector>
+            <label>If record is created</label>
+        </rules>
+        <rules>
+            <name>If_Status_is_changed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Status</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Previous_Status</targetReference>
+            </connector>
+            <label>If Status is changed</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <formulas>
+        <name>ClosedDays</name>
+        <dataType>Number</dataType>
+        <expression>TODAY() - {!$Record.Last_Status_Change_Date__c}</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <name>NewStatusDays</name>
+        <dataType>Number</dataType>
+        <expression>TODAY() - {!$Record.Last_Status_Change_Date__c}</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <name>NoOfDaysInWorking</name>
+        <dataType>Number</dataType>
+        <expression>TODAY() - {!$Record.Last_Status_Change_Date__c}</expression>
+        <scale>0</scale>
+    </formulas>
+    <interviewLabel>Before Save Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Lead Before Save Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Update_Status_to_closed</name>
+        <label>Update Status to closed</label>
+        <locationX>534</locationX>
+        <locationY>953</locationY>
+        <inputAssignments>
+            <field>Status</field>
+            <value>
+                <stringValue>Lost/Closed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>540</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_Status_change</targetReference>
+        </connector>
+        <object>Lead</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

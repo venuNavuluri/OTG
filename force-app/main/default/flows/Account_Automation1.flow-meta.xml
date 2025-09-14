@@ -1,0 +1,673 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>58.0</apiVersion>
+    <decisions>
+        <description>If the Account Name Changes the previously known as will be updated.</description>
+        <name>Account_Name_Changes</name>
+        <label>Account Name Changes?</label>
+        <locationX>1216</locationX>
+        <locationY>623</locationY>
+        <defaultConnector>
+            <targetReference>Status_Changed_to_Archived</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Account_Name_Changes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Name</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Previously_known_as__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue></stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Replica Invoice Account</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Record_Type_Name__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Invoice Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Previously_Known_as</targetReference>
+            </connector>
+            <label>YES Account Name Changes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Status has been changed to Archived so if the Account is B2B, Agent Account, or Invoice Account, the record type will change to Archived B2B Account, Archived Agent Account or Archived Invoice Account accordanly to the record type.</description>
+        <name>Archived_Record_Types</name>
+        <label>Archived Record Types</label>
+        <locationX>446</locationX>
+        <locationY>1031</locationY>
+        <defaultConnector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>None of them</defaultConnectorLabel>
+        <rules>
+            <name>B2B_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>B2B Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_B2B_Account_RT</targetReference>
+            </connector>
+            <label>B2B Account?</label>
+        </rules>
+        <rules>
+            <name>Agent_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Agent Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Agent_Account_RT</targetReference>
+            </connector>
+            <label>Agent Account?</label>
+        </rules>
+        <rules>
+            <name>Invoice_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Invoice Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Invoice_Account_RT</targetReference>
+            </connector>
+            <label>Invoice Account?</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Check if the field Attack plan has changed and if the record type is any other that Replica Invoice Account</description>
+        <name>Attack_Plan_Time_stamp_Changed</name>
+        <label>Attack Plan Time stamp Changes?</label>
+        <locationX>1216</locationX>
+        <locationY>1415</locationY>
+        <defaultConnector>
+            <targetReference>Owner_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Attack_Plan_Time_stamp_Changes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Attack_Plan__c</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Replica Invoice Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Attack_Plan_Time_stamp</targetReference>
+            </connector>
+            <label>YES Attack Plan Time stamp Changes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Check if the owner has changed</description>
+        <name>Owner_Changed</name>
+        <label>Owner Changes?</label>
+        <locationX>1216</locationX>
+        <locationY>1715</locationY>
+        <defaultConnector>
+            <targetReference>Visma_changes</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Owner_Changes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.OwnerId</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Validation_Toggle</targetReference>
+            </connector>
+            <label>YES Owner Changes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Check if the parent Account changes, if so update the email of the parent Account</description>
+        <name>Parent_Account_Changes</name>
+        <label>Parent Account Changes?</label>
+        <locationX>1216</locationX>
+        <locationY>323</locationY>
+        <defaultConnector>
+            <targetReference>Account_Name_Changes</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Parent_Account_Changes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.ParentId</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Parent_Account</targetReference>
+            </connector>
+            <label>YES Parent Account Changes?</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>If the status changed from Archived, when changed to other status the record type should change from Archive[record type] to the record type not Archived.</description>
+        <name>Revert_From_Archived</name>
+        <label>Revert From Archived</label>
+        <locationX>1414</locationX>
+        <locationY>1031</locationY>
+        <defaultConnector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Archived_B2B_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Archived B2B Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>B2B_Account_Revert</targetReference>
+            </connector>
+            <label>Archived B2B Account</label>
+        </rules>
+        <rules>
+            <name>Archived_Agent_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Archived  Agent Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Agent_Account_Revert</targetReference>
+            </connector>
+            <label>Archived Agent Account</label>
+        </rules>
+        <rules>
+            <name>Archived_Invoice_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Archived Invoice Account</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Invoice_Account_Revert</targetReference>
+            </connector>
+            <label>Archived Invoice Account</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Check if the Status changes to Archived or from Archived to any other, if so execute the next decision to update the record type consequently</description>
+        <name>Status_Changed_to_Archived</name>
+        <label>Status Changed to Archived?</label>
+        <locationX>1216</locationX>
+        <locationY>923</locationY>
+        <defaultConnector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Status_is_Archived</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Account_Status__c</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Account_Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Archived</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Archived_Record_Types</targetReference>
+            </connector>
+            <label>YES Status is Archived</label>
+        </rules>
+        <rules>
+            <name>NO_Status_revert_from_Archived</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Account_Status__c</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Account_Status__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Archived</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Revert_From_Archived</targetReference>
+            </connector>
+            <label>NO Status revert from Archived</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Change if the condition for being a Visma are met.</description>
+        <name>Visma_changes</name>
+        <label>Visma changes?</label>
+        <locationX>1216</locationX>
+        <locationY>2123</locationY>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Visma_changes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>VismaConditions</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Visma_change_date</targetReference>
+            </connector>
+            <label>YES Visma changes</label>
+        </rules>
+    </decisions>
+    <description>Automation on Account records to prevent validation rules from being triggered / Added descriptions</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Change checkbox Validation rule to avoid that validation rules fires during automation</description>
+        <name>BypassValidationToggle</name>
+        <dataType>Boolean</dataType>
+        <expression>NOT({!$Record.Validation_Toggle__c})</expression>
+    </formulas>
+    <formulas>
+        <description>Prior Value for name and &apos;previously know as&apos; value</description>
+        <name>ChangeNameFormula</name>
+        <dataType>String</dataType>
+        <expression>PRIORVALUE({!$Record.Name} ) + &quot;, &quot;+ {!$Record.Previously_known_as__c}</expression>
+    </formulas>
+    <formulas>
+        <description>set time as NOW</description>
+        <name>NOWFormula</name>
+        <dataType>DateTime</dataType>
+        <expression>NOW()</expression>
+    </formulas>
+    <formulas>
+        <name>OwnerId</name>
+        <dataType>String</dataType>
+        <expression>{!$Record.ownerId}</expression>
+    </formulas>
+    <formulas>
+        <description>Parent Email of the Account Record</description>
+        <name>ParentEmail</name>
+        <dataType>String</dataType>
+        <expression>{!$Record.Parent.Email__c}</expression>
+    </formulas>
+    <formulas>
+        <description>Prior value record name</description>
+        <name>PriorValueRecordName</name>
+        <dataType>String</dataType>
+        <expression>{!$Record__Prior.Name} + &quot;, &quot; + {!$Record__Prior.Previously_known_as__c}</expression>
+    </formulas>
+    <formulas>
+        <name>VismaConditions</name>
+        <dataType>Boolean</dataType>
+        <expression>AND(
+{!$Record.RecordType.Name} != &apos;Replica Invoice Account&apos;,
+TEXT({!$Record.Account_Status__c}) != &quot;Archived&quot;,
+OR(TEXT({!$Record.Account_Status__c}) =&quot;Visma Verified&quot;,
+NOT(ISBLANK({!$Record.Visma_ID__c}))
+),
+OR(
+ISCHANGED({!$Record.Account_Status__c} ),
+ISCHANGED({!$Record.Name} ),
+ISCHANGED({!$Record.Owner.Id} ),
+ISCHANGED({!$Record.Account_Segmentation__c} ),
+ISCHANGED({!$Record.Managed_by_Sales_Agent__c} ),
+ISCHANGED({!$Record.Address1__c} ),
+ISCHANGED({!$Record.Address2__c} ),
+ISCHANGED({!$Record.Address3__c} ),
+ISCHANGED({!$Record.Country__c} ),
+ISCHANGED({!$Record.Town_City__c} ),
+ISCHANGED({!$Record.Postcode_Zipcode__c} ),
+ISCHANGED({!$Record.County_State__c} ),
+ISCHANGED({!$Record.Phone} ),
+ISCHANGED({!$Record.Email__c}  ),
+ISCHANGED({!$Record.Website}  ),
+ISCHANGED({!$Record.Customer_Status__c}),
+ISCHANGED({!$Record.Sales_Region__c})
+))</expression>
+    </formulas>
+    <interviewLabel>Account Automation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Account Automation</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Agent_Account_Revert</name>
+        <label>Agent Account Revert</label>
+        <locationX>1282</locationX>
+        <locationY>1139</locationY>
+        <connector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>RecordTypeId</field>
+            <value>
+                <stringValue>0124K000000MPtMQAW</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>B2B_Account_Revert</name>
+        <label>B2B Account Revert</label>
+        <locationX>1018</locationX>
+        <locationY>1139</locationY>
+        <connector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>RecordTypeId</field>
+            <value>
+                <stringValue>0124K000000MPtPQAW</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Invoice_Account_Revert</name>
+        <label>Invoice Account Revert</label>
+        <locationX>1546</locationX>
+        <locationY>1139</locationY>
+        <connector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>RecordTypeId</field>
+            <value>
+                <stringValue>0124K000000MkfSQAS</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Agent_Account_RT</name>
+        <label>Update Agent Account RT</label>
+        <locationX>314</locationX>
+        <locationY>1139</locationY>
+        <connector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>RecordTypeId</field>
+            <value>
+                <stringValue>0124K000000MPtNQAW</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update the Attack plan time stam for today&apos;s date and bypass validation rules</description>
+        <name>Update_Attack_Plan_Time_stamp</name>
+        <label>Update Attack Plan Time stamp</label>
+        <locationX>1084</locationX>
+        <locationY>1523</locationY>
+        <connector>
+            <targetReference>Owner_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Attack_Plan_Time_stamp__c</field>
+            <value>
+                <elementReference>NOWFormula</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_B2B_Account_RT</name>
+        <label>Update B2B Account RT</label>
+        <locationX>50</locationX>
+        <locationY>1139</locationY>
+        <connector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>RecordTypeId</field>
+            <value>
+                <stringValue>0124K000000MPtOQAW</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>When owner changed, update the contracts related to set them with the same owner.</description>
+        <name>Update_Contracts_Owner</name>
+        <label>Update Contracts Owner</label>
+        <locationX>1084</locationX>
+        <locationY>1931</locationY>
+        <connector>
+            <targetReference>Visma_changes</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>$Record.OwnerId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record.Contracts</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Invoice_Account_RT</name>
+        <label>Update Invoice Account RT</label>
+        <locationX>578</locationX>
+        <locationY>1139</locationY>
+        <connector>
+            <targetReference>Attack_Plan_Time_stamp_Changed</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>RecordTypeId</field>
+            <value>
+                <stringValue>0124K000000MkjtQAC</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update the email of the parent account that changed and bypass the VR</description>
+        <name>Update_Parent_Account</name>
+        <label>Update Parent Account</label>
+        <locationX>1084</locationX>
+        <locationY>431</locationY>
+        <connector>
+            <targetReference>Account_Name_Changes</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Parent_Account_Email__c</field>
+            <value>
+                <elementReference>ParentEmail</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>The field Known as, add the previous name.</description>
+        <name>Update_Previously_Known_as</name>
+        <label>Update Previously Known as</label>
+        <locationX>1084</locationX>
+        <locationY>731</locationY>
+        <connector>
+            <targetReference>Status_Changed_to_Archived</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Previously_known_as__c</field>
+            <value>
+                <elementReference>PriorValueRecordName</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Bypass validation rule when changed the owner</description>
+        <name>Update_Validation_Toggle</name>
+        <label>Update Validation Toggle</label>
+        <locationX>1084</locationX>
+        <locationY>1823</locationY>
+        <connector>
+            <targetReference>Update_Contracts_Owner</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>if the Visma conditions are met, bypass the VRs and set the modified date as today&apos;s date.</description>
+        <name>Update_Visma_change_date</name>
+        <label>Update Visma change date</label>
+        <locationX>1084</locationX>
+        <locationY>2231</locationY>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>BypassValidationToggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Visma_Modified_Date__c</field>
+            <value>
+                <elementReference>NOWFormula</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>1090</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Parent_Account_Changes</targetReference>
+        </connector>
+        <object>Account</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

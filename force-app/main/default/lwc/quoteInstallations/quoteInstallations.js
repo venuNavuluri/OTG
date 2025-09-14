@@ -254,11 +254,15 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         fetchInitialConfiguration({quoteId:this.recordId})
         .then(result => {
             if(result && result.length){
-                //console.log('result --> ' + JSON.stringify(result));
+                console.log('result --> ' + JSON.stringify(result));
                 let resultArray = JSON.parse(result);
                 let qlgArray = [];
+                console.log('resArr -> ' + JSON.stringify(resultArray));
+                console.log('res length --> ' + resultArray.length);
+                var index = 0;
                 for(let listItem of resultArray){
-                    //console.log('qlg --> ' + JSON.stringify(listItem));
+                    console.log('index' + index);index++;
+                    console.log('listItem --> ' + JSON.stringify(listItem));
                     let quoteLineGroup = listItem.qlg;
                     /*quoteLineGroup.installations = quoteLineGroup.Installations__r?.records
                     if(!quoteLineGroup.installations){
@@ -268,7 +272,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     quoteLineGroup.installationPrice = listItem.installationPrice;
                     quoteLineGroup.userPrice = listItem.userPrice;
                     quoteLineGroup.installations = [];
-                    let packInstList = listItem.pack.Installations__r?.records;
+                    let packInstList = (listItem.pack != null && listItem.pack != undefined) ? listItem.pack.Installations__r?.records : [];
                     if(!packInstList)
                     {
                         packInstList = [];
@@ -316,7 +320,9 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     console.log('qlgArray1 --> ' + JSON.stringify(qlgArray));
                     qlgArray.push(quoteLineGroup);
                     console.log('qlgArray2 --> ' + JSON.stringify(qlgArray));
+                    console.log('length --> ' + qlgArray.length);
                 }
+                console.log('check');
                 console.log('qlgs01 --> ' + this.quoteLineGroups);
                 console.log('qlgs1 --> ' + JSON.stringify(this.quoteLineGroups));
                 this.quoteLineGroups = qlgArray;

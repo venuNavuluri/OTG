@@ -89,7 +89,7 @@ public class ContractDocumentPDFController {
             Invoice_Account__c, Invoice_Account__r.Name, Invoice_Account__r.Email__c,Invoice_Account__r.Invoice_Emails__c,
             Invoice_Account__r.Address1__c, Invoice_Account__r.Address2__c, Invoice_Account__r.Address3__c,
             Invoice_Account__r.Town_City__c, Invoice_Account__r.County_State__c, Invoice_Account__r.Postcode_Zipcode__c,
-            Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode
+            Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode, Package__r.InstallationCost__c
             FROM Installation__c
             WHERE Package__c IN :packIdList AND Installation_Order_Status__c != 'Terminated'
         ];

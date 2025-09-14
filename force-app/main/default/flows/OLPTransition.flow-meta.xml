@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>50.0</apiVersion>
+    <assignments>
+        <name>Update_OLP_Lookup</name>
+        <label>Update OLP_Lookup</label>
+        <locationX>1113</locationX>
+        <locationY>214</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.OLP_Transition__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>vOLPTransitionId</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <description>Check if the opportunity is new</description>
+        <name>Is_Opp_New</name>
+        <label>Is Opp New</label>
+        <locationX>568</locationX>
+        <locationY>307</locationY>
+        <defaultConnector>
+            <targetReference>Get_Opportunity_Values</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Is_New</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Type_is_OLP</targetReference>
+            </connector>
+            <label>Is New</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Type is OLP</description>
+        <name>Type_is_OLP</name>
+        <label>Type is OLP</label>
+        <locationX>834</locationX>
+        <locationY>211</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Yes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Type</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>OLP Transition</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_OLP_Lookup</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks whether the type has been updated</description>
+        <name>Type_updated</name>
+        <label>Type updated</label>
+        <locationX>832</locationX>
+        <locationY>474</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>OppType_updated</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Type</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>Get_Opportunity_Values.Type</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Type_is_OLP</targetReference>
+            </connector>
+            <label>Type updated</label>
+        </rules>
+    </decisions>
+    <description>If exist at least one OLP Transition object into the account Opportunity type will be updated as OLP Transition</description>
+    <interviewLabel>OLPTransition {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>OLPTransition</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>FREE_FORM_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Retrieve the OLP transition objects linked to the account</description>
+        <name>Get_OLP_Transition_record</name>
+        <label>Get OLP Transition record</label>
+        <locationX>361</locationX>
+        <locationY>266</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Is_Opp_New</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Account_Name__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Account.Id</elementReference>
+            </value>
+        </filters>
+        <object>OLP_Transition__c</object>
+        <outputAssignments>
+            <assignToReference>vOLPTransitionId</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Opportunity_Values</name>
+        <label>Get Opportunity Values</label>
+        <locationX>573</locationX>
+        <locationY>470</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Type_updated</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Opportunity_ID__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <start>
+        <locationX>50</locationX>
+        <locationY>50</locationY>
+        <connector>
+            <targetReference>Get_OLP_Transition_record</targetReference>
+        </connector>
+        <object>Opportunity</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>vOLPTransitionId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

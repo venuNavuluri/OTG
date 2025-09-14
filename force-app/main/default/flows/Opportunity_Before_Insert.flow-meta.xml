@@ -1,0 +1,698 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <assignments>
+        <name>Assign_Account_Fields</name>
+        <label>Assign Account Fields</label>
+        <locationX>578</locationX>
+        <locationY>1103</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Contracted_Fleet_Size__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Total_Active_Installations__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Contracted_Shore_Size__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Active_Shore_Side_Installations__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Subscription_Annual_Order_Value__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <numberValue>0.0</numberValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Customer_Status_List__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Account.Customer_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Product_Solutions__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_Contract_Values</name>
+        <label>Assign Contract Values</label>
+        <locationX>446</locationX>
+        <locationY>1319</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Subscription_Annual_Order_Value__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Amended_Contract.Subscription_Value__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.CurrencyIsoCode</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Amended_Contract.CurrencyIsoCode</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Is_the_Opp_an_OLP_Opportunity</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets the variables to use when business unit is Fleet</description>
+        <name>Assign_Product_Area_Status_Crew</name>
+        <label>Assign Product Area Status - Crew</label>
+        <locationX>578</locationX>
+        <locationY>803</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Customer_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Product_Area_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Amended_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets the variables to use when business unit is Fleet</description>
+        <name>Assign_Product_Area_Status_Fleet</name>
+        <label>Assign Product Area Status - Fleet</label>
+        <locationX>50</locationX>
+        <locationY>803</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Customer_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Product_Area_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Amended_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets the variables to use when business unit is Fleet</description>
+        <name>Assign_Product_Area_Status_L_A</name>
+        <label>Assign Product Area Status - L&amp;A</label>
+        <locationX>314</locationX>
+        <locationY>803</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Customer_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Product_Area_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Amended_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets the variables to use when business unit is Fleet</description>
+        <name>Assign_Product_Area_Status_Marine</name>
+        <label>Assign Product Area Status - Marine</label>
+        <locationX>842</locationX>
+        <locationY>803</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Customer_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Product_Area_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Amended_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets the variables to use when business unit is Fleet</description>
+        <name>Assign_Product_Area_Status_Others</name>
+        <label>Assign Product Area Status - Others</label>
+        <locationX>1106</locationX>
+        <locationY>803</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Customer_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Product_Solutions.Product_Area_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Amended_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets local variables if business unit is Crew</description>
+        <name>Set_Local_Variables_Crew</name>
+        <label>Set Local Variables Crew</label>
+        <locationX>578</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Product_Group__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Compas Core</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.AgreementType__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Compas Agreement</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Product_Solutions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets the variables to use when business unit is Fleet</description>
+        <name>Set_Local_Variables_Fleet</name>
+        <label>Set Local Variables Fleet</label>
+        <locationX>50</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Product_Group__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>TM Master</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.AgreementType__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>TM Master Agreement</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Product_Solutions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>set the local variables if business unit is L&amp;A</description>
+        <name>Set_Local_Variables_L_A</name>
+        <label>Set Local Variables L&amp;A</label>
+        <locationX>314</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Product_Group__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>OLP Vessel Based (Asset)</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.AgreementType__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>OLP Agreement</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Product_Solutions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>sets local variables if business unit is Marine Regulations</description>
+        <name>Set_Local_Variables_Marine_Regulations</name>
+        <label>Set Local Variables Marine Regulations</label>
+        <locationX>842</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>Customer_Status_From_Account_After_Logic</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Account.Marine_Regulations_Customer_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Subscription_Annual_Order_Value_After_Logic</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>MarineRegulationsOrderValue</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Contracted_Fleet_Size</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Account.Marine_Regulations_Contracted_Fleet_Size__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Contracted_Shore_Size</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Account.Marine_Regulations_Contracted_Shore_Size__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Product_Group__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Marine Regulations</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.AgreementType__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Marine Agreement</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Product_Solutions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Update_Lead_Source</name>
+        <label>Update Lead Source</label>
+        <locationX>446</locationX>
+        <locationY>1919</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.LeadSource</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Existing Customer Relationship</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Subscription_Annual_Order_Value__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.SBQQ__AmendedContract__r.Subscription_Value__c</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Check_Amended_Opportunity</name>
+        <label>Check Amended Opportunity</label>
+        <locationX>578</locationX>
+        <locationY>1811</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Amended_Opportunity</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.SBQQ__AmendedContract__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Lead_Source</targetReference>
+            </connector>
+            <label>Amended Opportunity</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks the business unit of opportunity</description>
+        <name>Check_Business_Unit</name>
+        <label>Check Business Unit</label>
+        <locationX>578</locationX>
+        <locationY>287</locationY>
+        <defaultConnector>
+            <targetReference>Get_Product_Solutions</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Business_is_Fleet</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Technical Ship Management</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Local_Variables_Fleet</targetReference>
+            </connector>
+            <label>Business is Fleet</label>
+        </rules>
+        <rules>
+            <name>Business_is_L_A</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Learning, Assessment and Competency</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Local_Variables_L_A</targetReference>
+            </connector>
+            <label>Business is L&amp;A</label>
+        </rules>
+        <rules>
+            <name>Business_is_Crew</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Crew</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Local_Variables_Crew</targetReference>
+            </connector>
+            <label>Business is Crew</label>
+        </rules>
+        <rules>
+            <name>Business_is_Marine_Regulations</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Governance, Risk &amp; Compliance</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Local_Variables_Marine_Regulations</targetReference>
+            </connector>
+            <label>Business is Marine Regulations</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Contract</name>
+        <label>Check Contract</label>
+        <locationX>578</locationX>
+        <locationY>1211</locationY>
+        <defaultConnector>
+            <targetReference>Is_the_Opp_an_OLP_Opportunity</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Has_Amended_Contract</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Amended_Contract</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Contract_Values</targetReference>
+            </connector>
+            <label>Has Amended Contract</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks the business unit of opportunity</description>
+        <name>Check_for_Product_Solution</name>
+        <label>Check for Product Solution</label>
+        <locationX>578</locationX>
+        <locationY>695</locationY>
+        <defaultConnector>
+            <targetReference>Assign_Product_Area_Status_Others</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Product_Solution_is_Fleet</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Technical Ship Management</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Product_Area_Status_Fleet</targetReference>
+            </connector>
+            <label>Product Solution is Fleet</label>
+        </rules>
+        <rules>
+            <name>Product_Solution_is_L_A</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Learning, Assessment and Competency</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Product_Area_Status_L_A</targetReference>
+            </connector>
+            <label>Product Solution is L&amp;A</label>
+        </rules>
+        <rules>
+            <name>Product_Solution_is_Crew</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Crew</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Product_Area_Status_Crew</targetReference>
+            </connector>
+            <label>Product Solution is Crew</label>
+        </rules>
+        <rules>
+            <name>Product_Solution_Marine_Regulations</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Governance, Risk &amp; Compliance</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Product_Area_Status_Marine</targetReference>
+            </connector>
+            <label>Product Solution Marine Regulations</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Is_the_Opp_an_OLP_Opportunity</name>
+        <label>Is the Opp an OLP Opportunity?</label>
+        <locationX>578</locationX>
+        <locationY>1511</locationY>
+        <defaultConnector>
+            <targetReference>Check_Amended_Opportunity</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>Yes_OLP_Opp</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.OLP_Transition__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Product_Group__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Product_Group_OLP</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <formulas>
+        <name>AnnualOrderValue</name>
+        <dataType>Currency</dataType>
+        <expression>(CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode})) * {!$Record.Account.Subscription_Annual_Order_Value__c}) / (CURRENCYRATE(TEXT({!$Record.Account.CurrencyIsoCode})))</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>ContractType</name>
+        <dataType>String</dataType>
+        <expression>IF(ISPICKVAL({!$Record.Existing_Opportunity_Type__c}, &apos;Whitespace&apos;) || ISPICKVAL({!$Record.Existing_Opportunity_Type__c}, &apos;Cross-sell&apos;), &apos;New Contract&apos;, IF(ISPICKVAL({!$Record.Existing_Opportunity_Type__c}, &apos;Up-sell&apos;) || ISPICKVAL({!$Record.Existing_Opportunity_Type__c}, &apos;Account Growth&apos;), &apos;Existing Contract&apos;, &apos;&apos;))</expression>
+    </formulas>
+    <formulas>
+        <name>CrewOrderValue</name>
+        <dataType>Currency</dataType>
+        <expression>(CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode})) * {!$Record.Account.Crew_Subscription_Annual_Order_Value__c}) / (CURRENCYRATE(TEXT({!$Record.Account.CurrencyIsoCode})))</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>FleetOrderValue</name>
+        <dataType>Currency</dataType>
+        <expression>(CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode}))*{!$Record.Account.Fleet_Subscription_Annual_Order_Value__c}) / (CURRENCYRATE(TEXT({!$Record.Account.CurrencyIsoCode})))</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>L_A_OrderValue</name>
+        <dataType>Currency</dataType>
+        <expression>(CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode})) * {!$Record.Account.L_A_Subscription_Annual_Order_Value__c}) / (CURRENCYRATE(TEXT({!$Record.Account.CurrencyIsoCode})))</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>MarineRegulationsOrderValue</name>
+        <dataType>Currency</dataType>
+        <expression>(CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode})) * {!$Record.Account.Marine_Regulations_Subscription_Annual_O__c}) / (CURRENCYRATE(TEXT({!$Record.Account.CurrencyIsoCode})))</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>ProductGroup</name>
+        <dataType>String</dataType>
+        <expression>IF(ISPICKVAL({!$Record.Business_Unit__c}, &apos;Crew&apos;), &apos;Compas&apos;, IF(ISPICKVAL({!$Record.Business_Unit__c}, &apos;Fleet&apos;), &apos;Tero Marine&apos;,&apos;&apos;))</expression>
+    </formulas>
+    <formulas>
+        <name>SubscriptionValue</name>
+        <dataType>Currency</dataType>
+        <expression>IF(ISNULL({!Get_Amended_Contract.Subscription_Value__c}), 0.00, {!Get_Amended_Contract.Subscription_Value__c})</expression>
+        <scale>2</scale>
+    </formulas>
+    <interviewLabel>Opportunity - Before Insert {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity - Before Insert</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Amended_Contract</name>
+        <label>Get Amended Contract</label>
+        <locationX>578</locationX>
+        <locationY>995</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Assign_Account_Fields</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.SBQQ__AmendedContract__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Contract</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Product_Solutions</name>
+        <label>Get Product Solutions</label>
+        <locationX>578</locationX>
+        <locationY>587</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_for_Product_Solution</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Product_Solution__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Business_Unit__c</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Account_ID__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.AccountId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Product_Solutions__c</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Set_Product_Group_OLP</name>
+        <label>Set Product Group - OLP</label>
+        <locationX>446</locationX>
+        <locationY>1619</locationY>
+        <connector>
+            <targetReference>Check_Amended_Opportunity</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Product_Group__c</field>
+            <value>
+                <stringValue>OLP Vessel Based (Asset)</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>452</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_Business_Unit</targetReference>
+        </connector>
+        <object>Opportunity</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>Contracted_Fleet_Size</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <name>Contracted_Shore_Size</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <description>customer status set after checking for business unit</description>
+        <name>Customer_Status_From_Account_After_Logic</name>
+        <dataType>Picklist</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Local variable to store the Subscription Annual Order Value after the business unit logic runs</description>
+        <name>Subscription_Annual_Order_Value_After_Logic</name>
+        <dataType>Currency</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+</Flow>
