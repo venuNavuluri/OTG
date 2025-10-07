@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>58.0</apiVersion>
+    <decisions>
+        <name>Check_Fields</name>
+        <label>Check Fields</label>
+        <locationX>314</locationX>
+        <locationY>323</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Vessel_is_not_empty</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Vessel_Name__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+            </conditions>
+            <connector>
+                <targetReference>Update_based_on_Vessel</targetReference>
+            </connector>
+            <label>Vessel is not empty</label>
+        </rules>
+        <rules>
+            <name>Organization_is_not_empty</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Organisation_Name__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+            </conditions>
+            <connector>
+                <targetReference>Update_based_on_Organiztion</targetReference>
+            </connector>
+            <label>Organization is not empty</label>
+        </rules>
+    </decisions>
+    <description>v1 - Update Name based on Vessel or Organization</description>
+    <environments>Default</environments>
+    <interviewLabel>I {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Installation - After Insert</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Update_based_on_Organiztion</name>
+        <label>Update based on Organiztion</label>
+        <locationX>314</locationX>
+        <locationY>431</locationY>
+        <inputAssignments>
+            <field>Customer_Installation_Name__c</field>
+            <value>
+                <elementReference>$Record.Organisation_Name__r.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Installation_Name__c</field>
+            <value>
+                <elementReference>$Record.Organisation_Name__r.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Previous_Installation_Name__c</field>
+            <value>
+                <elementReference>$Record.Organisation_Name__r.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_based_on_Vessel</name>
+        <label>Update based on Vessel</label>
+        <locationX>50</locationX>
+        <locationY>431</locationY>
+        <inputAssignments>
+            <field>Customer_Installation_Name__c</field>
+            <value>
+                <elementReference>$Record.Vessel_Name__r.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Installation_Name__c</field>
+            <value>
+                <elementReference>$Record.Vessel_Name__r.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Previous_Installation_Name__c</field>
+            <value>
+                <elementReference>$Record.Vessel_Name__r.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>188</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_Fields</targetReference>
+        </connector>
+        <object>Installation__c</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

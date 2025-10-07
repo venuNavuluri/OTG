@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>54.0</apiVersion>
+    <assignments>
+        <name>Update_Next_Step_Timestamp</name>
+        <label>Update Next Step Timestamp</label>
+        <locationX>50</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Next_Step_Change_Date__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDateTime</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_if_Currency_is_Updated</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Update_Subscription_Currency</name>
+        <label>Update Subscription Currency</label>
+        <locationX>50</locationX>
+        <locationY>695</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Account_Subscription_Annual_Order_Value__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>AnnualSubscriptionValue</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Check_for_Next_Step_Changed</name>
+        <label>Check for Next Step Changed</label>
+        <locationX>182</locationX>
+        <locationY>287</locationY>
+        <defaultConnector>
+            <targetReference>Check_if_Currency_is_Updated</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Change</defaultConnectorLabel>
+        <rules>
+            <name>Next_Step_Changed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record__Prior.NextStep</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.NextStep</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Next_Step_Timestamp</targetReference>
+            </connector>
+            <label>Next Step Changed</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_if_Currency_is_Updated</name>
+        <label>Check if Currency is Updated</label>
+        <locationX>182</locationX>
+        <locationY>587</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Currency_is_Updated</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.CurrencyIsoCode</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Subscription_Currency</targetReference>
+            </connector>
+            <label>Currency is Updated</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <formulas>
+        <name>AnnualSubscriptionValue</name>
+        <dataType>Currency</dataType>
+        <expression>{!$Record.Account_Subscription_Annual_Order_Value__c} * CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode})) / CURRENCYRATE(TEXT({!$Record__Prior.CurrencyIsoCode}))</expression>
+        <scale>2</scale>
+    </formulas>
+    <interviewLabel>Opportunity After Update Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity After Update Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>56</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_for_Next_Step_Changed</targetReference>
+        </connector>
+        <object>Opportunity</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

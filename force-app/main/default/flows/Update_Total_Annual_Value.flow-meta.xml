@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>57.0</apiVersion>
+    <description>Migrated from the: Update Total Annual Value workflow rule
+Workflow rule description: Update the Total Annual Value if the amount is different to the Total Incremental Annual Revenue amount&quot;
+
+Added Toggle</description>
+    <environments>Default</environments>
+    <formulas>
+        <name>Toggle</name>
+        <dataType>Boolean</dataType>
+        <expression>IF({!$Record.Validation_Toggle__c} = TRUE,FALSE,TRUE)</expression>
+    </formulas>
+    <interviewLabel>Update Total Annual Value {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Update Total Annual Value</label>
+    <migratedFromWorkflowRuleName>Update Total Annual Value</migratedFromWorkflowRuleName>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <description>Setting the Total Annual Value if different from the Total Annual Incremental Revenue amount</description>
+        <name>mainUpdate</name>
+        <label>mainUpdate</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <inputAssignments>
+            <field>Total_Annual_Value__c</field>
+            <value>
+                <elementReference>$Record.Total_Annual_Incremental_revenue__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Validation_Toggle__c</field>
+            <value>
+                <elementReference>Toggle</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>mainUpdate</targetReference>
+        </connector>
+        <filterFormula>(IF( {!$Record.SBQQ__PrimaryQuote__c} &lt;&gt; null,
+{!$Record.SBQQ__PrimaryQuote__r.Annual_Subscription_Value__c},
+IF(
+OR(TEXT({!$Record.Existing_Opportunity_Type__c})= &quot;OLP Transition&quot;,TEXT({!$Record.Existing_Opportunity_Type__c})= &quot;Renewal&quot;)
+
+, {!$Record.Amount} / ( Value(TEXT({!$Record.Contract_Term__c})) / 12 ) - {!$Record.Contract_Move_Value__c} - {!$Record.Account_Subscription_Annual_Order_Value__c},
+{!$Record.Amount} / (( Value(TEXT({!$Record.Contract_Term__c})) / 12 )) - {!$Record.Contract_Move_Value__c} )))  &lt;&gt;  {!$Record.Total_Annual_Value__c}</filterFormula>
+        <object>Opportunity</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>
