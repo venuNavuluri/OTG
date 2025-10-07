@@ -1,0 +1,61 @@
+<template>
+    <lightning-card variant="narrow" icon-name="standard:all">
+        <h1 slot="title">Package Changes</h1>
+        <lightning-button-icon
+            slot="actions"
+            icon-name="utility:refresh"
+            variant="brand"
+            alternative-text="Refresh"
+            class="slds-m-left_small"
+            title="Refresh"
+            onclick={onRefresh}>
+        </lightning-button-icon>
+
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+
+        <!-- Responsive scroll container (height controlled by CSS var) -->
+        <div class="scroll">
+            <lightning-accordion allow-multiple-sections-open>
+                <template for:each={qlgNewList} for:item="qlg">
+                    <lightning-accordion-section
+                        key={qlg.Id}
+                        name={qlg.Name}
+                        label={qlg.Name}
+                        style={qlg.sectionStyle}>
+
+                        <div style="padding-left: 2%; padding-right:2%;">
+                            <p>
+                                <b>Installation Quantity: </b>&nbsp;
+                                <b style="font-weight: 400;">{qlg.InstallationChangeType__c}</b>
+                            </p>
+                        </div>
+
+                        <div style="padding-left: 2%; padding-right:2%;">
+                            <p>
+                                <br/>
+                                <b>Add/Remove Products: </b>&nbsp;
+                                <b style="font-weight: 400;">{qlg.Product_Change_Type__c}</b>
+                                <br/><br/>
+                            </p>
+                        </div>
+
+                        <div style="padding-left: 2%; padding-right:2%;">
+                            <p>
+                                <b>Installation Cost: </b>&nbsp;
+                                <lightning-formatted-number
+                                    value={qlg.Installation_Price__c}
+                                    format-style="currency"
+                                    currency-code={qlg.CurrencyISOCode}
+                                    currency-display-as="code">
+                                </lightning-formatted-number>
+                                <br/><br/>
+                            </p>
+                        </div>
+                    </lightning-accordion-section>
+                </template>
+            </lightning-accordion>
+        </div>
+    </lightning-card>
+</template>

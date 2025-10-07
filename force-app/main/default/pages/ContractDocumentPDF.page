@@ -307,7 +307,7 @@
                                 {!inst.Invoice_Account__r.Country__r.Name}</td>
                             <td style="padding: 8px;white-space: pre-line;">{!inst.Invoice_Account__r.Invoice_Emails__c}</td>-->
                             <td style="padding: 8px;">{!inst.Package__r.Package_Number__c}</td>
-                            <td style="padding: 8px;">{!inst.CurrencyIsoCode} {!inst.Package__r.InstallationCost__c}</td>
+                            <td style="padding: 8px;">{!inst.CurrencyIsoCode} {!inst.Package__r.Temp_Quote_Line_Group__r.Installation_Price__c}</td>
                         </tr>
                     </apex:repeat>
                     <tr style="background-color: #f4f4f4; font-weight: bold;">

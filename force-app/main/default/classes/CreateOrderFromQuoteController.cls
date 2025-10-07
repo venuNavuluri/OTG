@@ -36,13 +36,10 @@ public with sharing class CreateOrderFromQuoteController
     @AuraEnabled(cacheable=true)
     public static String validateInstallationCount(String qtId)
     {
-        List<Package__c> packList = [SELECT Id, Name, Quote__c, Installation_Quantity__c, (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated') CreatedDate FROM Package__c WHERE Quote__c = :qtId ORDER BY CreatedDate DESC];
+        List<Package__c> packList = [SELECT Id, Name, Quote__c, Temp_Quote_Line_Group__r.Installation_Quantity__c, Installation_Quantity__c, (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated') CreatedDate FROM Package__c WHERE Temp_Quote__c = :qtId ORDER BY CreatedDate DESC];
         for(Package__c pack : packList)
         {
-            System.debug('qty --> ' + pack.Installation_Quantity__c);
-            System.debug('size --> ' + pack.Installations__r.size());
-            System.debug('check --> ' + ((pack.Installations__r != NULL) && (pack.Installation_Quantity__c != pack.Installations__r.size())));
-            if((pack.Installations__r != NULL) && (pack.Installation_Quantity__c != pack.Installations__r.size()))
+            if((pack.Installations__r != NULL) && (pack.Temp_Quote_Line_Group__r.Installation_Quantity__c != pack.Installations__r.size()))
             {
                 System.debug('In If');
                 return 'No. of active installations on package must match with the Installation Quantity on package';

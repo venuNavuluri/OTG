@@ -6,7 +6,8 @@ public class ConvertToOpportunityController {
         try {
             System.debug('Querying Lead with ID: ' + recId);
             List<Lead> ldList = [SELECT Id, Name, Account__c, Account__r.OwnerId, Contact__c, 
-                                 Campaign__c, Description, Products__c, Business_Units__c 
+                                 Campaign__c, Description, Products__c, Business_Units__c, Pillar_Engagement_at_Qualification_actua__c,
+                                 Account__r.Country__r.Sales_Region__c, Account__r.LROO_Product_Acc_Owner__c, Account__r.OTG_Product_Acc_Owner__c
                                  FROM Lead WHERE Id = :recId];
             
             System.debug('Found Lead record: ' + ldList);
@@ -28,9 +29,49 @@ public class ConvertToOpportunityController {
                 lc.setConvertedStatus(convertStatus.MasterLabel);
                 System.debug('Set converted status to: ' + convertStatus.MasterLabel);
                 
+                User oppOwner;
+                
+                if (ldList[0].Products__c != null)
+                {
+                    //Determine Opportunity Ownership
+                    if (ldList[0].Products__c.contains('ISF Watchkeeper'))
+                    {
+                        oppOwner = [select Id from User where UserRole.Name = 'Watchkeeper Sales Director' limit 1];
+                    }
+                    else if (ldList[0].Products__c.contains('Cloud Fleet Manager'))
+                    {
+                        if (ldList[0].Account__r.Country__r.Sales_Region__c == 'APAC')
+                        {
+                            oppOwner = [select Id from User where UserRole.Name = 'CFM Sales APAC' limit 1];
+                        }
+                        else
+                        {
+                            oppOwner = [select Id from User where UserRole.Name = 'CFM Sales EMEAA' limit 1];
+                        }
+                    }
+                    else if (ldList[0].Products__c.contains('Risk Manager') || ldList[0].Business_Units__c.contains('Voyage Performance & Optimization'))
+                    {
+                        oppOwner = [select Id from User where UserRole.Name = 'VPO Sales' limit 1];
+                    }
+                    else if (ldList[0].Products__c.contains('Regs4ships') || ldList[0].Products__c.contains('Docmap') || ldList[0].Business_Units__c.contains('Voyage Management'))
+                    {
+                        oppOwner = [select Id from User where Id = :ldList[0].Account__r.LROO_Product_Acc_Owner__c];
+                    }
+                    else if (ldList[0].Products__c.contains('MarineRegulations') || ldList[0].Products__c.contains('Marine Regulations') || ldList[0].Products__c.contains('TM Master') || ldList[0].Business_Units__c.contains('HCM Crew') || ldList[0].Business_Units__c.contains('HCM Learning, Assessment and Competency'))
+                    {
+                        oppOwner = [select Id from User where Id = :ldList[0].Account__r.OTG_Product_Acc_Owner__c];
+                    }
+                }
+                
                 lc.setAccountId(ldList[0].Account__c);
                 lc.setContactId(ldList[0].Contact__c);
-                lc.setOwnerId(ldList[0].Account__r.OwnerId);
+                
+                User accOwner = [select Id, Profile.Name from User where Id = :ldList[0].Account__r.OwnerId];
+                if (accOwner.Profile.Name != 'Identity User')
+                {
+                    lc.setOwnerId(ldList[0].Account__r.OwnerId);
+                }
+                
                 System.debug('Set AccountId: ' + ldList[0].Account__c + 
                              ', ContactId: ' + ldList[0].Contact__c + 
                              ', OwnerId: ' + ldList[0].Account__r.OwnerId);
@@ -42,13 +83,36 @@ public class ConvertToOpportunityController {
                 // Determine product group based on business unit
                 if (businessUnit != null) {
                     System.debug('Determining Product Group based on Business Unit');
-                    if (businessUnit == 'Technical Ship Management') {
+                    if (ldList[0].Products__c.contains('TM Master'))//(businessUnit == 'Technical Ship Management') 
+                    {
                         productGroup = 'TM Master';
                     } 
-                    else if (businessUnit == 'HCM Crew') {
+                    else if (ldList[0].Products__c.contains('COMPAS'))//if (businessUnit == 'HCM Crew') 
+                    {
                         productGroup = 'Compas Core';
                     } 
-                    else if (businessUnit == 'Governance, Risk & Compliance') {
+                    else if (ldList[0].Products__c.contains('ISF Watchkeeper'))
+                    {
+                        productGroup = 'ISF Watchkeeper';
+                    }
+                    else if (ldList[0].Products__c.contains('Cloud Fleet Manager'))
+                    {
+                        productGroup = 'Cloud Fleet Manager';
+                    }
+                    else if (ldList[0].Products__c.contains('Risk Manager'))
+                    {
+                        productGroup = 'Risk Manager';
+                    }
+                    else if (ldList[0].Products__c.contains('Regs4ships'))
+                    {
+                        productGroup = 'Regs4Ships';
+                    }
+                    else if (ldList[0].Products__c.contains('Docmap'))
+                    {
+                        productGroup = 'Docmap';
+                    }
+                    else if (ldList[0].Products__c.contains('Marine Regulations') || ldList[0].Products__c.contains('MarineRegulations'))//(businessUnit == 'Governance, Risk & Compliance') 
+                    {
                         productGroup = 'Marine Regulations';
                     }
                     System.debug('Determined Product Group: ' + productGroup);
@@ -72,10 +136,21 @@ public class ConvertToOpportunityController {
                     Business_Unit__c = businessUnit,
                     Contract_Type__c = 'New Contract' 
                 );
+                if (oppOwner != null)
+                {
+                    opp.OwnerId = oppOwner.Id;
+                }
+                else
+                {
+                    opp.OwnerId = ldList[0].Account__r.OwnerId;
+                }
+                
+                update opp;
+                
                 
                 System.debug('Preparing Opportunity update with values: ' + opp);
-                update opp;
                 System.debug('Opportunity successfully updated: ' + opp);
+                
                 
                 return lcr.getOpportunityId();
             }

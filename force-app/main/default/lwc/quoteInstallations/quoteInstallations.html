@@ -19,7 +19,7 @@
             </div>
         </div>
     </div>
-    <!-- <lightning-accordion > -->
+
     <template for:each={quoteLineGroups} for:item="eachQuoteGroup" for:index="qgIndexVar">
         <c-expandable-section key={eachQuoteGroup.Id} id={eachQuoteGroup.Id} label={eachQuoteGroup.Name}
             no-of-installations={eachQuoteGroup.Installation_Quantity__c}
@@ -27,18 +27,15 @@
             currency-code={eachQuoteGroup.CurrencyIsoCode}
             installation-price={eachQuoteGroup.installationPrice}
             user-price={eachQuoteGroup.userPrice}>
+
             <div class="slds-box slds-m-top_small">
-                <!-- <div class="slds-text-heading_medium slds-theme_shade">{eachQuoteGroup.Name}</div> -->
                 <div class="slds slds-wrap">
                     <div class="slds-col slds-size_1-of-1 slds-p-right_small slds-p-bottom_small">
                         {eachQuoteGroup.productsString}
-                        <!-- <lightning-button label="Show All Products" onclick={handleShowProducts}></lightning-button> -->
                     </div>
                 </div>
-                <!--<lightning-datatable show-row-number-column key-field="id" hide-checkbox-column data={eachQuoteGroup.existingInstallations}
-                    columns={columns} onrowaction={handleRowAction}
-                    lwc:if={eachQuoteGroup.existingInstallations.length}>
-                </lightning-datatable>-->
+
+                <!-- Existing installations list (custom table) -->
                 <template if:true={eachQuoteGroup.existingInstallations.length} >
                     <table class="border">
                         <thead>
@@ -68,7 +65,16 @@
                                     <td class="cell">
                                         <lightning-button-menu alternative-text="Actions">
                                             <lightning-menu-item value="Edit" label="Edit" name={installation.Id} onclick={editInstallation}></lightning-menu-item>
-                                            <lightning-menu-item value="Change Package" name={installation.Id} label="Change Package" onclick={changePackage1}></lightning-menu-item>
+                                            <!-- UPDATED: call changePackageFromMenu instead of changePackage1 -->
+                                            <template if:true={installation.canChangePackage}>
+                                              <lightning-menu-item
+                                                value="Change Package"
+                                                name={installation.Id}
+                                                label="Change Package"
+                                                onclick={changePackageFromMenu}
+                                                disabled={installation.disableChangePackage}>
+                                              </lightning-menu-item>
+                                            </template>
                                         </lightning-button-menu>
                                     </td>
                                 </tr>
@@ -76,6 +82,8 @@
                         </tbody>
                     </table>
                 </template>
+
+                <!-- New installations row editor (unchanged) -->
                 <template for:each={eachQuoteGroup.newInstallations} for:item="installation" for:index="indexVar">
                     <div key={eachQuoteGroup.Id} class="slds-m-top_small">
                         <lightning-record-edit-form object-api-name="Installation__c">
@@ -106,10 +114,6 @@
                                     </template>
                                 </div>
                                 <div class="slds-col slds-size_2-of-6  slds-p-right_small">
-                                    <!--<lightning-input-field variant="label-stacked" field-name="Invoice_Account__c"
-                                        value={installation.Invoice_Account__c} data-qgid={eachQuoteGroup.Id}
-                                        data-index={indexVar} data-qgindex={qgIndexVar} onchange={handleFieldChange}>
-                                    </lightning-input-field>-->
                                     <lightning-record-picker label="Invoice Account" object-api-name="Account" placeholder="Search Invoice Accounts..." filter={filter} 
                                         value={installation.Invoice_Account__c} data-qgid={eachQuoteGroup.Id} data-fieldname="Invoice_Account__c"
                                         data-index={indexVar} data-qgindex={qgIndexVar} onchange={handleFieldChange} onblur={validateInvoiceAccount}>
@@ -147,20 +151,20 @@
                         </lightning-record-edit-form>
                     </div>
                 </template>
+
                 <div class="slds-p-around_small">
                     <lightning-button label="+ Add New" onclick={handleAddNew}
                         lwc:if={eachQuoteGroup.remainingInstallations} data-lgid={eachQuoteGroup.Id}></lightning-button>&nbsp;&nbsp;
-                    <!--lightning-button onclick={createRecordsBulk} label="Create Records Bulk" data-remqty={eachQuoteGroup.remainingInstallations} data-lgid={eachQuoteGroup.Id} data-qgindex={qgIndexVar} lwc:if={eachQuoteGroup.remainingInstallations}></lightning-button-->
                     <lightning-file-upload label="Upload CSV to create records in Bulk" name="fileUploader" data-qgindex={qgIndexVar} data-lgid={eachQuoteGroup.Id} accept={acceptedFormats} onuploadfinished={handleUploadFinished} lwc:if={eachQuoteGroup.remainingInstallations} ></lightning-file-upload>
                     <p lwc:if={eachQuoteGroup.remainingInstallations} >Note: Please make sure the first column in csv as Vessel IMO Number and second column as Invoice Account Number</p>
                 </div>
 
+                <!-- existing bulk modal / old change package modal region (kept) -->
                 <div class="slds-p-around_small">
                     <template if:true={isModalOpen}>
                         <lightning-record-edit-form object-api-name="Installation__c" onsubmit={createInstallations} data-lgid={eachQuoteGroup.Id} >
                             <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
                                 <div class="slds-modal__container">
-                                    <!-- Modal/Popup Box LWC header here -->
                                     <header class="slds-modal__header">
                                         <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeModalPopup}>
                                             <lightning-icon icon-name="utility:close"
@@ -171,19 +175,14 @@
                                         </button>
                                         <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Create Installation Records</h2>
                                     </header>
-                                    <!-- Modal/Popup Box LWC body starts here -->
                                     <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
                                         <lightning-messages> </lightning-messages>
                                         <lightning-input variant="label-inline" label="No. of records to create(max 100)" max="100" type="number" name="Record Count" min="1" step="1" value={count} onchange={handleCountChange} data-lgid={eachQuoteGroup.Id}></lightning-input>
                                         <template if:true={disableSave}>
                                             <p style="color: red"><b>Only {remainingQty} records can be created on the above Quote Line Group</b></p>
                                         </template>
-                                        <!--lightning-input-field field-name="Delivery_Contact__c"></lightning-input-field>
-                                        <lightning-input-field field-name="Invoice_Account__c"></lightning-input-field>
-                                        <lightning-input-field field-name="Client__c"></lightning-input-field-->
                                         <lightning-file-upload label="Upload CSV" name="fileUploader" accept={acceptedFormats} onuploadfinished={handleUploadFinished} ></lightning-file-upload>
                                     </div>
-                                    <!-- Modal/Popup Box LWC footer starts here -->
                                     <footer class="slds-modal__footer">
                                         <lightning-button label="Cancel" variant="neutral" onclick={closeModalPopup} title="Cancel"></lightning-button>
                                         <lightning-button type="submit" data-lgid={eachQuoteGroup.Id} label="Create Records" variant="brand" disabled={disableSave} ></lightning-button>
@@ -193,11 +192,11 @@
                             <div class="slds-backdrop slds-backdrop_open"></div>
                         </lightning-record-edit-form>
                     </template>
+
+                    <!-- UPDATED: Change Package modal now lists eligible QLGs (remainingInstallations > 0). -->
                     <template if:true={showChangePackage}>
                         <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
                             <div class="slds-modal__container">
-                                
-                                <!-- Modal/Popup Box LWC header here -->
                                 <header class="slds-modal__header">
                                     <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeChangePackage}>
                                         <lightning-icon icon-name="utility:close"
@@ -206,26 +205,26 @@
                                             size="small" ></lightning-icon>
                                         <span class="slds-assistive-text">Close</span>
                                     </button>
-                                    <h2 id="modal-heading-001" class="slds-text-heading_medium slds-hyphenate">Change Package</h2>
+                                    <h2 id="modal-heading-001" class="slds-text-heading_medium slds-hyphenate">Move Installation</h2>
                                 </header>
-                                <!-- Modal/Popup Box LWC body starts here -->
                                 <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-01">
                                     <template if:true={renderChangePackage}>
-                                        <lightning-radio-group name="radioGroup" label="Select Package" options={packageOptions} onchange={handleSelected} value={selectedPackage} type="radio"></lightning-radio-group>
-                                        <lightning-datatable onrowselection={handleRowSelection} if:true={showInstallations} data-id="ChangePackTable" key-field="id" data={installations} columns={instColumns}></lightning-datatable>
+                                        <lightning-radio-group name="qlgRadio"
+                                            label="Select a target Quote Line Group (only groups with remaining capacity are listed)"
+                                            options={qlgOptions}
+                                            onchange={handleQLGSelected}
+                                            value={selectedQLG}
+                                            type="radio">
+                                        </lightning-radio-group>
                                     </template>
                                     <template if:false={renderChangePackage} >
-                                        <p><b>
-                                            You can change package as there is only one Package linked to the quote.
-                                        </b></p>
+                                        <p><b>There are no packages with remaining installation capacity.</b></p>
                                     </template>
                                 </div>
-                                <!-- Modal/Popup Box LWC footer starts here -->
                                 <footer class="slds-modal__footer">
                                     <lightning-button label="Cancel" variant="neutral" onclick={closeChangePackage} title="Cancel"></lightning-button>&nbsp;
-                                    <lightning-button if:true={renderChangePackage} label="Change" onclick={savePackageInfo} variant="brand" ></lightning-button>
+                                    <lightning-button label="Save" onclick={saveQLGChange} variant="brand" disabled={isQLGSaveDisabled}></lightning-button>
                                 </footer>
-                                
                             </div>
                         </section>
                         <div class="slds-backdrop slds-backdrop_open"></div>
@@ -234,14 +233,11 @@
             </div>
         </c-expandable-section>
     </template>
-    <!-- </lightning-accordion>  -->
 
     <template if:true={openModal}>
-        <!-- Modal/Popup Box LWC starts here -->
         <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
             aria-describedby="modal-content-id-1" class={getModalSize}>
             <div class="slds-modal__container">
-                <!-- Modal/Popup Box LWC header here -->
                 <header class="slds-modal__header">
                     <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
                         title="Close" onclick={closeModal}>
@@ -251,7 +247,6 @@
                     </button>
                     <h2 id="modal-heading-02" class="slds-text-heading_medium slds-hyphenate">{getModalHeader}</h2>
                 </header>
-                <!-- Modal/Popup Box LWC body starts here -->
                 <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-2">
                     <ol class="slds-list_ordered" lwc:if={showProductsInfo}>
                         <template for:each={prodsList} for:item="prod">
@@ -261,7 +256,6 @@
                     <lightning-record-form columns="2" object-api-name="Installation__c" layout-type="Full"
                         record-id={currentInstallIdToEdit} lwc:if={showInstallationDetail}></lightning-record-form>
                 </div>
-                <!-- Modal/Popup Box LWC footer starts here -->
                 <footer class="slds-modal__footer">
                     <button class="slds-button slds-button_neutral" onclick={closeModal} title="Cancel">Cancel</button>
                 </footer>
@@ -269,12 +263,11 @@
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
+
     <template if:true={showMessage}>
-        <!-- Modal/Popup Box LWC starts here -->
         <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
             aria-describedby="modal-content-id-1" class={getModalSize}>
             <div class="slds-modal__container">
-                <!-- Modal/Popup Box LWC header here -->
                 <header class="slds-modal__header">
                     <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
                         title="Close" onclick={closeMessageModal}>
@@ -282,26 +275,19 @@
                             size="small"></lightning-icon>
                         <span class="slds-assistive-text">Close</span>
                     </button>
-                    <!--h2 id="modal-heading-03" class="slds-text-heading_medium slds-hyphenate"></h2-->
                 </header>
-                <!-- Modal/Popup Box LWC body starts here -->
                 <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-3">
                     <p>{message}</p>
                 </div>
-                <!-- Modal/Popup Box LWC footer starts here -->
-                <!--footer class="slds-modal__footer">
-                    <button class="slds-button slds-button_neutral" onclick={closeModal} title="Cancel">Cancel</button>
-                </footer-->
             </div>
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
+
     <template if:true={showRefreshMessage}>
-        <!-- Modal/Popup Box LWC starts here -->
         <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
             aria-describedby="modal-content-id-1" class={getModalSize}>
             <div class="slds-modal__container">
-                <!-- Modal/Popup Box LWC header here -->
                 <header class="slds-modal__header">
                     <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
                         title="Close" onclick={refreshPage}>
@@ -309,26 +295,19 @@
                             size="small"></lightning-icon>
                         <span class="slds-assistive-text">Close</span>
                     </button>
-                    <!--h2 id="modal-heading-03" class="slds-text-heading_medium slds-hyphenate"></h2-->
                 </header>
-                <!-- Modal/Popup Box LWC body starts here -->
                 <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-03">
                     <p>{message}</p>
                 </div>
-                <!-- Modal/Popup Box LWC footer starts here -->
-                <!--footer class="slds-modal__footer">
-                    <button class="slds-button slds-button_neutral" onclick={closeModal} title="Cancel">Cancel</button>
-                </footer-->
             </div>
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
+
     <template if:true={createInvoice}>
-        <!-- Modal/Popup Box LWC starts here -->
         <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
             aria-describedby="modal-content-id-1" class={getModalSize}>
             <div class="slds-modal__container">
-                <!-- Modal/Popup Box LWC header here -->
                 <header class="slds-modal__header">
                     <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
                         title="Close" onclick={closeInvoiceModal}>
@@ -336,20 +315,15 @@
                             size="small"></lightning-icon>
                         <span class="slds-assistive-text">Close</span>
                     </button>
-                    <!--h2 id="modal-heading-03" class="slds-text-heading_medium slds-hyphenate"></h2-->
                 </header>
-                <!-- Modal/Popup Box LWC body starts here -->
                 <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-4">
                     <lightning-flow flow-api-name="New_Invoice_Account" flow-finish-behavior="NONE" flow-input-variables={inputVariables} onstatuschange={handleFlowStatusChange}></lightning-flow>
                 </div>
-                <!-- Modal/Popup Box LWC footer starts here -->
-                <!--footer class="slds-modal__footer">
-                    <button class="slds-button slds-button_neutral" onclick={closeModal} title="Cancel">Cancel</button>
-                </footer-->
             </div>
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
+
     <template if:true={openSpinner}>
         <lightning-spinner alternative-text="Loading..." variant="brand"></lightning-spinner>
     </template>

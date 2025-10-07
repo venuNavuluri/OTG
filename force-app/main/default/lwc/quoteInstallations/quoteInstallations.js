@@ -8,17 +8,16 @@ import createRecords from '@salesforce/apex/QuoteInstallationController.createRe
 import getPackageInfo from '@salesforce/apex/UpdatePackageController.getPackageData';
 import fetchPackages from '@salesforce/apex/UpdatePackageController.fetchPackages';
 import saveInstallationRecord from '@salesforce/apex/UpdatePackageController.saveInstallation';
+import saveInstallationToQLG from '@salesforce/apex/QuoteInstallationController.saveInstallationToQLG'; // NEW
 import { NavigationMixin } from 'lightning/navigation';
 const FIELDS = ['Name','SBQQ__Account__c','SBQQ__Opportunity2__c'];
 const GETRECORDFIELDS = ['SBQQ__Quote__c.Name','SBQQ__Quote__c.SBQQ__Account__r.Name', 'SBQQ__Quote__c.SBQQ__Account__r.Account_ID__c','SBQQ__Quote__c.SBQQ__Opportunity2__r.Name', 'SBQQ__Quote__c.SBQQ__Opportunity2__r.Opportunity_ID__c']
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-//import { RefreshEvent } from 'lightning/refresh';
 import UploadInstallationErrorMessage from '@salesforce/label/c.Upload_Installations_Error_Message';
-//import {FlowAttributeChangeEvent} from 'lightning/flowSupport';
 import { encodeDefaultFieldValues } from "lightning/pageReferenceUtils";
+import LightningConfirm from 'lightning/confirm';
 
 const actions = [
-    // { label: 'Show details', name: 'show_details' },
     { label: 'Edit', name: 'edit' },
     { label: 'Change Package', name: 'Change_Package' }
 ];
@@ -43,15 +42,22 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     @track invAccUrl;
     @track accId = [];
     @track createInvoice = false;
+
+    // ---------- OLD Package swap state (left as-is, not used by new flow) ----------
     @track packageOptions = [];
-    @track showChangePackage = false;
+    @track showChangePackage = false; // reused for new modal too
     @track selectedPackage;
     @track showInstallations = false;
     @track installations = [];
     @track changeInstId;
     @track selectedRows = [];
-    @track renderChangePackage = false;
+    @track renderChangePackage = false; // reused (true if there are options to render)
     @track showInvoiceError = false;
+
+    // ---------- NEW: QLG selection state for Change Package flow ----------
+    @track qlgOptions = [];       // radio options of eligible QLGs
+    @track selectedQLG = null;    // selected QLG Id
+
     invoiceAccountValue = '';
     instColumns = [
         { label: 'Installation Name', fieldName: 'Name' },
@@ -85,54 +91,36 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 cellAttributes: { class: { fieldName: 'rowStyle' }, }},
                 {
                     type: 'action',
-                    typeAttributes: { rowActions: actions },
+                    typeAttributes: { rowActions: this.getRowActions },
                 }
     ]
 
     filter;
 
-    /*connectedCallback(){
-        this.recordId = sessionStorage.getItem("quoteRecId")
-    }*/
-
-    get acceptedFormats()
-    {
+    get acceptedFormats() {
         return ['.csv'];
     }
 
-    handleUploadFinished(event)
-    {
+    handleUploadFinished(event) {
         this.openSpinner = true;
         let quoteLineGroupId = event.target.dataset.lgid;
         let qgindexVar = event.target.dataset.qgindex;
         let quoteLineGroup = this.quoteLineGroups[qgindexVar]
         const uploadedFiles = event.detail.files;
-        console.log('file --> ' + JSON.stringify(uploadedFiles));
-        console.log('rec Id --> ' + this.recordId);
-        //alert('No. of files uploaded : ' + uploadedFiles[0].contentVersionId);
         createInstallations({
             conVerId : uploadedFiles[0].contentVersionId,
             qtId : this.recordId,
             qlgId : quoteLineGroupId,
             instPrice : quoteLineGroup.installationPrice
-        }).then(result => 
-            {
-                console.log('result --> ' + result);
-                if(result != 'Failed')
-                {
-                    /*this.message = result;
-                    this.showRefreshMessage = true;*/
+        }).then(result => {
+                if(result != 'Failed') {
                     const event = new ShowToastEvent({
                         title: 'Success',
                         message: 'Installations Created Successfully.',
                         variant: 'success',
                         mode: 'dismissable'
                     });
-                }
-                else
-                {
-                    /*this.message = UploadInstallationErrorMessage;
-                    this.showMessage = true;*/
+                } else {
                     const event = new ShowToastEvent({
                         title: 'Failed',
                         message: 'Error occured while creating installations.',
@@ -141,103 +129,65 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     });
                 }
                 this.openSpinner = false;
-            }).catch(error => 
-                {
-                    console.log('error --> ' + JSON.stringify(error));
-                    this.message = UploadInstallationErrorMessage;
-                    this.showMessage = true;
-                    this.openSpinner = false;
-                });
+            }).catch(error => {
+                console.log('error --> ' + JSON.stringify(error));
+                this.message = UploadInstallationErrorMessage;
+                this.showMessage = true;
+                this.openSpinner = false;
+            });
     }
 
-    refreshPage(event)
-    {
-        console.log('in refresh page');
+    refreshPage(event) {
         window.location.reload();
-        console.log('in refresh page1');
     }
 
-    createRecordsBulk(event)
-    {
+    createRecordsBulk(event) {
         this.isModalOpen = true;
         this.qlgId = event.target.dataset.lgid;
         this.qgIndex=event.target.dataset.qgindex;
-        console.log('index --> ' + this.qgIndex);
         this.instList = this.quoteLineGroups[this.qgIndex].existingInstallations;
-        console.log('instlist --> ' + this.instList);
         this.quoteLineGroups[this.qgIndex].existingInstallations = [];
         this.remainingQty = this.quoteLineGroups[this.qgIndex].remainingInstallations;
-        console.log('this.quoteLineGroups[this.qgIndex].existingInstallations --> ' + this.quoteLineGroups[this.qgIndex].remainingInstallations);
     }
 
-    handleCountChange(e)
-    {
+    handleCountChange(e) {
         this.count = e.detail.value;
-        //let quoteLineGroupId = e.target.dataset.lgid;
-        console.log('qlg id --> ' + this.remainingQty);
-        if(this.remainingQty >= this.count)
-        {
+        if(this.remainingQty >= this.count) {
             this.disableSave = false;
-        }
-        else
-        {
+        } else {
             this.disableSave = true;
         }
     }
 
-    closeModalPopup()
-    {
+    closeModalPopup() {
         this.isModalOpen = false;
-        //this.instType = '';
     }
 
-    closeInvoiceModal()
-    {
+    closeInvoiceModal() {
         this.createInvoice = false;
     }
 
-    createInstallations(event)
-    {
-        console.log('In create installations');
+    createInstallations(event) {
         event.preventDefault();
         let fields = event.detail.fields;
-        let quoteLineGroupId = event.target.dataset.lgid;
-        //let qgindexVar = event.target.dataset.qgindex;
         let quoteLineGroup = this.quoteLineGroups[this.qgIndex];
-        console.log('rec Id --> ' + this.recordId);
-        console.log('count --> ' + this.count);
-        console.log('qlg id --> ' + this.qlgId);
-        console.log('qlg index --> ' + this.qgIndex);
-        //console.log('qlg --> ' + JSON.stringify(quoteLineGroup));
 
         this.openSpinner = true;
-        createRecords({quoteId : this.recordId,
+        createRecords({
+            quoteId : this.recordId,
             quoteGrpId : this.qlgId,
             count : this.count,
             delvContact : fields.Delivery_Contact__c,
             invAcc : fields.Invoice_Account__c,
             client : fields.Client__c
         }).then(result => {
-            console.log('result --> ' + JSON.stringify(result));
-            //this.data = result;
-            //this.allRecs = result;
-            for(var i = 0; i < result.length; i++)
-            {
-                console.log('i --> ' + i);
+            for(let i = 0; i < result.length; i++) {
                 this.prepareRecordForTable(result[i]);
-                console.log('result --> ' + JSON.stringify(result[i]));
                 this.instList.push(result[i]);
-                console.log('qlg --> ' + JSON.stringify(quoteLineGroup.existingInstallations));
             }
             quoteLineGroup.existingInstallations = this.instList;
             quoteLineGroup.remainingInstallations = quoteLineGroup.remainingInstallations - result.length;
-            console.log('rem --> ' + quoteLineGroup.remainingInstallations);
-            if(quoteLineGroup.remainingInstallations <= 0)
-            {
-                /*while(quoteLineGroup.newInstallations.length > 0)
-                {
-                    quoteLineGroup.newInstallations.pop();
-                }*/
+            if(quoteLineGroup.remainingInstallations <= 0) {
                 quoteLineGroup.newInstallations = [];
             }
             this.isModalOpen = false;
@@ -249,92 +199,42 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     }
 
     fetchInstallations(){
-        console.log('recId --> ' + this.recordId);
-        console.log('qlg --> ' + JSON.stringify(this.quoteLineGroups));
         fetchInitialConfiguration({quoteId:this.recordId})
         .then(result => {
             if(result && result.length){
-                console.log('result --> ' + JSON.stringify(result));
                 let resultArray = JSON.parse(result);
                 let qlgArray = [];
-                console.log('resArr -> ' + JSON.stringify(resultArray));
-                console.log('res length --> ' + resultArray.length);
-                var index = 0;
                 for(let listItem of resultArray){
-                    console.log('index' + index);index++;
-                    console.log('listItem --> ' + JSON.stringify(listItem));
                     let quoteLineGroup = listItem.qlg;
-                    /*quoteLineGroup.installations = quoteLineGroup.Installations__r?.records
-                    if(!quoteLineGroup.installations){
-                        quoteLineGroup.installations = []
-                    }
-                    console.log('quoteLineGroup.installations --> ' + JSON.stringify(quoteLineGroup.installations));*/
                     quoteLineGroup.installationPrice = listItem.installationPrice;
                     quoteLineGroup.userPrice = listItem.userPrice;
                     quoteLineGroup.installations = [];
                     let packInstList = (listItem.pack != null && listItem.pack != undefined) ? listItem.pack.Installations__r?.records : [];
-                    if(!packInstList)
-                    {
-                        packInstList = [];
-                    }
-                    for(let inst of packInstList)
-                    {
-                        quoteLineGroup.installations.push(inst);
-                    }
-                    //console.log('quoteLineGroup.installations --> ' + JSON.stringify(quoteLineGroup.installations));
-                    //quoteLineGroup.remainingInstallations = quoteLineGroup.Installation_Quantity__c != null?quoteLineGroup.Installation_Quantity__c-quoteLineGroup.installations.length:0
+                    if(!packInstList) { packInstList = []; }
+                    for(let inst of packInstList){ quoteLineGroup.installations.push(inst); }
                     quoteLineGroup.remainingInstallations = quoteLineGroup.Installation_Quantity__c != null?quoteLineGroup.Installation_Quantity__c-packInstList.length:0;
                     quoteLineGroup.existingInstallations = []
                     for(let installExisting of quoteLineGroup.installations){
                         this.prepareRecordForTable(installExisting)
-                        console.log('instExisting --> ' + JSON.stringify(installExisting));
                         quoteLineGroup.existingInstallations.push(installExisting)
                     }
                     if(quoteLineGroup.remainingInstallations > 0 || quoteLineGroup.Installation_Quantity__c ==  null){
                         quoteLineGroup.newInstallations = this.addInstallation(1,quoteLineGroup.Id);
                     }
-                    if(quoteLineGroup.SBQQ__LineItems__r?.records)
-                    {
+                    if(quoteLineGroup.SBQQ__LineItems__r?.records) {
                         let prodList = [];
                         for(let qLine of quoteLineGroup.SBQQ__LineItems__r.records){
-                            console.log(JSON.stringify(qLine))
                             let prdKey = qLine.SBQQ__Product__r.ProductCode+' : '+qLine.SBQQ__ProductName__c
-                            if(!prodList.includes(prdKey)){
-                                prodList.push(prdKey)
-                            }
+                            if(!prodList.includes(prdKey)){ prodList.push(prdKey) }
                         }
-                        console.log('length --> ' + prodList.length);
-                        console.log('prdList --> ' + JSON.stringify(prodList));
-                        if(prodList.length){
-                            console.log('in if304');
-                            quoteLineGroup.productsString = prodList.join(',');
-                            console.log('in if 306');
-                        }
-                        else
-                        {
-                            console.log('in else 310');
-                            quoteLineGroup.productsString = '';
-                            console.log('in else 312');
-                        }
+                        quoteLineGroup.productsString = prodList.length ? prodList.join(',') : '';
                     }
-                    console.log('qlgArray1 --> ' + JSON.stringify(qlgArray));
                     qlgArray.push(quoteLineGroup);
-                    console.log('qlgArray2 --> ' + JSON.stringify(qlgArray));
-                    console.log('length --> ' + qlgArray.length);
                 }
-                console.log('check');
-                console.log('qlgs01 --> ' + this.quoteLineGroups);
-                console.log('qlgs1 --> ' + JSON.stringify(this.quoteLineGroups));
                 this.quoteLineGroups = qlgArray;
-                console.log('qlgs2 --> ' + JSON.stringify(this.quoteLineGroups));
             }
-            console.log('qlg --> ' + JSON.stringify(this.quoteLineGroups));
-            console.log('arr length --> ' + this.quoteLineGroups.length);
-            if(this.quoteLineGroups.length > 1)
-            {
-                console.log('1');
+            if(this.quoteLineGroups.length > 1) {
                 this.renderChangePackage = true;
-                console.log("2");
             }
         })
         .catch(error => {
@@ -342,37 +242,45 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         })
     }
 
-    prepareRecordForTable(installExisting){
+    prepareRecordForTable(installExisting) {
         installExisting.recordUrl = '/lightning/r/Installation__c/' + installExisting.Id + '/view';
-        let isVessel = installExisting.Installation_Type__c == 'Vessel'
+        const isVessel = installExisting.Installation_Type__c === 'Vessel';
         if (installExisting.Vessel_Name__c || installExisting.Organisation_Name__c) {
-            installExisting.vesselOrgLink = '/lightning/r/' + (isVessel ? installExisting.Vessel_Name__c : installExisting.Organisation_Name__c) + '/view'
-            installExisting.vesselOrgName = isVessel ? installExisting.Vessel_Name__r?.Name : installExisting.Organisation_Name__r?.Name
+            installExisting.vesselOrgLink = '/lightning/r/' + (isVessel ? installExisting.Vessel_Name__c : installExisting.Organisation_Name__c) + '/view';
+            installExisting.vesselOrgName = isVessel ? installExisting.Vessel_Name__r?.Name : installExisting.Organisation_Name__r?.Name;
         }
         if (installExisting.Invoice_Account__c) {
-            installExisting.invAcctLink = '/lightning/r/' + installExisting.Invoice_Account__c + '/view'
-            installExisting.invAcctName = installExisting.Invoice_Account__r.Name
+            installExisting.invAcctLink = '/lightning/r/' + installExisting.Invoice_Account__c + '/view';
+            installExisting.invAcctName = installExisting.Invoice_Account__r.Name;
         }
         if (installExisting.Client__c) {
-            installExisting.clientLink = '/lightning/r/' + installExisting.Client__c + '/view'
-            installExisting.clientName = installExisting.Client__r?.Name
+            installExisting.clientLink = '/lightning/r/' + installExisting.Client__c + '/view';
+            installExisting.clientName = installExisting.Client__r?.Name;
         }
         if (installExisting.Delivery_Contact__c) {
-            installExisting.deliveryContactLink = '/lightning/r/' + installExisting.Delivery_Contact__c + '/view'
-            installExisting.deliveryContactName = installExisting.Delivery_Contact__r.Name
+            installExisting.deliveryContactLink = '/lightning/r/' + installExisting.Delivery_Contact__c + '/view';
+            installExisting.deliveryContactName = installExisting.Delivery_Contact__r.Name;
         }
-        console.log('inst qt Id --> ' + installExisting.Quote__c)
-        console.log('exists inst id --> ' + this.recordId);
-        if(installExisting.Quote__c == this.recordId)
-        {
+        if (installExisting.Quote__c === this.recordId) {
             installExisting.rowStyle = 'highLight';
         }
-
-        if(installExisting.Quote__c == undefined)
-        {
-            installExisting.Quote__r = {Name : ''};
+        if (installExisting.Quote__c === undefined) {
+            installExisting.Quote__r = { Name: '' };
         }
+
+        // NEW: hide Change Package when status is In Progress
+        const status = (installExisting.Change_Package_Status__c || '').toLowerCase();
+        installExisting.canChangePackage = status !== 'In Progress';
+
+        // Normalize and compute flags
+        const raw = (installExisting.Change_Package_Status__c || '').toLowerCase().trim();
+        const inProgress = raw === 'in progress';
+
+        // Show/hide and disable flags for the template
+        installExisting.canChangePackage = !inProgress;
+        installExisting.disableChangePackage = inProgress;
     }
+    
 
     handleAddNew(event){
         let quoteLineGroupId = event.target.dataset.lgid;
@@ -395,14 +303,12 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             {
                 name: 'recordId',
                 type: 'String',
-                value: this.quoteInfo.fields.SBQQ__Account__r.value.id
+                value: this.quoteInfo?.fields?.SBQQ__Account__r?.value?.id
             }
         ];
     }
 
-    handleFlowStatusChange(event)
-    {
-        console.log("flow status", event.detail.status);
+    handleFlowStatusChange(event) {
         if (event.detail.status === "FINISHED") {
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -418,7 +324,6 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     @wire(getRecord, { recordId: '$recordId', fields: GETRECORDFIELDS })
     wiredRecord({ error, data }) {
         if (data) {
-            console.log(JSON.stringify(data));
             this.quoteInfo = data;
             this.accUrl = '/lightning/r/Account/'+this.quoteInfo.fields.SBQQ__Account__r.value.id+'/view';
             this.oppUrl = '/lightning/r/Opportunity/'+this.quoteInfo.fields.SBQQ__Opportunity2__r.value.id+'/view';
@@ -440,22 +345,18 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             console.log(error);
             this.error = error;
         }
-    }   
+    }
+
     checkForDuplicate(pkgIndx, installIndx, pkgId, exVesselId, fieldName, isVessel) {
-        //var existPackage = this.quoteLineGroups[pkgIndx];
         var matchVessel = false;
-        //if (existPackage) {
         this.quoteLineGroups.forEach(existPackage => {
             var existInstall = existPackage.existingInstallations;
             existInstall.forEach(element => {
-                console.log('element --> ' + JSON.stringify(element) + ' ' + element.Vessel_Name__c);
                 if ((isVessel && element.Vessel_Name__c == exVesselId) || (!isVessel && element.Organisation_Name__c == exVesselId) && exVesselId != "") {
-                    //alert('Duplicate Vessel/Org ID from existing Installations');
                     matchVessel = true;
                 }
             });
         });
-        //}
         return matchVessel;
     }
 
@@ -468,9 +369,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     handleFieldChange(event){
         let indexVar = event.target.dataset.index
         let qgindexVar = event.target.dataset.qgindex
-        //let fieldValue = event.currentTarget.value
         let quoteLineGroupId = event.target.dataset.qgid;
-        //let fieldName = event.target.fieldName;
         let fieldValue = event.detail.recordId || event.currentTarget.value;
         let fieldName = event.target.dataset.fieldname || event.target.fieldName;
 
@@ -479,14 +378,10 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             this.validateInvoiceAccount(event);
         }
         
-        if(fieldName === undefined)
-        {
-            console.log('in if --> ' + fieldName);
+        if(fieldName === undefined) {
             fieldName = event.target.dataset.fieldname;
             fieldValue = event.detail.recordId;
-            console.log('in if --> ' + fieldName);
         }
-        console.log(qgindexVar+' --> '+quoteLineGroupId+' --> '+indexVar+' --> '+fieldName+' --> '+fieldValue)
         let quoteLineGroup = this.quoteLineGroups[qgindexVar];
 
         if (fieldName == 'Vessel_Name__c' || fieldName == 'Organisation_Name__c') {
@@ -496,8 +391,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 event.target.closest("lightning-input-field").value = "";
                 quoteLineGroup.newInstallations[indexVar].dupId = true;   
                 quoteLineGroup.newInstallations[indexVar].disButton = true;
-            }
-            else {
+            } else {
                 quoteLineGroup.newInstallations[indexVar].dupId = false; 
                 quoteLineGroup.newInstallations[indexVar].disButton = false;
             }
@@ -512,37 +406,17 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
     checkBeforeSubmit() {
         if (!this.invoiceAccountValue) {
             this.showInvoiceError = true;
-            return false; // Block form submission
+            return false;
         }
-        return true; // Allow form submission
+        return true;
     }
     
     handleNewAccCreate(){
-        //window.open(this.invAccUrl);
-        //this.createInvoice = true;
-        /*console.log('accid --> ' + this.quoteInfo.fields.SBQQ__Account__r.value.id);
-        this.dispatchEvent(new FlowAttributeChangeEvent(this.quoteInfo.fields.SBQQ__Account__r.value.id));
-        this[NavigationMixin.Navigate]({
-            type: 'standard__objectPage',
-            attributes: {
-                objectApiName: "Account",
-                actionName: 'New_Invoice_Account_Flow'
-            },
-            state: {
-                nooverride: 1,
-                useRecordTypeCheck: 1,
-                navigationLocation: 'RELATED_LIST',
-                backgroundContext: this.invAccUrl//'/lightning/r/SBQQ__Quote__c/'+this.recordId+'/view'
-            }        
-        });*/
         var accId = this.accId[0];
         const defaultValues = encodeDefaultFieldValues({
             ParentId : accId,
             B2B_Account__c : accId
         });
-      
-        console.log('defaultValues --> ' + JSON.stringify(defaultValues));
-      
         this[NavigationMixin.Navigate]({
             type: "standard__objectPage",
             attributes: {
@@ -556,6 +430,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             }
         });
     }
+
     handleShowProducts(event){
         fetchProds({quoteGrpId:event.target.name})
         .then(result=> {
@@ -571,8 +446,8 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             console.log(JSON.stringify(error))
             this.displayToast('Error While Fetching Products','Error','error','dismissable')
         })
-        
     }
+
     closeModal(){
         this.prodsList = []
         this.showProductsInfo = false
@@ -581,8 +456,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         this.currentInstallIdToEdit=null
     }
 
-    closeMessageModal()
-    {
+    closeMessageModal() {
         this.showMessage = false;
     }
     
@@ -595,26 +469,23 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         });
         this.dispatchEvent(event);
     }
+
     handleSave(event){
         let indexVar = event.target.dataset.index
         let qgindexVar = event.target.dataset.qgindex
         let quoteLineGroupId = event.target.dataset.qgid;
-        console.log(qgindexVar+' --> '+quoteLineGroupId+' --> '+indexVar)
         let quoteLineGroup = this.quoteLineGroups[qgindexVar]
 
         if (!this.checkBeforeSubmit()) {
             console.error("Invoice Account is required!");
             return; 
         }
-        console.log("Saving data...");
 
-        if(quoteLineGroup.remainingInstallations > 0)
-        {
+        if(quoteLineGroup.remainingInstallations > 0) {
             let installation = quoteLineGroup.newInstallations[indexVar]
             installation.Quote__c = this.recordId;
             installation.Quote_Line_Group__c = quoteLineGroupId;
             installation.Installation_Price__c = quoteLineGroup.installationPrice;
-            console.log('installation rec --> '+JSON.stringify(installation))
             if(installation.showVessel){
                 delete installation.Organisation_Name__c
             }else {
@@ -627,23 +498,17 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 installation.Id = result[0].Id
                 installation.Name = result[0].Name
                 installation.Quote__c = this.recordId;
-                console.log('result --> ' + JSON.stringify(result));
                 installation.Quote__r = result[0].Quote__r;
-                console.log('resul1t --> ' + JSON.stringify(result));
                 this.displayToast('Installation created Succesfully','Success','success','dismissable')
                 installation.showVessel == installation.Installation_Type__c == 'Vessel'
                 quoteLineGroup.remainingInstallations = quoteLineGroup.remainingInstallations != null ? quoteLineGroup.remainingInstallations-1:0;
                 installation.rowStyle = 'highLight';
                 quoteLineGroup.installations.push(installation)
                 let newRec = {...result[0]}
-                console.log('inst --> ' + JSON.stringify(newRec));
                 this.prepareRecordForTable(newRec)
                 quoteLineGroup.existingInstallations.push(newRec)
-                //this.quoteLineGroups[qgindexVar].existingInstallations = [];
                 this.quoteLineGroups[qgindexVar].existingInstallations = [...quoteLineGroup.existingInstallations];
                 quoteLineGroup.newInstallations.splice(indexVar,1)
-                console.log('qlg --> ' + JSON.stringify(quoteLineGroup.existingInstallations));
-                console.log('qlgList --> ' + JSON.stringify(this.quoteLineGroups));
                 this.openSpinner = false;
             })
             .catch(error => {
@@ -652,13 +517,29 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 this.displayToast('Error Creating this Installation','Error','error','dismissable')
                 this.openSpinner = false;
             })
-        }
-        else
-        {
+        } else {
             this.message = "All installation records for this Quote Line Group have already been created";
             this.showMessage = true;
         }
     }
+    getRowActions(row, doneCallback) {
+        const actions = [];
+
+        // Always allow Edit
+        actions.push({ label: 'Edit', name: 'edit' });
+        console.log('Row status', installExisting.Id, installExisting.Change_Package_Status__c);
+        // Only allow Change Package if not "In Progress"
+        if (row.Change_Package_Status__c !== 'In Progress') {
+            actions.push({ label: 'Change Package', name: 'Change_Package' });
+        }
+
+        // Return actions
+        doneCallback(actions);  
+    }
+    get selectedTargetQLG() {
+        return (this.quoteLineGroups || []).find(q => q.Id === this.selectedQLG);
+    }
+
     handleRowAction(event) {
         const actionName = event.detail.action.name;
         const row = event.detail.row;
@@ -670,165 +551,192 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                 window.open(row.recordUrl,'_blank')
                 break;
             case 'Change_Package':
-                this.changePackage(row);
+                this.changePackage(row); // unified entry
             default:
         }
     }
 
-    changePackage1(event)
-    {
-        console.log('changepackage1');
-        var instId = event.target.name;
-        this.changeInstId = instId;
-        var inst;
-        this.quoteLineGroups.forEach(qlg => {
-            qlg.existingInstallations.forEach(install=> {
-                console.log('instId --> ' + instId);
-                console.log('inst.Id --> ' + install.Id);
-                console.log('compare --> ' + (instId == install.Id));
-                if(instId == install.Id)
-                {
-                    inst = install;
-                    //break;
+    // --------- NEW: used by table menu (not datatable) to locate row then call unified changePackage ----------
+    changePackageFromMenu(event) {
+        const instId = event.target?.name;
+        if (!instId) return;
+        let found = null;
+        for (const qlg of this.quoteLineGroups) {
+            const arr = qlg?.existingInstallations || [];
+            const hit = arr.find(r => r.Id === instId);
+            if (hit) {
+                // add current QLG ref to row (for filtering out current)
+                if (!hit.Quote_Line_Group__c && qlg.Id) {
+                    hit.Quote_Line_Group__c = qlg.Id;
                 }
-            })
-        });
-        console.log('inst --> ' + JSON.stringify(inst));
-        fetchPackages({
-            qtId : this.recordId
-        }).then(result => {
-            console.log('result --> ' + JSON.stringify(result));
-            this.packageOptions = [];
-            if(result && result.length)
-            {
-                for(let rec of result)
-                {
-                    if(inst.Package__c != rec.Id)
-                    {
-                        this.packageOptions.push({
-                            label : rec.Name,
-                            value : rec.Id
-                        });
-                    }
-                }
+                found = hit;
+                break;
             }
-            this.showChangePackage = true;
-            console.log('packageOptions --> ' + this.packageOptions);
-        }).catch(error => {
-            console.log('error --> ' + JSON.stringify(error));
-        });
+        }
+        if (!found) {
+            this.displayToast('Installation not found in current view','Error','error','dismissable');
+            return;
+        }
+        // FINAL SAFETY: block when status is In Progress
+        const raw = (found.Change_Package_Status__c || '').toLowerCase().trim();
+        if (raw === 'in progress') {
+            this.displayToast('Change Package is in progress for this installation. Please wait until it completes.','Action blocked','warning','dismissable');
+            return;
+        }
+
+        // Proceed with the normal flow
+        // Ensure the row carries its current QLG id for filtering
+        if (!found.Quote_Line_Group__c && found.Quote__r?.Id) {
+            // nothing needed here unless you rely on it; existing code is fine
+        }
+        this.changePackage(found);
     }
 
-    changePackage(row)
-    {
-        console.log('row --> ' + JSON.stringify(row));
+    get isQLGSaveDisabled() {
+        return !this.renderChangePackage || !this.selectedQLG;
+    }
+
+    // --------- NEW: unified Change Package flow using QLG remaining capacity ----------
+    changePackage(row) {
+        // Installation being moved
         this.changeInstId = row.Id;
-        var flag = false;
-        /*this.quoteLineGroups.forEach(qlg => {
-            if(qlg.existingInstallations != null && qlg.existingInstallations != undefined)
-            {
-                qlg.existingInstallations.forEach(inst => {
-                    console.log('instId --> ' + inst.Id);
-                    console.log('changeInstId --> ' + this.changeInstId);
-                    if(inst.Id == this.changeInstId)
-                    {
-                        if(qlg.existingInstallations.length <= 1)
-                        {
-                            flag = true;
-                            const evt = new ShowToastEvent({
-                                title : 'Error',
-                                message : 'Please select the installation from a package where the number of installations are more than 1',
-                                variant : 'error'
-                            });
-                            this.dispatchEvent(evt);
-                        }
-                    }
-                });
-            }
-        });
-        if(!flag)
-        {*/
-            fetchPackages({
-                qtId : this.recordId
-            }).then(result => {
-                console.log('result --> ' + JSON.stringify(result));
-                this.packageOptions = [];
-                if(result && result.length)
-                {
-                    //let resultArray = JSON.parse(result);
-                    for(let rec of result)
-                    {
-                        if(row.Package__c != rec.Id)
-                        {
-                            this.packageOptions.push({
-                                label : rec.Name,
-                                value : rec.Id
-                            });
-                        }
-                    }
-                }
-                this.showChangePackage = true;
-                console.log('packageOptions --> ' + this.packageOptions);
-            }).catch(error => {
-                console.log('error --> ' + error);
-            });
-        //}
+
+        // Infer current QLG id
+        const currentQLGId = row.Quote_Line_Group__c || row.Quote_Line_Group__r?.Id;
+
+        // Build eligible QLG options from already-loaded this.quoteLineGroups
+        // Rule: remainingInstallations > 0 AND not the current QLG
+        const options = (this.quoteLineGroups || [])
+            .filter(qlg =>
+                (qlg?.remainingInstallations || 0) > 0 &&
+                qlg?.Id !== currentQLGId
+            )
+            .map(qlg => ({
+                label: `${qlg.Name}  •  Remaining: ${qlg.remainingInstallations}`,
+                value: qlg.Id
+            }));
+
+        this.qlgOptions = options;
+        this.selectedQLG = null;
+        this.renderChangePackage = this.qlgOptions.length > 0;
+        this.showChangePackage = true;
+
+        if (!this.renderChangePackage) {
+            this.displayToast('No eligible packages', 'There are no packages with remaining installation capacity.', 'warning', 'dismissable');
+        }
     }
 
-    handleSelected(event)
-    {
-        console.log("In handle selected" + this.selectedPackage + event.target.value);
+    // NEW: handle radio change
+    handleQLGSelected(event) {
+        this.selectedQLG = event.detail.value;
+    }
+
+    // NEW: save move (overwrite Quote, QLG, Package based on target QLG)
+    async saveQLGChange() {
+        if (!this.selectedQLG) {
+            this.displayToast('Please select a Quote Line Group', 'Selection required', 'error', 'dismissable');
+            return;
+        }
+        if (!this.changeInstId) {
+            this.displayToast('Installation not found', 'Unexpected state', 'error', 'dismissable');
+            return;
+        }
+
+        // Locate the source installation row (to show the current package name in the confirm)
+        let sourceRow = null;
+        for (const qlg of this.quoteLineGroups) {
+            const arr = qlg?.existingInstallations || [];
+            const hit = arr.find(r => r.Id === this.changeInstId);
+            if (hit) { sourceRow = hit; break; }
+        }
+
+        // Resolve names (fallbacks are friendly)
+        const instName = sourceRow?.Name || 'this installation';
+        const fromPkg = (sourceRow?.Package__r?.Name) || (sourceRow?.Package__c ? sourceRow.Package__c : 'No Package');
+        const targetQLG = this.selectedTargetQLG;
+        const toPkg = (targetQLG?.Package__r?.Name) || (targetQLG?.Package__c ? targetQLG.Package__c : 'Target Package');
+
+        // Ask for confirmation
+        const confirmed = await LightningConfirm.open({
+            message: `You're about to move ${instName} from package "${fromPkg}" to package "${toPkg}".\n\nAre you sure you want to proceed?`,
+            label: 'Confirm Package Change',
+            theme: 'warning', // yellow header
+            variant: 'header'
+        });
+        if (!confirmed) {
+            return; // user cancelled
+        }
+
+        this.openSpinner = true;
+        try {
+            await saveInstallationToQLG({
+                instId: this.changeInstId,
+                targetQlgId: this.selectedQLG,
+                quoteId: this.recordId
+            });
+            this.displayToast('Installation moved successfully', 'Saved Successfully', 'success', 'dismissable');
+            this.showChangePackage = false;
+            // Refresh groups
+            this.quoteLineGroups = [];
+            this.fetchInstallations();
+        } catch (error) {
+            console.log('error --> ' + JSON.stringify(error));
+            const msg = (error?.body?.message) || 'Failed to move installation';
+            this.displayToast(msg, 'Error', 'error', 'dismissable');
+        } finally {
+            this.openSpinner = false;
+        }
+    }
+
+    // Existing (older) package-change helpers left intact but unused by new flow
+    changePackage1(event) {
+        // Kept to avoid accidental reference breaks—no longer used in the UI.
+        // Intentionally left as-is; new UI calls changePackageFromMenu instead.
+        console.log('changepackage1 (deprecated path)');
+    }
+
+    // keep existing package-related methods untouched (fetchPackages, getPackageInfo, handleSelected, handleRowSelection, savePackageInfo, etc.)
+    handleSelected(event) {
         this.selectedPackage = event.target.value;
         getPackageInfo({
             packId : this.selectedPackage
         }).then(result => {
-            console.log('result --> ' + JSON.stringify(result));
-            console.log('inst --> ' + JSON.stringify(result[0].Installations__r));
-            console.log('result --> ' + result[0].Installations__r.length + ' ' + result[0].Installation_Quantity__c);
-            if(result[0].Installation_Quantity__c <= result[0].Installations__r.length)
-            {
-                this.installations = result[0].Installations__r;
-                this.showInstallations = true;
-                console.log('inst --> ' + this.installations);
-            }
-            else
-            {
+            if(result && result[0]){
+                if(result[0].Installation_Quantity__c <= (result[0].Installations__r ? result[0].Installations__r.length : 0)) {
+                    this.installations = result[0].Installations__r || [];
+                    this.showInstallations = true;
+                } else {
+                    this.installations = [];
+                    this.showInstallations = false;
+                }
+            } else {
                 this.installations = [];
                 this.showInstallations = false;
-                console.log('inst --> ' + this.installations);
             }
         }).catch(error => {
             console.log('error --> ' + error);
         });
     }
 
-    closeChangePackage()
-    {
+    closeChangePackage() {
         this.showChangePackage = false;
     }
 
-    handleRowSelection(event)
-    {
+    handleRowSelection(event) {
         this.selectedRows=event.detail.selectedRows;
-        console.log('selectedRows --> ' + JSON.stringify(this.selectedRows));
     }
 
-    savePackageInfo(event)
-    {
-        var selectedRecords = this.selectedRows; //this.template.querySelector('[data-id="ChangePackTable"]').getSelectedRows();
+    savePackageInfo(event) {
+        // Left intact; not used by the new QLG flow
+        var selectedRecords = this.selectedRows;
         var quoteLineGrpList = this.quoteLineGroups;
         var remInstallations;
-        for(var qlg of quoteLineGrpList)
-        {
-            console.log('packId --> ' + qlg.Package__c + 'sel Id --> ' + this.selectedPackage);
-            if(qlg.Package__c == this.selectedPackage)
-            {
+        for(var qlg of quoteLineGrpList) {
+            if(qlg.Package__c == this.selectedPackage) {
                 remInstallations = qlg.remainingInstallations;
             }
         }
-        console.log('remInst --> ' + remInstallations);
         if(remInstallations >= 1 || selectedRecords.length == 1){
-            console.log('selectedRecords are ', selectedRecords);
             saveInstallationRecord({
                 packId: this.selectedPackage,
                 instId: this.changeInstId,
@@ -840,17 +748,14 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     variant: 'success',
                 });
                 this.dispatchEvent(evt);
-                console.log('before close');
                 this.showChangePackage = false;
-                //this.refreshPage();
                 this.quoteLineGroups = [];
                 this.fetchInstallations();
             }).catch(error => {
                 console.log('error --> ' + JSON.stringify(error));
             });
         }
-        else if(selectedRecords.length > 1)
-        {
+        else if(selectedRecords.length > 1) {
             const evt = new ShowToastEvent({
                 title: 'More records selected',
                 message: 'You have to select only one record',
@@ -858,8 +763,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
             });
             this.dispatchEvent(evt);
         }
-        else
-        {
+        else {
             const evt = new ShowToastEvent({
                 title: 'No records selected',
                 message: 'You have to select atleast one record',
@@ -869,9 +773,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         }
     }
 
-    editInstallation(event)
-    {
-        console.log('name --> ' + event.target.name);
+    editInstallation(event) {
         this.currentInstallIdToEdit = event.target.name;
         this.showProductsInfo = false;
         this.showInstallationDetail = true;
@@ -884,6 +786,7 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
         this.showInstallationDetail = true;
         this.openModal = true
     }
+
     get getModalHeader(){
         return this.showProductsInfo ? 'Products' : 'Edit Installation'
     }

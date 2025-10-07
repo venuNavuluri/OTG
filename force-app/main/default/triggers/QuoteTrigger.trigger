@@ -1,21 +1,25 @@
 trigger QuoteTrigger on SBQQ__Quote__c (before insert, after insert, before update, after update)
 {
+    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance(UserInfo.getUserId());
+    if (bypassTrig != null && bypassTrig.ByPass_Quote_Triggers__c) {
+        System.debug('QuoteTrigger Trigger skipped for user: ' + UserInfo.getUserId());
+        return;
+    }
+    
     if(Trigger.isAfter && Trigger.isUpdate)
     {
-        new QuoteTriggerHandler().afterUpdate(/*Trigger.newMap, Trigger.oldMap*/);
+        new QuoteTriggerHandler().afterUpdate();
     }
     if(Trigger.isInsert && Trigger.isBefore)
     {
         new QuoteTriggerHandler().beforeinsert();
-        QuoteTriggerHandler.handleBeforeInsert(Trigger.new);
     }
     if(Trigger.isAfter && Trigger.isInsert)
     {
         new QuoteTriggerHandler().afterinsert();
-        //QuoteTriggerHandler.handleAfterInsert(Trigger.new);
     }
     if(Trigger.isBefore && Trigger.isUpdate)
     {
-        new QuoteTriggerHandler().beforeUpdate(/*Trigger.newMap, Trigger.oldMap*/);
+        new QuoteTriggerHandler().beforeUpdate();
     }
 }

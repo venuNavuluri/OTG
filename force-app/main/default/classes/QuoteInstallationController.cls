@@ -190,7 +190,7 @@ public class QuoteInstallationController {
             insert instList;
             createInstallationLines(instList, new List<Id>{quoteGrpId});
             System.debug('instList --> ' + instList);
-            List<Installation__c> installList = [SELECT Id, Name, Delivery_Contact__c, Delivery_Contact__r.Name, Client__c, Client__r.Name, Invoice_Account__c, Invoice_Account__r.Name, Contract_Customer__c, Contract_Customer__r.Name, Installation_Type__c, Vessel_Name__c, Vessel_Name__r.Name, Organisation_Name__c, Organisation_Name__r.Name FROM Installation__c WHERE Id IN :instList];
+            List<Installation__c> installList = [SELECT Id, Name, Delivery_Contact__c, Delivery_Contact__r.Name, Client__c, Client__r.Name, Invoice_Account__c, Invoice_Account__r.Name, Contract_Customer__c, Contract_Customer__r.Name, Installation_Type__c, Vessel_Name__c, Vessel_Name__r.Name, Organisation_Name__c, Organisation_Name__r.Name, Change_Package_Status__c FROM Installation__c WHERE Id IN :instList];
             return installList;
         }
         catch (Exception ex) {
@@ -216,10 +216,10 @@ public class QuoteInstallationController {
                 }
             }
             qtIdList.add(quoteId);
-            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,SBQQ__Quote__c,
-                                                        SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,
+            List<SBQQ__QuoteLineGroup__c> quoteGroups = [Select Id,Name,Installation_Quantity__c,Package__c, SBQQ__Quote__r.SBQQ__Type__c,SBQQ__Quote__c,Installation_Price__c,
+                                                        SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,Package__r.Name, 
                                                         (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,Package__c,
-                                                        Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Quote__c, Quote__r.Name
+                                                        Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Quote__c, Quote__r.Name,Change_Package_Status__c 
                                                         FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
                                                         (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c
                                                         From SBQQ__LineItems__r)
@@ -231,8 +231,8 @@ public class QuoteInstallationController {
                 packIdList.add(qlg.Package__c);
             }
             Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, 
-                                                                    (SELECT Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name, Quote__c, Quote__r.Name,Package__c,
-                                                                    Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
+                                                                    (SELECT Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name, Quote__c, Quote__r.Name,Package__c,Package__r.Name, 
+                                                                    Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Change_Package_Status__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
                                                                     FROM Package__c WHERE Id IN :packIdList]);
             List<QuoteRecordWrapper> qrwList = new List<QuoteRecordWrapper>();
             Map<Id, QuoteRecordWrapper> qrwPackMap = new Map<Id, QuoteRecordWrapper>();
@@ -246,24 +246,12 @@ public class QuoteInstallationController {
                 }
                 qrw.qlg = qlg;
                 qrw.pack = packMap.get(qlg.Package__c);
-                Date dt = Date.today();//.addDays(366);
-                qrw.installationPrice = 0;
-                System.debug('dt --> ' + dt);
-                for(SBQQ__QuoteLine__c ql : qlg.SBQQ__LineItems__r)
-                {
-                    System.debug('1 --> ' + (ql.SBQQ__StartDate__c < dt));
-                    System.debug('2 --> ' + (ql.SBQQ__EndDate__c > dt));
-                    if((ql.SBQQ__StartDate__c <= dt && ql.SBQQ__EndDate__c >= dt) || (ql.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal' && ql.SBQQ__StartDate__c >= dt))
-                    {
-                        System.debug('ql --> ' + ql);
-                        qrw.installationPrice += ql.SBQQ__NetTotal__c;//SBQQ__NetPrice__c;
-                    }
-                }
-                qrw.userPrice = (qrw.installationPrice == NULL || qrw.installationPrice == 0 || qlg.User_Quantity__c == NULL || qlg.User_Quantity__c == 0) ? 0 : qrw.installationPrice/qlg.User_Quantity__c;
-                qrw.installationPrice = (qrw.installationPrice == NULL || qrw.installationPrice == 0 || qlg.Installation_Quantity__c == NULL || qlg.Installation_Quantity__c == 0) ? 0 : qrw.installationPrice/qlg.Installation_Quantity__c;
-                qrw.userPrice = qrw.userPrice.setScale(2);
-                qrw.installationPrice = qrw.installationPrice.setScale(2);
-                System.debug('qrw --> ' + qrw);
+                qrw.installationPrice = (qlg.Installation_Price__c == null)
+                    ? 0
+                    : qlg.Installation_Price__c.setScale(2);
+                qrw.userPrice = (qrw.installationPrice == 0 || qlg.User_Quantity__c == null || qlg.User_Quantity__c == 0)
+                    ? 0
+                    : (qrw.installationPrice / qlg.User_Quantity__c).setScale(2);
                 //qrwList.add(qrw);
                 qrwPackMap.put(qlg.Package__c, qrw);
             }
@@ -328,7 +316,7 @@ public class QuoteInstallationController {
             insert sobjList;
             //createInstallationLines((List<Installation__c>)sObjList, qlgIdList);
             return [Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name, Quote__r.Name,Package__c,
-            Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name From Installation__c Where Id IN:sobjList];
+            Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Change_Package_Status__c From Installation__c Where Id IN:sobjList];
         }
         catch (Exception ex)
         {
@@ -378,6 +366,72 @@ public class QuoteInstallationController {
         {
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
+        }
+    }
+    // In UpdatePackageController.cls
+    @AuraEnabled
+    public static void saveInstallationToQLG(Id instId, Id targetQlgId, Id quoteId) {
+        try {
+            if (instId == null || targetQlgId == null || quoteId == null) {
+                throw new AuraHandledException('Invalid request. Missing Installation, QLG, or Quote.');
+            }
+
+            // Target QLG (need its Package and Installation_Quantity__c)
+            SBQQ__QuoteLineGroup__c targetQLG = [
+                SELECT Id, Name, Package__c, Installation_Quantity__c,
+                    SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c
+                FROM SBQQ__QuoteLineGroup__c
+                WHERE Id = :targetQlgId
+                LIMIT 1
+            ];
+
+            if (targetQLG.Package__c == null) {
+                throw new AuraHandledException('Selected Quote Line Group does not have an associated Package.');
+            }
+
+            // Installation being moved (need current QLG & Package)
+            Installation__c inst = [
+                SELECT Id, Package__c, Quote_Line_Group__c, Change_Package_Status__c 
+                FROM Installation__c
+                WHERE Id = :instId
+                FOR UPDATE
+            ];
+
+            // If we’re moving INTO a different QLG, enforce QLG capacity.
+            // (If same QLG, allow — no net capacity change.)
+            if (inst.Quote_Line_Group__c != targetQLG.Id) {
+                Integer cap = (targetQLG.Installation_Quantity__c == null)
+                    ? 0
+                    : Integer.valueOf(targetQLG.Installation_Quantity__c);
+
+                // Count current (non-terminated) installations in the target QLG
+                Integer currentCount = [
+                    SELECT COUNT()
+                    FROM Installation__c
+                    WHERE Package__c = :targetQLG.Package__c
+                    AND Installation_Order_Status__c != 'Terminated'
+                ];
+
+                // Only enforce when cap > 0 (cap==0 treated as unlimited — preserves prior semantics)
+                if (cap > 0 && currentCount >= cap) {
+                    throw new AuraHandledException('Target quote line group is at capacity. Please choose a different group.');
+                }
+            }
+
+            // Overwrite fields per requirement
+            inst.Quote__c = quoteId;
+            inst.Quote_Line_Group__c = targetQLG.Id;
+            inst.Package__c = targetQLG.Package__c;
+            inst.Change_Package_Status__c = 'In Progress';
+
+            update inst;
+
+        } catch (Exception ex) {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
+            throw (ex instanceof AuraHandledException)
+                ? ex
+                : new AuraHandledException('Failed to move installation: ' + ex.getMessage());
         }
     }
 }

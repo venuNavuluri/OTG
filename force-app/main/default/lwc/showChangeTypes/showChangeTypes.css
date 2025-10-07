@@ -1,0 +1,18 @@
+:host {
+    /* default accordion header background */
+    --slds-c-accordion-summary-color-background: #f3f3f3;
+
+    /* responsive height var set by JS; fallback if JS doesn’t run */
+    --comp-max-height: 300px;
+}
+
+/* scroll area uses the responsive max height */
+.scroll {
+    overflow-y: auto;
+    max-height: var(--comp-max-height);
+}
+
+/* optional: tighten spinner overlay spacing in narrow regions */
+lightning-spinner {
+    z-index: 1;
+}

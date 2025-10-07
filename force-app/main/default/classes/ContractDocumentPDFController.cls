@@ -33,7 +33,7 @@ public class ContractDocumentPDFController {
         qtLineList = [
             SELECT Id, Name, SBQQ__Product__c, SBQQ__Quantity__c, SBQQ__Product__r.Name, SBQQ__Group__c, SBQQ__Group__r.Package__c,
             SBQQ__Group__r.Package__r.Package_Name__c, SBQQ__Group__r.Package__r.Package_Number__c, SBQQ__Group__r.Package__r.Installation_Quantity__c,
-            SBQQ__Group__r.Package__r.InstallationCost__c,
+            SBQQ__Group__r.Package__r.InstallationCost__c,SBQQ__Group__r.Installation_Price__c,SBQQ__Group__r.Installation_Quantity__c,
             SBQQ__Group__r.Package__r.Installation_Cost__c, Remove_Product_from_Package__c,SBQQ__Group__r.Current_Price__c
             FROM SBQQ__QuoteLine__c
             WHERE SBQQ__Quote__c = :qt.Id AND SBQQ__Group__r.Package__r.Installation_Quantity__c > 0
@@ -58,10 +58,10 @@ public class ContractDocumentPDFController {
                     ProductWrapper pw = new ProductWrapper();
                     pw.productName = ql.SBQQ__Product__r.Name;
                     pw.previousCost = ql.SBQQ__Group__r.Current_Price__c;
-                    pw.installationCost = ql.SBQQ__Group__r.Package__r.InstallationCost__c;
+                    pw.installationCost = ql.SBQQ__Group__r.Installation_Price__c;
                     pw.removeFromPackage = ql.Remove_Product_from_Package__c;
                     pw.qlquantity = ql.SBQQ__Quantity__c;
-                    pw.instQuantity = ql.SBQQ__Group__r.Package__r.Installation_Quantity__c;
+                    pw.instQuantity = ql.SBQQ__Group__r.Installation_Quantity__c;
                     prodWrapMap.get(packageNumber).add(pw);
                     prdNameMap.put(packageNumber + '-' + ql.SBQQ__Product__r.Name, pw);
                 }
@@ -89,7 +89,7 @@ public class ContractDocumentPDFController {
             Invoice_Account__c, Invoice_Account__r.Name, Invoice_Account__r.Email__c,Invoice_Account__r.Invoice_Emails__c,
             Invoice_Account__r.Address1__c, Invoice_Account__r.Address2__c, Invoice_Account__r.Address3__c,
             Invoice_Account__r.Town_City__c, Invoice_Account__r.County_State__c, Invoice_Account__r.Postcode_Zipcode__c,
-            Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode, Package__r.InstallationCost__c
+            Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode, Package__r.Temp_Quote_Line_Group__r.Installation_Price__c
             FROM Installation__c
             WHERE Package__c IN :packIdList AND Installation_Order_Status__c != 'Terminated'
         ];
