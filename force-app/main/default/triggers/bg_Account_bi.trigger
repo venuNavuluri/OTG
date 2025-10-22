@@ -1,5 +1,11 @@
 trigger bg_Account_bi on Account (before insert)
 {
+    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance();
+    if (bypassTrig != null && bypassTrig.ByPass_Account_Triggers__c) {
+        System.debug('bg_Account_bi Trigger skipped for user: ' );
+        return;
+    }
+    
     String b2bRTId = Schema.SObjectType.Account.getRecordTypeInfosByName().get('B2B Account').getRecordTypeId();
     String replicaRTId = Schema.SObjectType.Account.getRecordTypeInfosByName().get('Replica Invoice Account').getRecordTypeId();
 

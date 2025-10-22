@@ -134,7 +134,8 @@ public class ConvertToOpportunityController {
                     Contract_Term__c = '12',
                     Product_Group__c = productGroup,
                     Business_Unit__c = businessUnit,
-                    Contract_Type__c = 'New Contract' 
+                    Contract_Type__c = 'New Contract',
+                    Sales_Type__c = 'Subscription'
                 );
                 if (oppOwner != null)
                 {

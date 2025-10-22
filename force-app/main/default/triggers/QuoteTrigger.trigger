@@ -1,8 +1,8 @@
 trigger QuoteTrigger on SBQQ__Quote__c (before insert, after insert, before update, after update)
 {
-    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance(UserInfo.getUserId());
+    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance();
     if (bypassTrig != null && bypassTrig.ByPass_Quote_Triggers__c) {
-        System.debug('QuoteTrigger Trigger skipped for user: ' + UserInfo.getUserId());
+        System.debug('QuoteTrigger Trigger skipped for user: ' );
         return;
     }
     

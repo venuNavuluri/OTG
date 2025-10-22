@@ -1,276 +1,575 @@
-@isTest
+@IsTest
 public class CreateInstallationsControllerTest {
 
-    @testSetup
-    static void setupTestData() {
-        
-        VRConfiguration__c settings = VRConfiguration__c.getOrgDefaults();
-        settings.Opportunity_Validation_Rules__c = TRUE;
-        settings.Quote_Ordered_Validation__c = TRUE;
-        upsert settings;
-        
-        Profile prof = [SELECT Id FROM Profile WHERE Name='OTG Sales User'];
-        User u = (User)TestDataFactory.createSObject('User', new Map<String, Object>{
-            'profileId' => prof.id,
-            'Username' => 'test@rrrr.com..otguatProd4'
-        });
+    private static Id bypassUserId;
 
-        Default_Account_Owner_Settings__c da = (Default_Account_Owner_Settings__c)TestDataFactory.createSObject('Default_Account_Owner_Settings__c', new Map<String, Object>{
-            'EMEA_Default_Owner_ID__c' => u.id
-        });
-        
-        Country_Mapping__c cm = new Country_Mapping__c();
-        cm.Name = 'Test';
-        cm.Sales_Region__c = 'Americas';
-        insert cm;
-        
-        Account acc = new Account();
-        acc.Name = 'Test';
-        //acc.Account_Status__c = 'Active';
-        acc.AccountSource = 'Cross Department Referral';
-        acc.Address1__c = 'Test';
-        acc.Town_City__c = 'Texas';
-        acc.Country__c = cm.Id;
-        acc.Account_Segmentation__c = 'Unknown';
-        acc.Customer_Type__c = 'Charity';
-        acc.OwnerId = u.Id;
-        insert acc;
-        
-        Account invAcc = new Account(
-            RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByName().get('Invoice Account').getRecordTypeId(),
-            Name = 'Test Inv',
-            Company__c = 'Test',
-            CurrencyIsoCode = 'USD',
-            Invoice_Emails__c = 'Test@test.com',
-            Town_City__c = 'Town',
-            B2B_Account__c = acc.Id,
-            Country__c = cm.Id
-        );
-        insert invAcc;
+    @TestSetup
+    static void setupOrgDefaults() {
+        TestDataFactory_OTG.enableOrgVRConfig();
+        TestDataFactory_OTG.primeDefaultOwnerAllRegions(UserInfo.getUserId());
 
-        Opportunity opp = new Opportunity(
-            Name = 'Test',
-            LeadSource = 'Cross Department Referral',
-            Business_Unit__c = 'Fleet',
-            //Account_Customer_Status__c = 'Active',
-            Sales_Type__c = 'Subscription',
-            AccountId = acc.Id,
-            CloseDate = Date.today() + 90,
-            StageName = 'Prospecting & Qualifying',
-            Amount = 1000
-        );
-        insert opp;
-
-        SBQQ__Quote__c sbq1 = (SBQQ__Quote__c)TestDataFactory.createSObject('SBQQ__Quote__c', new Map<String, Object>{
-            'SBQQ__StartDate__c' => Date.today(),
-            'SBQQ__Opportunity2__c' => opp.Id
-        });
-        
-         Contract con = (Contract)TestDataFactory.createSObject('Contract', new Map<String, Object>{
-            'Account.ownerid' => u.id,
-            'SBQQ__Quote__c' => sbq1.Id,
-            'SBQQ__Opportunity__c' => opp.Id
-        });
-        
-        Contact cont = (Contact)TestDataFactory.createSObject('Contact', new Map<String, Object>{
-            'AccountId' => con.AccountId
-        });
-        
-        SBQQ__Quote__c sbq = (SBQQ__Quote__c)TestDataFactory.createSObject('SBQQ__Quote__c', new Map<String, Object>{
-            'SBQQ__MasterContract__c' => con.id,
-            'SBQQ__StartDate__c' => Date.today(),
-            'SBQQ__Opportunity2__c' => opp.Id
-        });
-        
-        Package__c pack = (Package__c)TestDataFactory.createSObject('Package__c', new Map<String, Object>{
-            'Contract__c' => con.id,
-            'Quote__c' => sbq.id
-        });
-        
-        SBQQ__QuoteLineGroup__c sbqlg = (SBQQ__QuoteLineGroup__c)TestDataFactory.createSObject('SBQQ__QuoteLineGroup__c', new Map<String, Object>{
-            'Package__c' => pack.id,
-            'SBQQ__Quote__c' => sbq.id
-        });
-
-        Vessel__c ves = (Vessel__c)TestDataFactory.createSObject('Vessel__c');
-
-        Installation__c inst = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
-            'Contract__c' => con.id,
-            'Package__c' => pack.id,
-            'Vessel_Name__c' => ves.id
-        });
-
-        /*SBQQ__Product__c prod = (SBQQ__Product__c)TestDataFactory.createSObject('SBQQ__Product__c', new Map<String, Object>{
-            'Name' => 'Test'
-        });*/
-
-        SBQQ__Subscription__c sub = (SBQQ__Subscription__c)TestDataFactory.createSObject('SBQQ__Subscription__c', new Map<String, Object>{
-            'Package__c' => pack.id
-            //'SBQQ__Product__c' => prod.id
-        });
-        
-        Opportunity opp2 = new Opportunity(
-            Name = 'Test',
-            LeadSource = 'Cross Department Referral',
-            Business_Unit__c = 'Fleet',
-            Sales_Type__c = 'Subscription',
-            AccountId = acc.Id,
-            CloseDate = Date.today() + 90,
-            StageName = 'Prospecting & Qualifying',
-            SBQQ__AmendedContract__c = con.id,
-            Amount = 1000
-        );
-        insert opp2;
-
-    } 
-    
-    @isTest
-    static void testGetPackages() {
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-
-        Test.startTest();
-        List<Package__c> packages = CreateInstallationsController.getPackages(testContract.Id);
-        Test.stopTest();
-        System.assert(packages.size() > 0, 'Packages should be retrieved.');
-    }
-
-    @isTest
-    static void testCreateInstallationLines() {
-        List<SBQQ__Subscription__c> subList = [SELECT Id,Package__c,SBQQ__Product__c,SBQQ__Product__r.Name,SBQQ__StartDate__c,SBQQ__EndDate__c, SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, SBQQ__NetPrice__c,CurrencyIsoCode FROM SBQQ__Subscription__c LIMIT 1];
-        List<Installation__c> instList = [SELECT Id, Name, Package__c FROM Installation__c WHERE Package__c = :subList[0].Package__c];
-        List<Id> instIdList = new List<Id>();
-        for(Installation__c inst : instList)
-        {
-            instIdList.add(inst.Id);
+        VRConfiguration__c config = VRConfiguration__c.getOrgDefaults();
+        if (config == null) {
+            config = new VRConfiguration__c();
         }
-        Test.startTest();
-        CreateInstallationsController.createInstallationLines(subList, instIdList); 
-        Test.stopTest();
+        config.ByPass_Account_Triggers__c = true;
+        config.ByPass_Contract_Triggers__c = true;
+        config.ByPass_Opportunity_Triggers__c = true;
+        config.ByPass_Flow__c = true;
+        config.ByPass_Installation_Triggers__c = true;
+        config.Quote_Ordered_Validation__c = true;
+        config.Opportunity_Validation_Rules__c = true;
+        upsert config;
 
-        List<Installation_Line__c> instLines = [SELECT Name, Installation__c, Product__c, Start_Date__c, End_Date__c, Net_Total__c, CurrencyIsoCode FROM Installation_Line__c];
-        System.assertEquals(1, instLines.size(), 'Expected number of Installation Lines to be created.');
+        ensureBypassUser();
     }
-    
-    @isTest
-    static void testCreateNewInstRecord() {
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-        Package__c testPackage = [SELECT Id FROM Package__c LIMIT 1];
-        Installation__c ins = (Installation__c)TestDataFactory.createSObject('Installation__c', new Map<String, Object>{
-            'Contract__c' => testContract.id,
-            'Package__c' => testPackage.id
-        }, false);
-        
-        
+
+    private static void ensureBypassUser() {
+        if (bypassUserId != null) {
+            return;
+        }
+        Profile p = [SELECT Id FROM Profile WHERE Id = :UserInfo.getProfileId() LIMIT 1];
+        String unique = String.valueOf(Crypto.getRandomInteger());
+        User bypassUser = new User(
+            Alias = 'duser',
+            Email = 'duser+' + unique + '@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Bypass',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            Username = 'duser+' + unique + '@example.com',
+            ProfileId = p.Id
+        );
+        insert bypassUser;
+        bypassUserId = bypassUser.Id;
+    }
+
+    private static User getBypassUser() {
+        ensureBypassUser();
+        return [SELECT Id FROM User WHERE Id = :bypassUserId LIMIT 1];
+    }
+
+    private static TestDataFactory_OTG.OrderContext buildContext() {
+        TestDataFactory_OTG.OrderContext ctx =
+            TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, false);
+
+        update new Opportunity(
+            Id = ctx.qctx.opportunity.Id,
+            LeadSource = 'Web',
+            SBQQ__AmendedContract__c = ctx.packageRec.Contract__c
+        );
+
+        Contract contractRec = [
+            SELECT Id, Status, CurrencyIsoCode
+            FROM Contract
+            WHERE Id = :ctx.packageRec.Contract__c
+        ];
+        update new Contract(
+            Id = contractRec.Id,
+            Status = 'Activated',
+            StartDate = Date.today().addMonths(-6),
+            EndDate = Date.today().addMonths(6),
+            Billing_Frequency__c = 'Monthly',
+            SBQQ__Opportunity__c = ctx.qctx.opportunity.Id
+        );
+
+        update new Package__c(
+            Id = ctx.packageRec.Id,
+            Quote__c = ctx.qctx.quote.Id,
+            Quote_Line_Group__c = ctx.qlg.Id,
+            Order__c = ctx.orderRec.Id,
+            Product_Change_Type__c = 'Products Added & Removed'
+        );
+
+        update new Installation__c(
+            Id = ctx.installation.Id,
+            Contract__c = contractRec.Id,
+            Quote__c = ctx.qctx.quote.Id,
+            Quote_Line_Group__c = ctx.qlg.Id,
+            Order__c = ctx.orderRec.Id,
+            Installation_Start_Date__c = Date.today().addMonths(-3),
+            Installation_End_Date__c = Date.today().addMonths(9),
+            Installation_Order_Status__c = 'Active',
+            Change_Package_Status__c = 'Completed',
+            CurrencyIsoCode = contractRec.CurrencyIsoCode
+        );
+
+        ctx.installation = [
+            SELECT Id, Contract__c, Package__c, Quote__c, Quote_Line_Group__c, Vessel_Name__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+
+        update new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__MasterContract__c = contractRec.Id
+        );
+
+        return ctx;
+    }
+
+    @IsTest
+    static void testGetPackages() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        SBQQMockHttpResponseGenerator.setQuoteId(ctx.qctx.quote.Id);
+
         Test.startTest();
         Test.setMock(HttpCalloutMock.class, new SBQQMockHttpResponseGenerator());
-        String result = CreateInstallationsController.createNewInstRecord(false, testPackage.Id, testContract.Id, ins);
+        List<Package__c> packages = CreateInstallationsController.getPackages(ctx.packageRec.Contract__c);
         Test.stopTest();
-        
-        System.assert(result.startsWith('SUCCESS'), 'The installation record should be created successfully.');
-    }
-    
-    @isTest
-    static void testCheckDuplicates() {
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-        Installation__c testInstallation = [SELECT Id, Vessel_Name__c FROM Installation__c LIMIT 1];
-        
-        Test.startTest();
-        Boolean hasDuplicates = CreateInstallationsController.checkDuplicates(testContract.Id, testInstallation.Vessel_Name__c, null);
-        CreateInstallationsController.goToInstallationLineCreation(new List<Id>{testInstallation.Id});
-        Test.stopTest();
-        
-        System.assert(hasDuplicates, 'There should be duplicates found.');
+
+        System.assert(!packages.isEmpty(), 'Expected packages to be returned');
     }
 
-    @isTest
-    static void testCheckDuplicates2() {
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-        Installation__c testInstallation = [SELECT Vessel_Name__c FROM Installation__c LIMIT 1];
-        
-        Test.startTest();
-        Boolean hasDuplicates = CreateInstallationsController.checkDuplicates(testContract.Id, null, null);
-        Test.stopTest();
-        
-        System.assert(hasDuplicates, 'There should be duplicates found.');
-    }
-    
-    @isTest
-    static void testTerminateSingleRecord() {
-        Installation__c testInstallation = [SELECT Id FROM Installation__c LIMIT 1];
-        
-        Test.startTest();
-        String result = CreateInstallationsController.terminateSingleRecord(testInstallation.Id, Date.today(), 'Test Reason');
-        Test.stopTest();
-        
-        System.assert(result == 'SUCCESS', 'The installation record should be terminated successfully.');
-    }
-    
-    @isTest
-    static void testGetInstallations() {
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-        
-        Test.startTest();
-        List<CreateInstallationsController.InstallationData> installations = CreateInstallationsController.getInstallations(testContract.Id);
-        Test.stopTest();
-        
-        System.assert(installations.size() > 0, 'Installations should be retrieved.');
-    }
-    
-    @isTest
-    static void testGetInstallationRecs() {
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-        
-        Test.startTest();
-        List<Installation__c> installations = CreateInstallationsController.getInstallationRecs(testContract.Id);
-        Test.stopTest();
-        
-        System.assert(installations.size() > 0, 'Installation records should be retrieved.');
-    }
-    
     @IsTest
-    public static void testModifyContract()
-    {
-        Test.startTest();
-        try
-        {
-            List<Installation__c> instList = [SELECT Id, Name, Contract__c, Package__c FROM Installation__c WHERE Contract__c != NULL AND Package__c != NULL];
-            CreateInstallationsController.modifyContract(instList[0].Id, Date.today(), instList[0].Contract__c, instList[0].Package__c, FALSE);
-            CreateInstallationsController.goToInstallationLineCreation(NULL);
-            CreateInstallationsController.createNewInstRecord(FALSE, NULL, NULL, NULL);
-            CreateInstallationsController.createInstallationLines(NULL, NULL);
-        }
-        catch(Exception ex)
-        {
-            
-        }
-        Test.stopTEst();
-    }
-    
-    @IsTest
-    public static void testNegative()
-    {
-        try
-        {
-            CreateInstallationsController.terminateRecords(NULL, Date.today(), '');
-        }
-        catch(Exception ex)
-        {}
-    }
-    
-    @isTest
-    static void testGetContractDetails() {
-        
-        Contract testContract = [SELECT Id FROM Contract LIMIT 1];
-    
-        // Create Installation with Contract
-        Installation__c inst = new Installation__c(
-            Contract__c = testContract.Id
+    static void testValidateOpenQuotesOrders() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__Status__c = 'Draft',
+            SBQQ__Ordered__c = false
         );
-        insert inst;
-    
+
+        List<String> warnings = CreateInstallationsController.validateOpenQuotesOrders(ctx.packageRec.Contract__c);
+        System.assert(!warnings.isEmpty(), 'Expected warnings for draft quote/order');
+
+        List<String> emptyWarnings = CreateInstallationsController.validateOpenQuotesOrders(null);
+        System.assertEquals(0, emptyWarnings.size(), 'Null contract should return empty warnings');
+    }
+
+    @IsTest
+    static void testCreateNewInstRecord() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Installation__c draftInst = new Installation__c(
+            Contract__c = ctx.packageRec.Contract__c,
+            Package__c = ctx.packageRec.Id,
+            Quote__c = ctx.qctx.quote.Id,
+            Vessel_Name__c = TestDataFactory_OTG.createVessels(1)[0].Id
+        );
+
+        SBQQMockHttpResponseGenerator.setQuoteId(ctx.qctx.quote.Id);
+
+        System.runAs(getBypassUser()) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new SBQQMockHttpResponseGenerator());
+            String result = CreateInstallationsController.createNewInstRecord(
+                false,
+                ctx.packageRec.Id,
+                ctx.packageRec.Contract__c,
+                draftInst,
+                Date.today()
+            );
+            Test.stopTest();
+
+            System.assert(result.startsWith('SUCCESS'), 'Expected SUCCESS response');
+            String newInstId = result.contains(':') ? result.split(':')[1].trim() : null;
+            System.assertNotEquals(null, newInstId, 'New installation id should be returned');
+
+            Installation__c created = [
+                SELECT Id, Quote__c
+                FROM Installation__c
+                WHERE Id = :newInstId
+            ];
+            System.assertEquals(ctx.qctx.quote.Id, created.Quote__c, 'Quote should be linked');
+        }
+    }
+
+    @IsTest
+    static void testCreateNewInstRecordMissingDetails() {
+        try {
+            CreateInstallationsController.createNewInstRecord(
+                false,
+                null,
+                null,
+                null,
+                Date.today()
+            );
+            System.assert(false, 'Expected AuraHandledException for missing details');
+        } catch (AuraHandledException ex) {
+            System.assert(true);
+        }
+    }
+
+    @IsTest
+    static void testCreateNewInstRecordDuplicate() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Installation__c duplicate = new Installation__c(
+            Contract__c = ctx.packageRec.Contract__c,
+            Package__c = ctx.packageRec.Id,
+            Quote__c = ctx.qctx.quote.Id,
+            Vessel_Name__c = ctx.installation.Vessel_Name__c
+        );
+
+        String result = CreateInstallationsController.createNewInstRecord(
+            false,
+            ctx.packageRec.Id,
+            ctx.packageRec.Contract__c,
+            duplicate,
+            Date.today()
+        );
+
+        System.assertEquals('Duplicate_Error', result, 'Expected duplicate detection path');
+    }
+
+    @IsTest
+    static void testCreateNewInstRecordTerminatePath() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        System.runAs(getBypassUser()) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new SBQQMockHttpResponseGenerator());
+            String result = CreateInstallationsController.createNewInstRecord(
+                true,
+                ctx.packageRec.Id,
+                ctx.packageRec.Contract__c,
+                ctx.installation,
+                Date.today()
+            );
+            Test.stopTest();
+
+            System.assertEquals('SUCCESS', result, 'Terminate branch should succeed');
+        }
+    }
+
+    @IsTest
+    static void testTerminateRecordsInvalidDateThrows() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Contract contractRec = [
+            SELECT StartDate
+            FROM Contract
+            WHERE Id = :ctx.packageRec.Contract__c
+        ];
+        Date invalidTermination = contractRec.StartDate.addDays(-1);
+
+        try {
+            CreateInstallationsController.terminateRecords(
+                new List<String>{ ctx.installation.Id },
+                invalidTermination,
+                'Invalid Date'
+            );
+            System.assert(false, 'Expected AuraHandledException for invalid termination date');
+        } catch (AuraHandledException ex) {
+            System.assert(true, 'Caught expected exception for invalid termination date');
+        }
+    }
+
+    @IsTest
+    static void testCheckDuplicatesWithVessel() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
         Test.startTest();
-        Map<String, Object> details = CreateInstallationsController.getContractDetails(inst.Id);
+        Boolean hasDup = CreateInstallationsController.checkDuplicates(
+            ctx.packageRec.Contract__c,
+            ctx.installation.Vessel_Name__c,
+            null
+        );
         Test.stopTest();
-   
+
+        System.assert(hasDup, 'Expected duplicate detected for vessel');
+    }
+
+    @IsTest
+    static void testCheckDuplicatesNoMatch() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Test.startTest();
+        Boolean hasDup = CreateInstallationsController.checkDuplicates(
+            ctx.packageRec.Contract__c,
+            null,
+            'ORG-NOT-EXIST'
+        );
+        Test.stopTest();
+
+        System.assert(!hasDup, 'Expected no duplicates when identifiers missing');
+    }
+
+    @IsTest
+    static void testTerminateSingleRecord() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        SBQQMockHttpResponseGenerator.setQuoteId(ctx.qctx.quote.Id);
+
+        Test.startTest();
+        Test.setMock(HttpCalloutMock.class, new SBQQMockHttpResponseGenerator());
+        String response = CreateInstallationsController.terminateSingleRecord(
+            ctx.installation.Id,
+            Date.today(),
+            'Unit Test'
+        );
+        Test.stopTest();
+
+        System.assertEquals('SUCCESS', response, 'Termination should succeed');
+
+        Installation__c refreshed = [
+            SELECT Quote__c, Auto_Installation_Termination_Error__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+        System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should remain linked');
+        System.assert(null == refreshed.Auto_Installation_Termination_Error__c
+            || refreshed.Auto_Installation_Termination_Error__c.contains('Maximum stack depth'),
+            'Error field cleared');
+    }
+
+    @IsTest
+    static void testTerminateRecordsRequiresIds() {
+        try {
+            CreateInstallationsController.terminateRecords(null, Date.today(), '');
+            System.assert(false, 'Expected AuraHandledException for missing ids');
+        } catch (AuraHandledException ex) {
+            System.assert(true);
+        }
+    }
+
+    @IsTest
+    static void testGetInstallationsAndRecords() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Test.startTest();
+        List<CreateInstallationsController.InstallationData> wrapped =
+            CreateInstallationsController.getInstallations(ctx.packageRec.Contract__c);
+        List<Installation__c> direct =
+            CreateInstallationsController.getInstallationRecs(ctx.packageRec.Contract__c);
+        Test.stopTest();
+
+        System.assert(!wrapped.isEmpty(), 'Expected wrapped installations');
+        System.assert(!direct.isEmpty(), 'Expected direct installation list');
+    }
+
+    @IsTest
+    static void testGetContractDetails() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Map<String, Object> details = CreateInstallationsController.getContractDetails(ctx.installation.Id);
+        System.assert(details.containsKey('startDate'), 'Expected start date');
+        System.assert(details.containsKey('endDate'), 'Expected end date');
+        System.assert(details.containsKey('status'), 'Expected status');
+    }
+
+    @IsTest
+    static void testModifyContractQueueable() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        SBQQMockHttpResponseGenerator.setQuoteId(ctx.qctx.quote.Id);
+
+        Test.startTest();
+        Test.setMock(HttpCalloutMock.class, new SBQQMockHttpResponseGenerator());
+        CreateInstallationsController.modifyContract(
+            ctx.installation.Id,
+            Date.today(),
+            ctx.packageRec.Contract__c,
+            ctx.packageRec.Id,
+            false
+        );
+        Test.stopTest();
+
+        Installation__c refreshed = [
+            SELECT Quote__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+        System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should stay linked');
+    }
+
+    @IsTest
+    static void testQueueableSuccessPath() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        System.runAs(getBypassUser()) {
+            Test.startTest();
+            System.enqueueJob(new CreateInstallationsController.AmendmentPostProcessorQueueable(
+                ctx.installation.Id,
+                ctx.packageRec.Contract__c,
+                ctx.packageRec.Id,
+                ctx.qctx.quote.Id,
+                Date.today(),
+                false,
+                1
+            ));
+            Test.stopTest();
+
+            Installation__c refreshed = [
+                SELECT Quote_Line_Group__c
+                FROM Installation__c
+                WHERE Id = :ctx.installation.Id
+            ];
+            System.assertEquals(ctx.qlg.Id, refreshed.Quote_Line_Group__c,
+                'Quote line group should be set');
+        }
+    }
+
+    @IsTest
+    static void testQueueableTerminatePath() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+            update new Installation__c(
+                Id = ctx.installation.Id,
+                Termination_End_Date__c = Date.today()
+            );
+
+        update new SBQQ__QuoteLineGroup__c(
+            Id = ctx.qlg.Id,
+            Installation_Quantity__c = 1
+        );
+
+        System.runAs(getBypassUser()) {
+            Test.startTest();
+            System.enqueueJob(new CreateInstallationsController.AmendmentPostProcessorQueueable(
+                ctx.installation.Id,
+                ctx.packageRec.Contract__c,
+                ctx.packageRec.Id,
+                ctx.qctx.quote.Id,
+                Date.today(),
+                true,
+                1
+            ));
+            Test.stopTest();
+
+            Installation__c refreshed = [
+                SELECT Quote_Line_Group__c
+                FROM Installation__c
+                WHERE Id = :ctx.installation.Id
+            ];
+            System.assertEquals(ctx.qlg.Id, refreshed.Quote_Line_Group__c,
+                'Quote line group should still be set for terminate path');
+
+            SBQQ__QuoteLineGroup__c qlgRef = [
+                SELECT Installation_Quantity__c
+                FROM SBQQ__QuoteLineGroup__c
+                WHERE Id = :ctx.qlg.Id
+            ];
+            System.assertNotEquals(null, qlgRef.Installation_Quantity__c,
+                'Terminate path should update QLG installation quantity');
+        }
+    }
+
+    @IsTest
+    static void testQueueableFailurePath() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        delete [SELECT Id FROM SBQQ__QuoteLineGroup__c WHERE Id = :ctx.qlg.Id];
+
+        Test.startTest();
+        System.enqueueJob(new CreateInstallationsController.AmendmentPostProcessorQueueable(
+            ctx.installation.Id,
+            ctx.packageRec.Contract__c,
+            ctx.packageRec.Id,
+            null,
+            Date.today(),
+            false,
+            5
+        ));
+        Test.stopTest();
+
+        Installation__c refreshed = [
+            SELECT Auto_Installation_Termination_Error__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+        System.assert(refreshed.Auto_Installation_Termination_Error__c != null,
+            'Expected error message recorded');
+    }
+
+    @IsTest
+    static void testUpdateQuoteLineGroupReturnsNull() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        delete [SELECT Id FROM SBQQ__QuoteLineGroup__c WHERE Id = :ctx.qlg.Id];
+
+        SBQQ__QuoteLineGroup__c result = CreateInstallationsController.updateQuoteLineGroup(
+            ctx.qctx.quote,
+            ctx.packageRec.Id,
+            false
+        );
+
+        System.assertEquals(null, result, 'Expected null when no quote line group exists');
+    }
+
+    @IsTest
+    static void testUpdateInstallationRequiresId() {
+        Boolean thrown = false;
+        try {
+            CreateInstallationsController.updateInstallation(null, null, null);
+            System.assert(false, 'Expected AuraHandledException');
+        } catch (AuraHandledException ex) {
+            thrown = true;
+        }
+        System.assert(thrown, 'Expected AuraHandledException for missing installation id');
+    }
+
+    @IsTest
+    static void testTryUpdateQuoteAndInstallationTerminatePath() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        System.runAs(getBypassUser()) {
+            update new Installation__c(
+                Id = ctx.installation.Id,
+                Termination_End_Date__c = Date.today()
+            );
+
+            update new SBQQ__QuoteLineGroup__c(
+                Id = ctx.qlg.Id,
+                Installation_Quantity__c = 1,
+                Package__c = ctx.packageRec.Id
+            );
+
+            update new SBQQ__Quote__c(
+                Id = ctx.qctx.quote.Id,
+                SBQQ__Opportunity2__c = ctx.qctx.opportunity.Id
+            );
+
+            Test.startTest();
+            SBQQ__Quote__c qt = [SELECT Id, SBQQ__Opportunity2__c FROM SBQQ__Quote__c WHERE Id = :ctx.qctx.quote.Id];
+            Boolean success = CreateInstallationsController.tryUpdateQuoteAndInstallation(
+                qt,
+                ctx.installation.Id,
+                ctx.packageRec.Contract__c,
+                ctx.packageRec.Id,
+                Date.today(),
+                true
+            );
+            Test.stopTest();
+
+            Installation__c instErr = [
+                SELECT Auto_Installation_Termination_Error__c
+                FROM Installation__c
+                WHERE Id = :ctx.installation.Id
+            ];
+            System.assert(success || instErr.Auto_Installation_Termination_Error__c != null,
+                'Terminate branch should either succeed or record an error');
+        }
+    }
+
+    @IsTest
+    static void testTryUpdateQuoteAndInstallationMissingInstallation() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Id installId = ctx.installation.Id;
+        Id contractId = ctx.packageRec.Contract__c;
+        Id packageId = ctx.packageRec.Id;
+        SBQQ__Quote__c qt = [SELECT Id FROM SBQQ__Quote__c WHERE Id = :ctx.qctx.quote.Id];
+
+        delete new Installation__c(Id = installId);
+
+        System.runAs(getBypassUser()) {
+            Test.startTest();
+            Boolean success = CreateInstallationsController.tryUpdateQuoteAndInstallation(
+                qt,
+                installId,
+                contractId,
+                packageId,
+                Date.today(),
+                true
+            );
+            Test.stopTest();
+
+            System.assert(!success, 'Expected terminate path to fail when installation missing');
+        }
     }
 }

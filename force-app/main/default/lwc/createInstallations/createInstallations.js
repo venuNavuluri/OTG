@@ -2,23 +2,13 @@ import { LightningElement, track, api, wire } from 'lwc';
 import { getRecord} from "lightning/uiRecordApi";
 import getPackageList from '@salesforce/apex/CreateInstallationsController.getPackages';
 import createData from '@salesforce/apex/CreateInstallationsController.createNewInstRecord';
+import validateOpenItems from '@salesforce/apex/CreateInstallationsController.validateOpenQuotesOrders';
 import checkDuplicates from '@salesforce/apex/CreateInstallationsController.checkDuplicates';
-import getInstallationRecords from '@salesforce/apex/CreateInstallationsController.getInstallations';
-import terminateInstallationRecords from '@salesforce/apex/CreateInstallationsController.terminateRecords';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { NavigationMixin } from 'lightning/navigation';
 import { encodeDefaultFieldValues } from "lightning/pageReferenceUtils";
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 const GETRECORDFIELDS = ['Contract.ContractNumber', 'Contract.Name', 'Contract.Account.Name', 'Contract.Account.Account_ID__c', 'Contract.SBQQ__Opportunity__r.Name', 'Contract.SBQQ__Opportunity__r.Opportunity_ID__c'];
-
-const columns = [
-    { label: 'Installation Name', fieldName: 'InstUrl', type: 'url', typeAttributes: {label : { fieldName: 'InstName' }, target: '_blank'} },
-    { label: 'Contract Customer', fieldName: 'CustContractUrl', type: 'url', typeAttributes: { label: {fieldName: 'CustContractName'}, target: '_blank'} },
-    { label: 'Vessel', fieldName: 'VesselName' },
-    { label: 'Vessel IMO', fieldName: 'VesselIMO' },
-    { label: 'Installation Start Date', fieldName: 'startDate' },
-    { label: 'Installation End Date', fieldName: 'endDate' }
-];
 
 export default class CreateInstallations extends NavigationMixin(LightningElement)
 {
@@ -33,19 +23,12 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
     @track showMessage = false;
     @track showErrorMessage = false;
     @track disabled = true;
-    @track isPackageScreen = true;
+    @track isPackageScreen = false;
     @track isQtyScreen = false;
-    @track isAddPackage = false;
     @track isLoaded = false;
-    @track arOptions = [
-                        {label : 'Add', value : 'Add'},
-                        {label : 'Terminate Installation', value : 'Terminate Installation'}
-                        ];
-    @track arValue;
     @track value;
-    @track installationList = [];
-
     @track contractInfo;
+    @track isPackageSelected = false;
     @track accNumber;
     @track oppNumber;
     @track invAccUrl;
@@ -56,14 +39,48 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
     @track oppName;
     @track installation = {showVessel : true};
     filter;
-    @track isTerminatePackage;
-    @track lstOptions = [];
-    lstSelected = [];
-    @track termMessage = '';
+    @track isPackageSelected = false;
+    @track showPackagePicker = false;
+    @track warnings;
+
+    get disableConfirm() {
+        return !this.isPackageSelected;
+    }
+
+    get selectedPackageName() {
+        if (!this.selectedPackage || !this.packList) {
+            return '';
+        }
+        const match = this.packList.find(pack => pack.Id === this.selectedPackage);
+        return match ? match.Name : '';
+    }
+
+    formatWarningMessages(warnings) {
+        if (!warnings || !Array.isArray(warnings)) {
+            return null;
+        }
+
+        return warnings.map((warning) => {
+            if (typeof warning !== 'string' || warning.includes('<a ')) {
+                return warning;
+            }
+
+            const primaryLinkPattern = /(Quote|Order)\s+([^\(]+?)\s+\(\/([a-zA-Z0-9]{15,18})\)/g;
+            const withPrimaryLink = warning.replace(primaryLinkPattern, (_match, label, name, recordId) => {
+                const href = `/${recordId}`;
+                return `${label} <a href="${href}" target="_blank">${name.trim()}</a>`;
+            });
+
+            return withPrimaryLink.replace(/\(\/([a-zA-Z0-9]{15,18})\)/g, (_match, recordId) => {
+                const href = `/${recordId}`;
+                return `<a href="${href}" target="_blank">${href}</a>`;
+            });
+        });
+    }
+
     @track showInvAccFlow = false;
     @track inputVariables = [];
     instId = '' ;
-    columns = columns;
     matchingInfo = {
         primaryField: { fieldPath: 'Name' },
         additionalFields: [{ fieldPath: 'Account_ID__c' }],
@@ -125,8 +142,7 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
     handleStatusChange()
     {}
 
-    getPackageRecords()
-    {
+    getPackageRecords() {
         this.isLoaded = true;
         getPackageList({
             contrId : this.recordId
@@ -204,82 +220,82 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
                 this.disabled = false;
             }
         }
+        if (fieldName === 'Installation_Start_date__c' && fieldValue && typeof fieldValue === 'object' && fieldValue.hasOwnProperty('value')) {
+            fieldValue = fieldValue.value;
+        }
         this.installation[fieldName] = fieldValue;
     }
 
-    onARSelected(event)
-    {
-        console.log('on AR Selected');
+    startAddFlow() {
         this.isLoaded = true;
-        let val = event.detail.value;
-        console.log('val --> ' + val);
-        if(val == 'Add')
-        {
-            this.getPackageRecords();
-            this.isAddPackage = true;
-            this.isTerminatePackage = false;
-        }
-        else
-        {
-            this.isAddPackage = false;
-            this.isLoaded = false;
-            this.isTerminatePackage = true;
-            this.isQtyScreen = false;
-            this.installationList = [];
-            getInstallationRecords({
-                contrId : this.recordId
-            }).then(result => {
-                this.installationList = result;
-                for(var i = 0; i < this.installationList.length; i++)
-                {
-                    this.installationList[i].link = '/' + this.installationList[i].InstId;
+        this.warnings = null;
+        this.showPackagePicker = false;
+        this.isPackageScreen = false;
+
+        validateOpenItems({ contractId: this.recordId })
+            .then(result => {
+                this.isLoaded = false;
+                if (result && result.length > 0) {
+                    this.warnings = this.formatWarningMessages(result);
+                } else {
+                    this.isPackageScreen = true;
+                    this.showPackagePicker = true;
+                    this.currentScreen = 'package';
+                    this.isQtyScreen = false;
+                    if (!this.packList || this.packList.length === 0) {
+                        this.getPackageRecords();
+                    }
                 }
-                console.log('result1 --> ' + JSON.stringify(result));
-                console.log('result length --> ' + result.length);
-                for(var i = 0; i < result.length; i++)
-                {
-                    this.lstOptions.push({
-                        label : result[i].InstName,
-                        value : result[i].InstId
-                    });
-                }
-                this.disabled = false;
-            }).catch(error => {
-                console.log('error --> ' + JSON.stringify(error));
+            })
+            .catch(error => {
+                this.isLoaded = false;
+                console.error('validateOpenItems error', JSON.stringify(error));
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Error',
+                        message: 'Unable to validate open Quotes/Orders. Please try again later.',
+                        variant: 'error'
+                    })
+                );
             });
-        }
-        
     }
 
-    handleChange(event)
-    {
-        this.lstSelected = event.detail.value;
-    }
-
-    terminateInstallations(event)
-    {
-        console.log('selected recs --> ' + JSON.stringify(this.lstSelected));
-        terminateInstallationRecords({
-            instIdList : this.lstSelected
-        }).then(result => {
-            console.log('result --> ' + result);
-            if(result == "SUCCESS")
-            {
-                this.disabled = true
-                this.termMessage = 'Records Terminated Successfully';
-            }
-        }).catch(error => {
-            console.log('error --> ' + JSON.stringify(error));
-        })
-    }
-
-    onPackageSelected(event)
-    {
-        console.log('In pack selected');
+    handlePackageSelection(event) {
+        console.log('Package selected');
         this.selectedPackage = event.detail.value;
+        this.value = this.selectedPackage;
+        this.isPackageSelected = Boolean(this.selectedPackage);
+    }
+
+    getErrorMessage(error) {
+        if (!error) {
+            return 'An unexpected error occurred.';
+        }
+
+        if (Array.isArray(error.body)) {
+            return error.body.map(item => item.message).join(', ');
+        }
+
+        if (error.body && error.body.message) {
+            return error.body.message;
+        }
+
+        if (error.message) {
+            return error.message;
+        }
+
+        return 'An unexpected error occurred.';
+    }
+
+    confirmPackage() {
+        if (!this.selectedPackage) {
+            return;
+        }
         this.isQtyScreen = true;
-        console.log('acc --> ' + JSON.stringify(this.accId));
-        console.log('sel pack --> ' + this.selectedPackage);
+        this.isPackageScreen = false;
+        this.showPackagePicker = false;
+        this.currentScreen = 'quantity';
+        console.log('Selected package -> ' + this.selectedPackage);
         this.filter = {
             criteria: [
                 { fieldPath: 'B2B_Account__c', operator: 'eq', value: this.accId[0] },
@@ -289,7 +305,7 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
             filterLogic: '1 AND (2 OR 3)'
         };
     }
-    
+
     onQuantityChanged(event)
     {
         console.log('val --> ' + event.detail.value);
@@ -304,11 +320,17 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
     {
         if(this.currentScreen == 'package')
         {
-            this.currentScreen = 'quantity';
-            this.isQtyScreen = true;
-            this.isPackageScreen = false;
+            if (!this.selectedPackage) {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: 'Warning',
+                    message: 'Please select a package before continuing.',
+                    variant: 'warning'
+                }));
+                return;
+            }
+            this.confirmPackage();
         }
-        else if(this.currentScreen == 'quantity')
+        if(this.currentScreen == 'quantity')
         {
             for(let pack in this.packList)
             {
@@ -331,22 +353,22 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
             if(this.selectedPackage == this.packList[i].Id)
             {
                 console.log('packName --> ' + this.packList[i].Installation_Quantity__c);
-                qty = this.packList[i].Installation_Quantity__c;
+                qty = this.packList[i].Installation_Quantity__c || 0;
             }
         }
         console.log('quantity --> ' + this.quantity);
         console.log('qty --> ' + qty);
-        console.log('total qty --> ' + totalQty);
-        var totalQty = parseInt(this.quantity) + parseInt(qty);
+        const totalQty = (parseInt(this.quantity, 10) || 0) + parseInt(qty, 10);
         console.log('total qty --> ' + totalQty);
         createData({
             isTerminate : false,
             packId : this.selectedPackage,
             contrId : this.recordId,
-            inst : this.installation
+            inst : this.installation,
+            startDate : this.installation.Installation_Start_date__c // Pass the captured start date
         }).then(result => {
             console.log('result --> ' + result);
-            if(result == 'Duplicate_Error')
+            if(result === 'Duplicate_Error')
             {
                 this.isLoaded = false;
                 const event = new ShowToastEvent({
@@ -364,8 +386,13 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
                 this.showMessage = true;
                 this.showErrorMessage = false;
                 this.isLoaded = false;
-                this.instId = '/' + result.substring(result.indexOf("SUCCESS: ") + 9, result.length);
-                console.log('instId --> ' + this.instId);
+                const successPrefix = 'SUCCESS: ';
+                const prefixIndex = result ? result.indexOf(successPrefix) : -1;
+                if (prefixIndex !== -1) {
+                    this.instId = '/' + result.substring(prefixIndex + successPrefix.length);
+                } else {
+                    this.instId = null;
+                }
                 const event = new ShowToastEvent({
                     title: 'Success',
                     message: 'Installation Created Successfully. {0} to navigate to the record',
@@ -381,12 +408,15 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
         }).catch(error => {
             console.log('error --> ' + JSON.stringify(error));
             this.isLoaded = false;
-            //this.message = 'Error occured while creating the records. Please contact tech team with the these details:\n' + JSON.stringify(error);
+            const errorMessage = this.getErrorMessage(error);
+            this.message = errorMessage;
+            this.showErrorMessage = true;
+            this.showMessage = false;
             const event = new ShowToastEvent({
                 title: 'error',
-                message: 'Error occured while creating Installation.',
+                message: errorMessage,
                 variant: 'error',
-                mode: 'dismissable'
+                mode: 'sticky'
             });
             this.dispatchEvent(event);
             //this.showErrorMessage = true;
@@ -409,6 +439,9 @@ export default class CreateInstallations extends NavigationMixin(LightningElemen
             var accId = this.contractInfo.fields.Account.value.id;
             this.accId.push(accId);
             this.accNumber = this.contractInfo.fields.Account.value.fields.Account_ID__c.value;
+            if (!this.packList || this.packList.length === 0) {
+                this.getPackageRecords();
+            }
           //  this.invAccUrl = 'lightning/action/quick/Account.New_Invoice_Account_Flow?objectApiName&context=RECORD_DETAIL&recordId=' + accId + '&backgroundContext=%2Flightning%2Fr%2FAccount%2F' + accId + '%2Fview';
         }
         else if (error) {

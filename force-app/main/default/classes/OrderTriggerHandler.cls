@@ -14,45 +14,54 @@ public class OrderTriggerHandler
     
     public static void onAfterUpdate(Map<Id, Order> oldOrderMap, List<Order> newOrderList)
     {
-        List<Order> ordToCreateInst = new List<Order>();
-        List<Order> activatedAmendmentOrders = new List<Order>(); // Added on 07/05/2025
-        
+        List<Order> ordToCreateInst = new List<Order>();       // existing “activated” bucket
+        List<Order> activatedAmendmentOrders = new List<Order>();
+        List<Order> ordersToProcessBatch = new List<Order>();  // NEW: Activated + Amendment/Renewal
+    
         updateSubscriptionOrderFromOpportunity(newOrderList);
-        
-        // Query additional fields we need for processing
+    
+        // Fetch details once
         Map<Id, Order> ordersWithDetails = new Map<Id, Order>([
-            SELECT Id, Status, OpportunityId,SBQQ__Quote__r.Auto_Termination__c,SBQQ__Quote__r.Auto_Installation__c, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Type
+            SELECT Id, Status, OpportunityId,
+                   SBQQ__Quote__r.Auto_Termination__c,
+                   SBQQ__Quote__r.Auto_Installation__c,
+                   SBQQ__Quote__c,
+                   SBQQ__Quote__r.SBQQ__Type__c,
+                   Type
             FROM Order
             WHERE Id IN :newOrderList
         ]);
-        Set<Id> ordIdSet = new Set<Id>();
-        for(Order ord : newOrderList)
-        {
-            Order currentOrder = ordersWithDetails.get(ord.Id);
-            
-            if(ord.Status == 'Activated' && (ord.Status != oldOrderMap.get(ord.Id).Status))
-            {
-                ordToCreateInst.add(ord);
-                ordIdSet.add(ord.Id);
+    
+        // Detect status changes to Activated and categorise by Type
+        for (Order ord : newOrderList) {
+            Order prev = oldOrderMap.get(ord.Id);
+            Order cur  = ordersWithDetails.get(ord.Id);
+            if (cur == null || prev == null) continue;
+    
+            Boolean justActivated = (cur.Status == 'Activated' && prev.Status != 'Activated');
+            if (justActivated) {
+                ordToCreateInst.add(cur); // your existing flow
+    
+                // Batch should run ONLY for Amendment or Renewal
+                if ((cur.Type == 'Amendment') && (!cur.SBQQ__Quote__r.Auto_Installation__c && !cur.SBQQ__Quote__r.Auto_Termination__c)){
+                    ordersToProcessBatch.add(cur);
+                }
+    
+                // Keep your existing Amendment-specific list for opp stage update
+                if (cur.Type == 'Amendment' &&
+                    cur.SBQQ__Quote__r != null &&
+                    (cur.SBQQ__Quote__r.Auto_Installation__c || cur.SBQQ__Quote__r.Auto_Termination__c)) {
+                    activatedAmendmentOrders.add(cur);
+                }
             }
         }
-        System.debug('ordToCreateInst --> ' + ordToCreateInst);
+    
         updatePackages(ordToCreateInst);
         updateOrderIdOnInstallation(ordToCreateInst);
-       // InstallationLineService.addInstallationLines(ordIdSet);
-        
-        for(Order ord : newOrderList) {
-            Order currentOrder = ordersWithDetails.get(ord.Id);
-            
-            // Check for status change to Activated and Amendment type
-            if(currentOrder.Type == 'Amendment' &&
-               currentOrder.SBQQ__Quote__r != null && (currentOrder.SBQQ__Quote__r.Auto_Installation__c||currentOrder.SBQQ__Quote__r.Auto_Termination__c)) {                  
-                   activatedAmendmentOrders.add(currentOrder);
-               }
-        }
-        
-        // Update Opportunity stage for activated Amendment orders - Added on 07/05/2025
-        if(!activatedAmendmentOrders.isEmpty()) {
+        Logger.info('changepackage list 1 --> ' + ordersToProcessBatch);
+        triggerChangePackageProcessing(ordersToProcessBatch);
+        triggerInstallationProductUpdateBatch(ordersToProcessBatch);
+        if (!activatedAmendmentOrders.isEmpty()) {
             updateOpportunityStageForActivatedAmendment(activatedAmendmentOrders);
         }
     }
@@ -180,44 +189,47 @@ public class OrderTriggerHandler
     }
     
     @future
-    public static void createContract(Set<Id> orderIdSet)
-    {
-        try
-        {
+    public static void createContract(Set<Id> orderIdSet) {
+        if (orderIdSet == null || orderIdSet.isEmpty()) return;
+
+        try {
             List<Order> orderList = [SELECT Id, Name, SBQQ__Quote__c FROM Order WHERE Id IN :orderIdSet];
-            List<Id> qtIdList = new List<Id>();
-            for(Order ord : orderList)
-            {
-                qtIdList.add(ord.SBQQ__Quote__c);
+            if (orderList.isEmpty()) return;
+
+            Set<Id> qtIdList = new Set<Id>();
+            for (Order ord : orderList) {
+                if (ord.SBQQ__Quote__c != null) qtIdList.add(ord.SBQQ__Quote__c);
             }
-            Map<Id, SBQQ__Quote__c> qtMap = new Map<Id, SBQQ__Quote__c>([SELECT Id, Name, SBQQ__BillingFrequency__c, SBQQ__SubscriptionTerm__c, SBQQ__Type__c, Auto_Installation__c, Auto_Termination__c, SBQQ__StartDate__c, SBQQ__EndDate__c FROM SBQQ__Quote__c WHERE Id IN :qtIdList]);
+            if (qtIdList.isEmpty()) return;
+
+            Map<Id, SBQQ__Quote__c> qtMap = new Map<Id, SBQQ__Quote__c>([
+                SELECT Id, Name, SBQQ__BillingFrequency__c, SBQQ__SubscriptionTerm__c, SBQQ__Type__c, Auto_Installation__c, Auto_Termination__c, SBQQ__StartDate__c, SBQQ__EndDate__c 
+                FROM SBQQ__Quote__c 
+                WHERE Id IN :qtIdList
+            ]);
+
             List<Order> ordUpdateList = new List<Order>();
-            for(Order ord : orderList)
-            {
-                ord.Billing_Frequency__c = qtMap.get(ord.SBQQ__Quote__c).SBQQ__BillingFrequency__c;
-                if(qtMap.get(ord.SBQQ__Quote__c).Auto_Termination__c || qtMap.get(ord.SBQQ__Quote__c).SBQQ__Type__c == 'Renewal')//need to add renewal logic
-                {
-                    //ord.EffectiveDate = qtMap.get(ord.SBQQ__Quote__c).SBQQ__StartDate__c;
-                    //ord.EndDate	 = qtMap.get(ord.SBQQ__Quote__c).SBQQ__EndDate__c;
-                    ord.SBQQ__RenewalTerm__c = qtMap.get(ord.SBQQ__Quote__c).SBQQ__SubscriptionTerm__c;
-                    ord.Status = 'Activated';
-                    ord.SBQQ__Contracted__c = TRUE;
-                    ordUpdateList.add(ord);
-                }
-                else if(qtMap.get(ord.SBQQ__Quote__c).Auto_Installation__c || qtMap.get(ord.SBQQ__Quote__c).SBQQ__Type__c == 'Amendment' || qtMap.get(ord.SBQQ__Quote__c).SBQQ__Type__c == 'Quote')
-                {
-                    ord.Status = 'Pending Implementation';
-                    ordUpdateList.add(ord);
+            for (Order ord : orderList) {
+                SBQQ__Quote__c q = qtMap.get(ord.SBQQ__Quote__c);
+                if (q == null) continue;
+
+                Order upd = new Order(Id = ord.Id);
+                upd.Billing_Frequency__c = q.SBQQ__BillingFrequency__c;
+
+                if (q.Auto_Termination__c || q.SBQQ__Type__c == 'Renewal') {
+                    upd.SBQQ__RenewalTerm__c = q.SBQQ__SubscriptionTerm__c;
+                    upd.Status = 'Activated';
+                    upd.SBQQ__Contracted__c = true;
+                    ordUpdateList.add(upd);
+                } else if (q.Auto_Installation__c || q.SBQQ__Type__c == 'Amendment' || q.SBQQ__Type__c == 'Quote') {
+                    upd.Status = 'Pending Implementation';
+                    ordUpdateList.add(upd);
                 }
             }
-            System.debug('ordList --> ' + ordUpdateList);
-            if(!ordUpdateList.isEmpty())
-            {
+            if (!ordUpdateList.isEmpty()) {
                 update ordUpdateList;
             }
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             Logger.error(ex.getMessage());
             Logger.saveLog();
         }
@@ -286,7 +298,10 @@ public class OrderTriggerHandler
                                 Quote_Line_Group__c = pkg.Quote_Line_Group__c,
                                 Package__c          = pkg.Id
                             );
-                            
+                            // If the current Installation is still in Draft, move it to Pending Implementation
+                                if (inst.Installation_Order_Status__c == 'Draft') {
+                                    upd.Installation_Order_Status__c = 'Pending Implementation';
+                                }
                             toUpdate.add(upd);
                         }
                     }
@@ -328,49 +343,63 @@ public class OrderTriggerHandler
             }
         }
     
-    public static void updatePackages(List<Order> ordList)
-    {
+    public static void updatePackages(List<Order> ordList) {
+        if (ordList == null || ordList.isEmpty()) return;
+
         Set<Id> qtIdList = new Set<Id>();
         Map<Id, Order> quoteIdToOrder = new Map<Id, Order>();
-        for(Order ord : ordList)
-        {
-            if (ord.SBQQ__Quote__c != null && ord.Type != 'Service Delivery' ) {
+        for (Order ord : ordList) {
+            if (ord != null && ord.SBQQ__Quote__c != null && ord.Type != 'Service Delivery' ) {
                 qtIdList.add(ord.SBQQ__Quote__c);
                 quoteIdToOrder.put(ord.SBQQ__Quote__c, ord);
             }
         }
+        if (qtIdList.isEmpty()) return;
         
-        List<SBQQ__QuoteLineGroup__c> qlgList = [SELECT Id, Name,SBQQ__Quote__c,SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.Auto_Installation__c, SBQQ__Quote__r.Auto_Termination__c, Installation_Quantity__c, Installation_Price__c, Products__c, Package__c, Installation_Change_Type__c,Prior_Installation_Quantity__c, Product_Change_Type__c FROM SBQQ__QuoteLineGroup__c WHERE SBQQ__Quote__c IN :qtIdList];
-        Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name,CurrencyIsoCode, Quote_Line_Group__c, Installation_Quantity__c,Installation_Change_Type__c, InstallationCost__c,Prior_Installation_Quantity__c, Products__c FROM Package__c WHERE Temp_Quote_Line_Group__c IN :qlgList]);
+        List<SBQQ__QuoteLineGroup__c> qlgList = [
+            SELECT Id, Name, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__r.Auto_Installation__c, SBQQ__Quote__r.Auto_Termination__c, 
+                   Installation_Quantity__c, Installation_Price__c, Products__c, Package__c, Installation_Change_Type__c,InstallationChangeType__c, Prior_Installation_Quantity__c, Product_Change_Type__c 
+            FROM SBQQ__QuoteLineGroup__c 
+            WHERE SBQQ__Quote__c IN :qtIdList
+        ];
+        if (qlgList.isEmpty()) return;
+
+        Map<Id, Package__c> packMap = new Map<Id, Package__c>([
+            SELECT Id, Name, CurrencyIsoCode, Quote_Line_Group__c, Installation_Quantity__c, Installation_Change_Type__c, InstallationCost__c, Prior_Installation_Quantity__c, Products__c, Temp_Quote_Line_Group__c, Quote__c
+            FROM Package__c 
+            WHERE Temp_Quote_Line_Group__c IN :new Map<Id, SBQQ__QuoteLineGroup__c>(qlgList).keySet()
+        ]);
         List<Package__c> packListToUpdate = new List<Package__c>();
         
-        for(SBQQ__QuoteLineGroup__c qlg : qlgList)
-        {
+        for (SBQQ__QuoteLineGroup__c qlg : qlgList) {
             Package__c pack = packMap.get(qlg.Package__c);
-            if(pack != NULL)
-            {
-                If( qlg.SBQQ__Quote__r.Auto_Installation__c == FALSE || qlg.SBQQ__Quote__r.Auto_Termination__c == FALSE){
+            if (pack == null) continue;
+
+            Boolean autoInstall = (qlg.SBQQ__Quote__r != null && qlg.SBQQ__Quote__r.Auto_Installation__c == true);
+            Boolean autoTerminate = (qlg.SBQQ__Quote__r != null && qlg.SBQQ__Quote__r.Auto_Termination__c == true);
+
+            if (!autoInstall || !autoTerminate) {
                 pack.InstallationCost__c = qlg.Installation_Price__c;
                 pack.Name = qlg.Name;
                 pack.Products__c = qlg.Products__c; 
                 pack.Product_Change_Type__c = qlg.Product_Change_Type__c;
-                }
-                pack.Installation_Quantity__c = qlg.Installation_Quantity__c;
-                pack.Installation_Change_Type__c = qlg.Installation_Change_Type__c;
-                pack.Prior_Installation_Quantity__c = qlg.Prior_Installation_Quantity__c;
-                Pack.Quote__c = qlg.SBQQ__Quote__c;
-                Pack.Quote_Line_Group__c = qlg.Id;
-                packListToUpdate.add(pack);
             }
+            pack.Installation_Quantity__c = qlg.Installation_Quantity__c;
+            pack.Installation_Change_Type__c = qlg.InstallationChangeType__c;
+            pack.Prior_Installation_Quantity__c = qlg.Prior_Installation_Quantity__c;
+            pack.Quote__c = qlg.SBQQ__Quote__c;
+            pack.Order__c = quoteIdToOrder.get(qlg.SBQQ__Quote__c).Id;
+            pack.Quote_Line_Group__c = qlg.Id;
+            packListToUpdate.add(pack);
         }
         
-        if(!packListToUpdate.isEmpty())
-        {
+        if (!packListToUpdate.isEmpty()) {
             update packListToUpdate;
             createPackageActions(packListToUpdate, quoteIdToOrder);
         }
     }
     
+    // Revert: synchronous helper as originally present
     private static void createPackageActions(List<Package__c> updatedPacks, Map<Id, Order> quoteIdToOrder) {
         if (updatedPacks == null || updatedPacks.isEmpty()) return;
 
@@ -387,11 +416,11 @@ public class OrderTriggerHandler
             act.Quote__c                 = pack.Quote__c;
             act.Quote_Line_Group__c      = pack.Quote_Line_Group__c;
             act.CurrencyIsoCode          = pack.CurrencyIsoCode;
-            act.Package_Name__c 		 = pack.Name;
+            act.Package_Name__c          = pack.Name;
             if (ord != null) {
                 act.Order__c       = ord.Id;
                 act.Opportunity__c = ord.OpportunityId;
-                act.Type__c = ord.Type;
+                act.Type__c        = ord.Type;
             }
             actions.add(act);
         }
@@ -403,21 +432,25 @@ public class OrderTriggerHandler
        
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getOpportunityId(Id orderId) {
+        if (orderId == null) {
+            return new Map<String, Object>();
+        }
         Order order = [SELECT OpportunityId, Type FROM Order WHERE Id = :orderId LIMIT 1];
         return new Map<String, Object>{
             'opportunityId' => order.OpportunityId,
-                'orderType' => order.Type
-                };
-                    }
+            'orderType'     => order.Type
+        };
+    }
     
     @AuraEnabled
     public static void updateOrderAsAdmin(Id orderId, String newStatus) {
-        // Run in system context without sharing
+        if (orderId == null || String.isBlank(newStatus)) return;
+
         System.runAs(getAdminUser()) {
-            Order ord = [SELECT Id, Status FROM Order WHERE Id = :orderId];
+            Order ord = [SELECT Id, Status FROM Order WHERE Id = :orderId LIMIT 1];
             ord.Status = newStatus;
             update ord;
-            system.debug('Updated Order Status --'+ newStatus + 'Order Id:' + ord );
+            System.debug('Updated Order Status -- ' + newStatus + ' Order Id: ' + ord.Id);
         }
     }
     
@@ -492,6 +525,71 @@ public class OrderTriggerHandler
             Logger.error('Error in updateSubscriptionOrderFromOpportunity: ' + ex.getMessage() + '\n' +ex.getLineNumber() + '\n' + ex.getStackTraceString());
             Logger.saveLog();
         }
+    }
+    
+    private static void triggerChangePackageProcessing(List<Order> orders) {
+        if (orders == null || orders.isEmpty()) return;
+    
+        Set<Id> orderIds = new Set<Id>();
+        for (Order o : orders) if (o != null && o.Id != null) orderIds.add(o.Id);
+        if (orderIds.isEmpty()) return;
+
+        Integer matchCount = [
+            SELECT COUNT()
+            FROM Installation__c
+            WHERE Order__c IN :orderIds
+              AND Change_Package_Status__c = 'In Progress'
+              AND Installation_Order_Status__c = 'Active'
+        ];
+    
+        if (matchCount > 0) {
+            String jobName = 'ChangePackageInstallations' + String.valueOf(System.currentTimeMillis());
+            System.scheduleBatch(new ChangePackageInstallationsBatch(orderIds), jobName, 3, 1);
+        }
+    }
+    
+    // Method to execute InstallationProductUpdateBatch if related packages have Product_Change_Type__c != 'New Package' AND Product_Change_Type__c != null and count > 0
+    private static void triggerInstallationProductUpdateBatch(List<Order> orders) {
+        if (orders == null || orders.isEmpty()) return;
+    
+        Set<Id> orderIds = new Set<Id>();
+        Set<Id> quoteIds = new Set<Id>();
+        for (Order o : orders) {
+            if (o == null) continue;
+            if (o.Id != null) {
+                orderIds.add(o.Id);
+            }
+            if (o.SBQQ__Quote__c != null) {
+                quoteIds.add(o.SBQQ__Quote__c);
+            }
+        }
+        if (orderIds.isEmpty()) return;
+
+        // Check if packages meet the criteria
+        Boolean shouldProcess = shouldProcessChangePackage(quoteIds);
+        
+        if (shouldProcess) {
+            String jobName = 'InstallationProductUpdate_' + String.valueOf(System.currentTimeMillis());
+            System.scheduleBatch(new InstallationProductUpdateBatch(orderIds), jobName, 2, 1);
+        }
+    }
+    
+    // Method to check if related packages have Product_Change_Type__c != 'New Package' AND Product_Change_Type__c != null and count > 0
+    private static Boolean shouldProcessChangePackage(Set<Id> quoteIds) {
+        if (quoteIds == null || quoteIds.isEmpty()) {
+            return false;
+        }
+
+        // Count packages that meet the criteria
+        Integer matchCount = [
+            SELECT COUNT()
+            FROM Package__c
+            WHERE Quote__c IN :quoteIds
+              AND Product_Change_Type__c != 'New Package'
+              AND Product_Change_Type__c != null
+        ];
+
+        return matchCount > 0;
     }
     
 }

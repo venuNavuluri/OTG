@@ -214,8 +214,9 @@ public class bg_AccountUtils
             ultimateAccountIds.add(acc.Id);
         }
         List<Account> ultimateAccounts = [SELECT Id, ParentId, Ultimate_Parent_Email__c, 
-                                          Ultimate_Parent_Owner__c, Ultimate_Parent_Owner_Id__c, Ultimate_Parent_Account_Segmentation__c,
-                                          Ultimate_Parent_Id__c, Ultimate_Parent_Name__c, (SELECT Id FROM ChildAccounts) 
+                                          Ultimate_Parent_Owner__c, Ultimate_Parent_Owner_Id__c, 
+                                          Ultimate_Parent_Id__c, Ultimate_Parent_Name__c, 
+                                          Ultimate_Parent_Account_Segmentation__c, Ultimate_Parent_Account_Number__c, Ultimate_Parent_Account_Sub_AOV__c, (SELECT Id FROM ChildAccounts) 
                                           FROM Account 
                                           WHERE Id IN :ultimateAccountIds AND RecordTypeId = :b2bRTId];
         hierarchyRecursionCount++;
@@ -228,7 +229,9 @@ public class bg_AccountUtils
                 accsToUpdate.add(new Account(Id = childAccount.Id, Ultimate_Parent_Email__c = acc.Ultimate_Parent_Email__c,
                                              Ultimate_Parent_Owner__c = acc.Ultimate_Parent_Owner__c, Ultimate_Parent_Owner_Id__c = acc.Ultimate_Parent_Owner_Id__c,
                                              Ultimate_Parent_Id__c = acc.Ultimate_Parent_Id__c, Ultimate_Parent_Name__c = acc.Ultimate_Parent_Name__c, 
-                                             Ultimate_Parent_Account_Segmentation__c = acc.Ultimate_Parent_Account_Segmentation__c));
+                                             Ultimate_Parent_Account_Segmentation__c = acc.Ultimate_Parent_Account_Segmentation__c,
+                                             Ultimate_Parent_Account_Number__c = acc.Ultimate_Parent_Account_Number__c,
+                                             Ultimate_Parent_Account_Sub_AOV__c = acc.Ultimate_Parent_Account_Sub_AOV__c));
             }
         }
         
@@ -254,7 +257,8 @@ public class bg_AccountUtils
         
         Map<Id, Account> parentAccountsById = new Map<Id, Account>([SELECT Id, Ultimate_Parent_Email__c, Ultimate_Parent_Owner__c, 
                                                                     Ultimate_Parent_Owner_Id__c, Ultimate_Parent_Id__c, 
-                                                                    Ultimate_Parent_Name__c, Ultimate_Parent_Account_Segmentation__c 
+                                                                    Ultimate_Parent_Name__c, Ultimate_Parent_Account_Segmentation__c,
+                                                                    Ultimate_Parent_Account_Number__c, Ultimate_Parent_Account_Sub_AOV__c
                                                                     FROM Account WHERE Id IN :parentAccountIds AND RecordTypeId = :b2bRTId]);
         Map<Id, User> ownersById = new Map<Id, User>([SELECT Id, Email, FirstName, LastName FROM User WHERE Id IN :ownerIds]);
         
@@ -270,6 +274,8 @@ public class bg_AccountUtils
                 acc.Ultimate_Parent_Id__c = parentAccount.Ultimate_Parent_Id__c;
                 acc.Ultimate_Parent_Name__c = parentAccount.Ultimate_Parent_Name__c;
                 acc.Ultimate_Parent_Account_Segmentation__c = parentAccount.Ultimate_Parent_Account_Segmentation__c;
+                acc.Ultimate_Parent_Account_Number__c = parentAccount.Ultimate_Parent_Account_Number__c;
+                acc.Ultimate_Parent_Account_Sub_AOV__c = parentAccount.Ultimate_Parent_Account_Sub_AOV__c;
                 
             }
             else
@@ -281,6 +287,8 @@ public class bg_AccountUtils
                 acc.Ultimate_Parent_Id__c = acc.Id;
                 acc.Ultimate_Parent_Name__c = acc.Name;
                 acc.Ultimate_Parent_Account_Segmentation__c = acc.Account_Segmentation__c;
+                acc.Ultimate_Parent_Account_Number__c = acc.Account_ID__c;
+                acc.Ultimate_Parent_Account_Sub_AOV__c = acc.Subscription_Annual_Order_Value__c;
             }
         }
     }

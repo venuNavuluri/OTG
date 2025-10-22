@@ -1,5 +1,11 @@
 trigger bg_Account_au on Account (after update)
 {
+    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance();
+    if (bypassTrig != null && bypassTrig.ByPass_Account_Triggers__c) {
+        System.debug('bg_Account_au Trigger skipped for user: ');
+        return;
+    }
+
     List<Account> replicasToRecalculate = new List<Account>();
     List<Account> ultimateParentAccountChanges = new List<Account>();
     
@@ -17,7 +23,11 @@ trigger bg_Account_au on Account (after update)
                                         acc.Ultimate_Parent_Owner__c != oldAcc.Ultimate_Parent_Owner__c ||
                                         acc.Ultimate_Parent_Id__c != oldAcc.Ultimate_Parent_Id__c ||
                                         acc.Ultimate_Parent_Name__c != oldAcc.Ultimate_Parent_Name__c ||
-                                        acc.Ultimate_Parent_Owner_Id__c != oldAcc.Ultimate_Parent_Owner_Id__c;
+                                        acc.Ultimate_Parent_Owner_Id__c != oldAcc.Ultimate_Parent_Owner_Id__c ||
+            							acc.Ultimate_Parent_Account_Segmentation__c != oldAcc.Ultimate_Parent_Account_Segmentation__c ||
+            							acc.Ultimate_Parent_Account_Number__c != oldAcc.Ultimate_Parent_Account_Number__c ||
+            							acc.Ultimate_Parent_Account_Sub_AOV__c != oldAcc.Ultimate_Parent_Account_Sub_AOV__c;
+        								
         if (hierarchyFieldChanged && acc.RecordTypeId == bg_AccountUtils.b2bRTId)
         {
             ultimateParentAccountChanges.add(acc);

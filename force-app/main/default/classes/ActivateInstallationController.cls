@@ -38,7 +38,7 @@ public with sharing class ActivateInstallationController {
         inst.Installation_Order_Status__c = 'Active';
         update inst;
 
-        SalesOrderGeneratorService.generateSalesOrders(new List<Installation__c>{inst}, false);
+        SalesOrderGeneratorService.generateSalesOrders(new List<Installation__c>{inst}, false, false);
         Logger.info('Sales Orders generated for Installation: ' + inst.Id);
 
         Logger.saveLog();
@@ -53,10 +53,10 @@ public with sharing class ActivateInstallationController {
 }
 
     private static void deleteExistingInstallationLinesAndSalesOrders(Id installationId) {
-        List<Sales_Order__c> relatedSOs = [SELECT Id FROM Sales_Order__c WHERE Installation__c = :installationId];
+        List<Sales_Order__c> relatedSOs = [SELECT Id FROM Sales_Order__c WHERE Installation__c = :installationId and Installation__r.DeleteInstallationLinesAndSOs__c = true];
         if (!relatedSOs.isEmpty()) delete relatedSOs;
 
-        List<Installation_Line__c> existingLines = [SELECT Id FROM Installation_Line__c WHERE Installation__c = :installationId];
+        List<Installation_Line__c> existingLines = [SELECT Id FROM Installation_Line__c WHERE Installation__c = :installationId AND Installation__r.DeleteInstallationLinesAndSOs__c = true];
         if (!existingLines.isEmpty()) delete existingLines;
     }
 

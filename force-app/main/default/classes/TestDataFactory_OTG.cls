@@ -58,18 +58,18 @@ public class TestDataFactory_OTG {
     }
 
     // ---------- Cached getters ----------
-    private static Id getStandardPricebookIdCached() {
+    public static Id getStandardPricebookIdCached() {
         if (standardPricebookId == null) standardPricebookId = Test.getStandardPriceBookId();
         return standardPricebookId;
     }
-    private static Id getInvoiceAccountRecordTypeIdCached() {
+    public static Id getInvoiceAccountRecordTypeIdCached() {
         if (invoiceAccountRecordTypeId == null) {
             invoiceAccountRecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByName()
                 .get('Invoice Account').getRecordTypeId();
         }
         return invoiceAccountRecordTypeId;
     }
-    private static Id getOrCreateCountryMappingId(String region) {
+    public static Id getOrCreateCountryMappingId(String region) {
         String normalizedRegion = String.isBlank(region) ? 'Americas' : region;
         if (countryMappingIdByRegion.containsKey(normalizedRegion)) {
             return countryMappingIdByRegion.get(normalizedRegion);
@@ -146,6 +146,7 @@ public class TestDataFactory_OTG {
             StageName        = 'Prospecting & Qualifying',
             CloseDate        = Date.today().addDays(30),
             Business_Unit__c = 'Technical Ship Management',
+            LeadSource       = 'Existing Customer Relationship',
             Sales_Type__c    = 'Subscription',
             Amount           = 1000,
             Legal_Entity__c  = legalEntityId
@@ -432,7 +433,7 @@ public class TestDataFactory_OTG {
         if (cachedVesselId != null) {
             return new Vessel__c(Id = cachedVesselId);
         }
-        Vessel__c vessel = new Vessel__c(Name = 'Test Vessel', Vessel_IMO_Status__c = 'Active IMO');
+        Vessel__c vessel = new Vessel__c(Name = 'Test Vessel', Vessel_IMO_Status__c = 'Active IMO', Vessel_IMO__c = '123456', Vessel_MMSI__c = '987654321');
         insert vessel;
         cachedVesselId = vessel.Id;
         return vessel;
@@ -442,7 +443,7 @@ public class TestDataFactory_OTG {
         Integer total = (count == null || count <= 0) ? 1 : count;
         List<Vessel__c> vesselsToInsert = new List<Vessel__c>();
         for (Integer i = 0; i < total; i++) {
-            vesselsToInsert.add(new Vessel__c(Name = 'Test Vessel ' + i, Vessel_IMO_Status__c = 'Active IMO'));
+            vesselsToInsert.add(new Vessel__c(Name = 'Test Vessel ' + i, Vessel_IMO_Status__c = 'Active IMO', Vessel_IMO__c = '12345' + i, Vessel_MMSI__c = '9876543' + i));
         }
         insert vesselsToInsert;
         return vesselsToInsert;

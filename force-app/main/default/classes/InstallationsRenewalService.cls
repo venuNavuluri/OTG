@@ -39,7 +39,7 @@ public with sharing class InstallationsRenewalService {
         if (!validInstallationsForSO.isEmpty()) {
             Logger.info('Generating Sales Orders for ' + validInstallationsForSO.size() + ' installations.');
             Logger.saveLog();
-            SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true);
+            SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true, false);
         } else {
             Logger.info('No valid installations found for Sales Order generation.');
             Logger.saveLog();
@@ -49,7 +49,7 @@ public with sharing class InstallationsRenewalService {
         Logger.saveLog();
     }
 
-    private static Map<Id, List<SBQQ__Subscription__c>> fetchSubscriptionsByInstallations(List<Installation__c> installations) {
+    public static Map<Id, List<SBQQ__Subscription__c>> fetchSubscriptionsByInstallations(List<Installation__c> installations) {
         Map<Id, List<SBQQ__Subscription__c>> subsByInstId = new Map<Id, List<SBQQ__Subscription__c>>();
     
         Set<Id> quoteLineGroupIds = new Set<Id>();

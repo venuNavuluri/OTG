@@ -1,47 +1,70 @@
 <template>
     <lightning-quick-action-panel header="Confirm Termination">
-        <div class="slds-m-bottom_medium">
-            <lightning-radio-group
-                label="Are you sure you want to terminate the installation?"
-                options={options}
-                value={tValue}
-                onchange={onSelected}
-                required
-                class="slds-m-bottom_medium slds-grid slds-wrap">
-            </lightning-radio-group>
-        </div>
+        <template if:true={isValidating}>
+            <div class="slds-m-bottom_medium slds-align_absolute-center">
+                <lightning-spinner size="small" alternative-text="Validating open Quotes or Orders"></lightning-spinner>
+            </div>
+        </template>
 
-        <template if:true={showDetails}>
-            <lightning-record-edit-form object-api-name="Installation__c">
-                <div class="slds-grid slds-wrap">
-                    <!-- Termination End Date -->
-                    <div class="slds-col slds-size_1-of-2 slds-p-right_small">
-                        <lightning-input-field variant="label-stacked" field-name="Termination_End_Date__c"
-                            required="true" onchange={handleFieldChange}>
-                        </lightning-input-field>
-                        <template if:true={error}>
-                            <span class="slds-text-color_error slds-m-top_x-small">
-                                <b>{errorMessage}</b>
-                            </span>
-                        </template>
-                    </div>
-
-                    <!-- Termination Reason -->
-                    <div class="slds-col slds-size_1-of-2 slds-p-left_small">
-                        <lightning-input-field variant="label-stacked" field-name="Termination_Reason__c"
-                            required="true" onchange={handleFieldChange}>
-                        </lightning-input-field>
-                    </div>
+        <template if:true={warnings}>
+            <div class="warning-banner slds-notify slds-notify_alert slds-m-bottom_medium" role="alert">
+                <span class="slds-assistive-text">Warning</span>
+                <div>
+                    <template for:each={warnings} for:item="item">
+                        <div key={item} class="slds-m-bottom_x-small">
+                            <lightning-formatted-rich-text value={item}></lightning-formatted-rich-text>
+                        </div>
+                    </template>
                 </div>
-            </lightning-record-edit-form>
+            </div>
+        </template>
+
+        <template if:true={showTerminationForm}>
+            <div class="slds-m-bottom_medium">
+                <lightning-radio-group
+                    label="Are you sure you want to terminate the installation?"
+                    options={options}
+                    value={tValue}
+                    onchange={onSelected}
+                    required
+                    class="slds-m-bottom_medium slds-grid slds-wrap">
+                </lightning-radio-group>
+            </div>
+
+            <template if:true={showDetails}>
+                <lightning-record-edit-form object-api-name="Installation__c">
+                    <div class="slds-grid slds-wrap">
+                        <!-- Termination End Date -->
+                        <div class="slds-col slds-size_1-of-2 slds-p-right_small">
+                            <lightning-input-field variant="label-stacked" field-name="Termination_End_Date__c"
+                                required="true" onchange={handleFieldChange}>
+                            </lightning-input-field>
+                            <template if:true={error}>
+                                <span class="slds-text-color_error slds-m-top_x-small">
+                                    <b>{errorMessage}</b>
+                                </span>
+                            </template>
+                        </div>
+
+                        <!-- Termination Reason -->
+                        <div class="slds-col slds-size_1-of-2 slds-p-left_small">
+                            <lightning-input-field variant="label-stacked" field-name="Termination_Reason__c"
+                                required="true" onchange={handleFieldChange}>
+                            </lightning-input-field>
+                        </div>
+                    </div>
+                </lightning-record-edit-form>
+            </template>
         </template>
 
         <!-- Footer Buttons -->
         <div slot="footer" class="slds-align_absolute-center slds-m-top_medium">
             <lightning-button variant="neutral" label="Cancel" title="Cancel" onclick={cancel}
                 class="slds-m-right_small"></lightning-button>
-            <lightning-button variant="brand" label="Save" title="Save" onclick={handleSave}
-                disabled={disableSaveButton}></lightning-button>
+            <template if:true={showTerminationForm}>
+                <lightning-button variant="brand" label="Save" title="Save" onclick={handleSave}
+                    disabled={isSaveDisabled}></lightning-button>
+            </template>
         </div>
     </lightning-quick-action-panel>
 </template>

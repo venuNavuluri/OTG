@@ -32,7 +32,7 @@ public class LeadReferralController {
             Email = (String)leadData.get('email'),
             Company = (String)leadData.get('companyName'),
             //Customer_Type__c = (String)leadData.get('companyType'),
-            Is_this_an_existing_customer_of_LR_or_LR__c = (String)leadData.get('existingCustomer'),
+            //Is_this_an_existing_customer_of_LR_or_LR__c = (String)leadData.get('existingCustomer'),
             Title = (String)leadData.get('jobTitle'),
             Description = DateTime.now().format('dd MMMM yyyy') + ' - OTG web to lead form: ' + (String)leadData.get('message'),
             Phone = (String)leadData.get('phone'),
@@ -40,8 +40,8 @@ public class LeadReferralController {
             Account_Salesforce_URL__c = (String)leadData.get('AccountURL'),
             Sales_Type__c = SalesType,
             Products__c = String.join(products, ';'),
-            Sales_Person_Email__c = (String)leadData.get('salesPersonEmail'),
-            Sales_Person_Full_Name__c = (String)leadData.get('salesPersonName'),
+            //Sales_Person_Email__c = (String)leadData.get('salesPersonEmail'),
+            //Sales_Person_Full_Name__c = (String)leadData.get('salesPersonName'),
             Customer_background__c = (String)leadData.get('customerbackground'),
             Vessel_Name__c = (String)leadData.get('vesselDetails')
             
@@ -85,7 +85,7 @@ public class LeadReferralController {
     public static Boolean isSpam(Lead l){
         Boolean isSpam = false;
         Boolean blockedDomain = isDomainSpam(l.Email.toLowerCase(),l.Website.toLowerCase());
-        Boolean blockedEmail = isEmailSpam(l.Email, l.Sales_Person_Email__c);
+        Boolean blockedEmail = isEmailSpam(l.Email);
         Boolean blockedKeyworlds = isKeywordSpam(l.Description, l.Customer_background__c);
         
         if (blockedDomain || blockedEmail || blockedKeyworlds){
@@ -95,7 +95,7 @@ public class LeadReferralController {
         return isSpam;
     }
     
-    public static Boolean isEmailSpam(String emailAddress, String salesPersonEmail){
+    public static Boolean isEmailSpam(String emailAddress){
         Boolean spamEmail = false;
         if (emailRules.isEmpty() && spamValidation.size() > 0 && spamValidation.get('Email') != null){
             emailRules = spamValidation.get('Email');

@@ -1,6 +1,6 @@
 public class SalesOrderGeneratorService {
 
-    public static void generateSalesOrders(List<Installation__c> installations, Boolean isRenewal) {
+    public static void generateSalesOrders(List<Installation__c> installations, Boolean isRenewal, Boolean isPackageChange) {
         Savepoint sp = Database.setSavePoint();
         try {
             List<Installation__c> validInstallations = fetchInstallationsWithDetails(installations);
@@ -16,19 +16,33 @@ public class SalesOrderGeneratorService {
                 Date instStart = isRenewal ? inst.Contract__r.StartDate : inst.Installation_Start_Date__c;
                 Date instEnd = inst.Installation_End_Date__c;
                 Date contractStart = inst.Contract__r.StartDate;
+                
+                // Order activation date (ActivatedDate -> EffectiveDate -> today)
+                Date orderActivationDate;
+                if (inst.Order__c != null && inst.Order__r.EffectiveDate != null) {
+                    orderActivationDate = inst.Order__r.EffectiveDate;
+                } else {
+                    orderActivationDate = Date.today();
+                }
 
                 Integer interval = getBillingCycleMonths(inst.Contract__r.Billing_Frequency__c);
-                List<BillingPeriod> billingPeriods = generateBillingPeriods(contractStart, instEnd, interval, instStart);
+                
+                // If package change, anchor BOTH contractStart & installStart to the Order activation date
+                Date anchorContractStart = contractStart;
+                Date anchorInstallStart  = isPackageChange ? orderActivationDate : instStart;
+
+                List<BillingPeriod> billingPeriods =
+                    generateBillingPeriods(anchorContractStart, instEnd, interval, anchorInstallStart);
 
                 for (Integer i = 0; i < billingPeriods.size(); i++) {
                     Date periodStart = billingPeriods[i].startDate;
                     Date periodEnd = billingPeriods[i].endDate;
 
-                    if (periodEnd < instStart) continue;
+                    if (periodEnd < anchorInstallStart) continue;
                     if (periodStart > instEnd) continue;
 
-                    if (periodStart < instStart && instStart <= periodEnd) {
-                        periodStart = instStart;
+                    if (periodStart < anchorInstallStart && anchorInstallStart <= periodEnd) {
+                        periodStart = anchorInstallStart;
                     }
 
                     if (periodEnd > instEnd) periodEnd = instEnd;
@@ -63,7 +77,8 @@ public class SalesOrderGeneratorService {
         return [
             SELECT Id, Contract__c, Invoice_Account__c, CurrencyIsoCode,
                    Installation_Start_Date__c, Installation_End_Date__c,
-                   Contract__r.Billing_Frequency__c, Contract__r.StartDate
+                   Contract__r.Billing_Frequency__c, Contract__r.StartDate,
+                   Order__c,Order__r.ActivatedDate,Order__r.EffectiveDate
             FROM Installation__c
             WHERE Id IN :installations
         ];
@@ -78,7 +93,7 @@ public class SalesOrderGeneratorService {
             SELECT Id, Name, Installation__c, Subscription__c, Quote_Line__c,
                    Product__c, CurrencyIsoCode, Net_Total__c, Start_Date__c, End_Date__c
             FROM Installation_Line__c
-            WHERE Installation__c IN :instIds
+            WHERE Installation__c IN :instIds AND End_Date__c > :Date.today()
         ];
 
         for (Installation_Line__c line : lines) {

@@ -13,8 +13,6 @@ public class InstallationTriggerHandler {
             }
 
             Set<String> packIdSet = new Set<String>();
-            //Map<String, Installation__c> contVessStatusMap = new Map<String, Installation__c>();
-            //Map<String, Installation__c> contOrgStatusMap = new Map<String, Installation__c>();
             Map<String, Installation__c> conInstMap = new Map<String, Installation__c>();
 
             for (Installation__c inst : instList) {
@@ -56,26 +54,7 @@ public class InstallationTriggerHandler {
                 }
             }
 
-            /*if (!conInstMap.isEmpty()) {
-                List<Contract> conList = [
-                    SELECT Id, StartDate, EndDate 
-                    FROM Contract 
-                    WHERE Id IN :conInstMap.keySet() 
-                    AND StartDate != null 
-                    AND EndDate != null
-                ];
-
-                for (Contract con : conList) {
-                    Installation__c inst = conInstMap.get(con.Id);
-                    inst.Installation_Start_Date__c = con.StartDate;
-                    inst.Installation_End_Date__c = con.EndDate;
-                }
-            }*/
-
         } catch (Exception ex) {
-            System.debug('Exception ex --> ' + ex);
-            System.debug('Exception line --> ' + ex.getLineNumber());
-            System.debug('Ex --> ' + ex.getMessage());
             Logger.error('beforeInsert - Exception: ', ex);
             Logger.savelog();
             throw new AuraHandledException('An error occurred during beforeInsert processing.');
@@ -89,6 +68,7 @@ public class InstallationTriggerHandler {
             List<Id> instIdList = new List<Id>();
             Map<Id, Date> terminationDates = new Map<Id, Date>();
             List<Installation__c> activeInstList = new List<Installation__c>();
+            Set<Id> futureTerminatedInstIds = new Set<Id>();
     
             for (Installation__c inst : instList) {
                 Installation__c oldInst = oldInstMap.get(inst.Id);
@@ -97,25 +77,53 @@ public class InstallationTriggerHandler {
                     if (inst.Installation_Order_Status__c == 'Terminated' && oldInst.Installation_Order_Status__c != 'Terminated') {
                         instIdList.add(inst.Id);
                         terminationDates.put(inst.Id, inst.Termination_End_Date__c); // Assuming this field exists
-                    } else if (inst.Installation_Order_Status__c == 'Active' && oldInst.Installation_Order_Status__c != 'Active') {
-                        if (inst.Contract__r.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
-                            activeInstList.add(inst);
+                        if (oldInst.Installation_Order_Status__c == 'Future Terminated') {
+                            futureTerminatedInstIds.add(inst.Id);
                         }
-                    }
+                    } 
                 }
             }
     
             if (!instIdList.isEmpty()) {
+                Map<Id, Installation__c> instDetails = new Map<Id, Installation__c>([
+                    SELECT Id, Contract__c, Contract__r.EndDate, Termination_End_Date__c
+                    FROM Installation__c
+                    WHERE Id IN :instIdList
+                ]);
+
                 for (Id instId : instIdList) {
                     Date terminationDate = terminationDates.get(instId);
-                    if (terminationDate != null) {
+                    Installation__c inst = instDetails.get(instId);
+                    if (terminationDate != null &&
+                        inst != null &&
+                        inst.Contract__r != null &&
+                        inst.Contract__r.EndDate != inst.Termination_End_Date__c) {
                         handleTerminatedInstallations(new List<Id>{ instId }, terminationDate);
                     }
                 }
             }
     
-            if (!activeInstList.isEmpty()) {
-                CreateSalesOrderService.createSORecords(activeInstList);
+            if (!futureTerminatedInstIds.isEmpty()) {
+                List<Installation__c> futureTerminatedInsts = [
+                    SELECT Id, Contract__c, Contract__r.EndDate, Package__c, Termination_End_Date__c
+                    FROM Installation__c
+                    WHERE Id IN :futureTerminatedInstIds
+                ];
+                for (Installation__c inst : futureTerminatedInsts) {
+                    if (inst.Contract__c != null &&
+                        inst.Package__c != null &&
+                        inst.Termination_End_Date__c != null &&
+                        inst.Contract__r != null &&
+                        inst.Contract__r.EndDate != inst.Termination_End_Date__c) {
+                        CreateInstallationsController.modifyContract(
+                            inst.Id,
+                            inst.Termination_End_Date__c,
+                            inst.Contract__c,
+                            inst.Package__c,
+                            true
+                        );
+                    }
+                }
             }
     
         } catch (Exception ex) {
@@ -124,7 +132,7 @@ public class InstallationTriggerHandler {
         }
     }
 
-    private static void handleTerminatedInstallations(List<Id> instIdList, Date terminationDate) {
+    public static void handleTerminatedInstallations(List<Id> instIdList, Date terminationDate) {
         try {
             Logger.info('Handling Terminated Installations for: ' + instIdList + ' with Termination Date: ' + terminationDate);
     
@@ -184,7 +192,7 @@ public class InstallationTriggerHandler {
                         newCreditSalesOrders.add(creditSO);
                         oldToNewSalesOrderMap.put(so.Id, null);
     
-                        so.Status__c = 'Terminated';
+                        //so.Status__c = 'Terminated';
                         soListToUpdate.add(so);
                     }
                 }

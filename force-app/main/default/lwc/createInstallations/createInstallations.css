@@ -1,3 +1,15 @@
 .outer-div{
     position: relative;
 }
+
+.warning-banner {
+    background-color: #fff8db;
+    background-image: none;
+    border: 1px solid #f3c13a;
+    color: #4a3610;
+}
+
+.warning-banner a {
+    color: #0b5cab;
+    text-decoration: underline;
+}

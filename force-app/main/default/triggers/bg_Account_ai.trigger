@@ -1,5 +1,11 @@
 trigger bg_Account_ai on Account (after insert)
 {
+    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance();
+    if (bypassTrig != null && bypassTrig.ByPass_Account_Triggers__c) {
+        System.debug('bg_Account_ai Trigger skipped for user: ');
+        return;
+    }
+
     try{
         Id b2bRecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByName().get('B2B Account').getRecordTypeId();
         List<Account> b2bAccounts = new List<Account>();

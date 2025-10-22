@@ -65,96 +65,46 @@
                 </header>-->
                 <!-- Modal/Popup Box LWC body starts here -->
                 <!--<div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">-->
-                    <div class="outer-div">
-                    <template if:true={isPackageScreen}>
-                         <div class="slds-p-bottom_x-small">
-                    <div class="slds-grid slds-box">
-                        <div class="slds-col slds-size_1-of-2 slds-p-left_x-large">
-                            <lightning-radio-group
-                                label="Select Add/Remove"
-                                options={arOptions}
-                                value={arValue}
-                                onchange={onARSelected}
-                                required>
-                            </lightning-radio-group>
-                            <br/>
+                    <div class="outer-div slds-box slds-theme_default">
+                        <div class="slds-m-bottom_medium">
+                            <h1 class="slds-text-heading_medium">Add Installation</h1>
+                            <p class="slds-text-body_small slds-m-top_x-small">
+                                By using this feature you can add only installation. Before adding any new installation, please make sure all open Quotes or Orders are activated first.
+                            </p>
                         </div>
+                        <div class="slds-m-bottom_medium">
+                            <lightning-button label="Add New Installation" variant="brand" onclick={startAddFlow} disabled={isLoaded}></lightning-button>
                         </div>
-                    </div>
-                        
-                    </template>
-                    <template if:true={isAddPackage}>
-                        <div class="slds-p-bottom_x-small">
-                        <div class="slds-grid slds-box">
-                            <div class="slds-col slds-size_1-of-2 slds-p-left_x-large">
-                            <lightning-radio-group
-                                label="Select Packages"
-                                options={options}
-                                value={value}
-                                onchange={onPackageSelected}
-                                required
-                            >
-                            </lightning-radio-group>
-                            <br/>
+                        <template if:true={warnings}>
+                            <div class="warning-banner slds-notify slds-notify_alert slds-m-top_small slds-m-bottom_medium" role="alert">
+                                <span class="slds-assistive-text">Warning</span>
+                                <div>
+                                    <template for:each={warnings} for:item="item">
+                                        <div key={item} class="slds-m-bottom_x-small">
+                                            <lightning-formatted-rich-text value={item}></lightning-formatted-rich-text>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
-                            </div>
-                        </div>
-                    </template>
-                    <template if:true={isTerminatePackage}>
-                        <div class="slds-border_top slds-border_bottom">
-                            <p></p>
-                        <lightning-datatable wrap-table-header class="slds-border_left slds-border_right slds-border_top slds-border_bottom" data={installationList} columns={columns} key-field="InstId" row-number-offset={rowOffset}
-                        hide-checkbox-column >
-                        </lightning-datatable>
-                        <!--<table class="slds-table slds-table_cell-buffer slds-table_bordered" aria-labelledby="element-with-table-label other-element-with-table-label">
-                            <thead>
-                              <tr class="slds-line-height_reset">
-                                <th class="" scope="col">
-                                  <div class="slds-truncate" title="Opportunity Name">Installation Name</div>
-                                </th>
-                                <th class="" scope="col">
-                                    <div class="slds-truncate" title="Opportunity Name">Vessel IMO</div>
-                                </th>
-                                <th class="" scope="col">
-                                    <div class="slds-truncate" title="Opportunity Name">Vessel Name</div>
-                                </th>
-                                <th class="" scope="col">
-                                    <div class="slds-truncate" title="Opportunity Name">Vessel Status</div>
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                                <template for:each={installationList} for:item="inst" >
-                                    <tr key={inst.InstId} class="slds-hint-parent">
-                                        <td data-label="Opportunity Name" scope="row">
-                                            <div class="slds-truncate" title={inst.InstName}>
-                                                <a href={inst.link} tabindex="-1">{inst.InstName}</a>
-                                            </div>
-                                        </td>
-                                        <td data-label="Vessel IMO" scope="row">
-                                            {inst.VesselIMO}
-                                        </td>
-                                        <td data-label="Vessel Name" scope="row">
-                                            {inst.VesselName}
-                                        </td>
-                                        <td data-label="Vessel Status" scope="row">
-                                            {inst.VesselStatus}
-                                        </td>
-                                    </tr>
+                        </template>
+                        <template if:true={showPackagePicker}>
+                            <div class="slds-p-bottom_x-small">
+                                <lightning-combobox
+                                    class="slds-m-bottom_small"
+                                    label="Select Package"
+                                    options={options}
+                                    value={value}
+                                    placeholder="Select a package to continue"
+                                    onchange={handlePackageSelection}>
+                                </lightning-combobox>
+                                <template if:true={isPackageSelected}>
+                                    <p class="slds-text-body_small slds-m-bottom_small">
+                                        You selected <strong>{selectedPackageName}</strong>. Please confirm to continue.
+                                    </p>
                                 </template>
-                            </tbody>
-                        </table>-->
-                        <!--<lightning-dual-listbox name="Installations"
-                                    label="Select Installations"
-                                    source-label="Available"
-                                    selected-label="Selected"
-                                    options={lstOptions}
-                                    onchange={handleChange}></lightning-dual-listbox>
-                                    <br/>
-                        <lightning-button label="Terminate" variant="brand" disabled={disabled} onclick={terminateInstallations} ></lightning-button>-->
-                        <p>{termMessage}</p>
-                        </div>
-                    </template>
+                                <lightning-button label="Next" variant="brand" onclick={confirmPackage} disabled={disableConfirm}></lightning-button>
+                            </div>
+                        </template>
                     <template if:true={isQtyScreen}>
                         <div class="slds-p-bottom_x-small">
                         <!--<div class="slds-grid slds-box ">-->
@@ -193,6 +143,10 @@
                                         </div>
                                         <div class="slds-col slds-size_2-of-6 slds-p-right_small">
                                             <lightning-input-field variant="label-stacked" field-name="Delivery_Contact__c" onchange={handleFieldChange}>
+                                            </lightning-input-field>
+                                        </div>
+                                        <div class="slds-col slds-size_2-of-6 slds-p-right_small">
+                                            <lightning-input-field variant="label-stacked" field-name="Installation_Start_date__c" onchange={handleFieldChange} required>
                                             </lightning-input-field>
                                         </div>
                                         <div class="slds-col slds-size_2-of-6">

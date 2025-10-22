@@ -107,7 +107,7 @@ public class ContractDocumentPDFController {
                 inst.Invoice_Account__r.Invoice_Emails__c = inst.Invoice_Account__r.Invoice_Emails__c.replaceAll(';', '\n');
             }
             if (inst.Package__r.Installation_Cost__c != null) {
-                totalInstallationCost += inst.Package__r.Installation_Cost__c;
+                totalInstallationCost += inst.Package__r.Temp_Quote_Line_Group__r.Installation_Price__c;
             }
             
             if(inst.Invoice_Account__c != NULL && invWrapMap.get(inst.Invoice_Account__r.Account_ID__c) == NULL)

@@ -22,7 +22,9 @@ public class QuoteTriggerHandler extends TriggerHandler {
     
     
     public override void beforeInsert() {
-        
+        // Block Amendment quote creation when open quotes or draft orders exist for the contract
+        enforceNoOpenItemsForAmendment((List<SBQQ__Quote__c>) Trigger.new);
+
         QuoteTriggerHelper.updateQlgCheckbox(Trigger.new);
         updateQuoteEndDate((List<SBQQ__Quote__c>) Trigger.new);
         
@@ -33,9 +35,7 @@ public class QuoteTriggerHandler extends TriggerHandler {
         if (masterContracts.isEmpty()) return;
         
         updateOpportunityCurrencies(amendmentQuotes, masterContracts);
-        
         updateQuoteCurrencies(amendmentQuotes, masterContracts);
-        
     }
     public override void afterInsert() {
         createQuoteLineGroups((Map<Id, SBQQ__Quote__c>) Trigger.newMap);
@@ -387,5 +387,60 @@ public class QuoteTriggerHandler extends TriggerHandler {
             FROM Contract 
             WHERE Id IN :contractIds
         ]);
+    }
+
+    /**
+     * Enforces: Do not allow creating Amendment Quotes if there are open Quotes or Draft Orders on the Contract.
+     * Contract resolution priority:
+     *  - If quote is Amendment and SBQQ__MasterContract__c present -> use it
+     *  - Else if Amendment and Master Contract blank -> use Opportunity.SBQQ__AmendedContract__c
+     * Non-Amendment quotes are ignored.
+     */
+    @TestVisible
+    private static void enforceNoOpenItemsForAmendment(List<SBQQ__Quote__c> incomingQuotes) {
+        if (incomingQuotes == null || incomingQuotes.isEmpty()) return;
+
+        // Resolve contract per amendment quote
+        Map<Id, Id> quoteIdToContractId = new Map<Id, Id>();
+        Set<Id> oppIdsToQuery = new Set<Id>();
+
+        for (SBQQ__Quote__c q : incomingQuotes) {
+            if (q.SBQQ__Type__c == QUOTE_TYPE_AMENDMENT) {
+                if (q.SBQQ__MasterContract__c != null) {
+                    quoteIdToContractId.put(q.Id, q.SBQQ__MasterContract__c);
+                } else if (q.SBQQ__Opportunity2__c != null) {
+                    oppIdsToQuery.add(q.SBQQ__Opportunity2__c);
+                }
+            }
+        }
+        if (!oppIdsToQuery.isEmpty()) {
+            Map<Id, Opportunity> oppMap = new Map<Id, Opportunity>([
+                SELECT Id, SBQQ__AmendedContract__c
+                FROM Opportunity
+                WHERE Id IN :oppIdsToQuery
+            ]);
+            for (SBQQ__Quote__c q : incomingQuotes) {
+                if (q.SBQQ__Type__c == QUOTE_TYPE_AMENDMENT
+                    && q.SBQQ__MasterContract__c == null
+                    && q.SBQQ__Opportunity2__c != null) {
+                    Opportunity o = oppMap.get(q.SBQQ__Opportunity2__c);
+                    if (o != null && o.SBQQ__AmendedContract__c != null) {
+                        quoteIdToContractId.put(q.Id, o.SBQQ__AmendedContract__c);
+                    }
+                }
+            }
+        }
+
+        // Invoke validator and add errors
+        for (SBQQ__Quote__c q : incomingQuotes) {
+            if (q.SBQQ__Type__c != QUOTE_TYPE_AMENDMENT) continue;
+            Id contrId = quoteIdToContractId.get(q.Id);
+            if (contrId == null) continue;
+
+            List<String> warnings = CreateInstallationsController.validateOpenQuotesOrders(contrId);
+            if (!warnings.isEmpty()) {
+                q.addError('Cannot create Amendment Quote: open Quotes or Draft Orders exist for the Contract. Details: ' + String.join(warnings, ' | '));
+            }
+        }
     }
 }
