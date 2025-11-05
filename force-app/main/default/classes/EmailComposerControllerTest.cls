@@ -98,7 +98,7 @@ public class EmailComposerControllerTest {
         Lead updatedLead = [SELECT Id, Status, Reason_For_Closing__c, Reason_for_Closing_Comments__c 
                           FROM Lead WHERE Id = :testLead.Id];
         System.assertEquals('Lost/Closed', updatedLead.Status, 'Lead status should be updated');
-        System.assertEquals('Support Enquiry', updatedLead.Reason_For_Closing__c, 'Reason should be set');
+        System.assertEquals('Tech Support Query', updatedLead.Reason_For_Closing__c, 'Reason should be set');
         
         // Verify email was sent (checking Task creation since setSaveAsActivity=true)
         List<Task> emailTasks = [SELECT Id FROM Task WHERE WhoId = :testLead.Id];

@@ -220,7 +220,7 @@ public class QuoteInstallationController {
                                                         SBQQ__Quote__r.SBQQ__Account__c, User_Quantity__c, CurrencyIsoCode,Package__r.Name, 
                                                         (Select Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name,Package__c,
                                                         Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Quote__c, Quote__r.Name,Change_Package_Status__c 
-                                                        FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated'),
+                                                        FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated'),
                                                         (Select Id,Name,SBQQ__ProductName__c,SBQQ__Product__r.ProductCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__NetPrice__c, SBQQ__NetTotal__c, CurrencyIsoCode, SBQQ__Quote__r.SBQQ__Type__c
                                                         From SBQQ__LineItems__r)
                                                         From SBQQ__QuoteLineGroup__c
@@ -232,7 +232,7 @@ public class QuoteInstallationController {
             }
             Map<Id, Package__c> packMap = new Map<Id, Package__c>([SELECT Id, Name, 
                                                                     (SELECT Id,Name,Installation_Type__c,Vessel_Name__c,Vessel_Name__r.Name,Organisation_Name__c,Organisation_Name__r.Name, Quote__c, Quote__r.Name,Package__c,Package__r.Name, 
-                                                                    Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Change_Package_Status__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
+                                                                    Invoice_Account__c,Invoice_Account__r.Name,Client__c,Client__r.Name,Delivery_Contact__c,Delivery_Contact__r.Name, Change_Package_Status__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated')
                                                                     FROM Package__c WHERE Id IN :packIdList]);
             List<QuoteRecordWrapper> qrwList = new List<QuoteRecordWrapper>();
             Map<Id, QuoteRecordWrapper> qrwPackMap = new Map<Id, QuoteRecordWrapper>();

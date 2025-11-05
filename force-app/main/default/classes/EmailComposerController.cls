@@ -61,7 +61,7 @@ public with sharing class EmailComposerController {
             Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ mail });
 
             // Update the lead status to 'Lost/Closed' 
-            Lead updateLead = new Lead(Id = leadId, Status = 'Lost/Closed', Reason_For_Closing__c = 'Support Enquiry', Reason_for_Closing_Comments__c = 'Handover to Support Team');
+            Lead updateLead = new Lead(Id = leadId, Status = 'Lost/Closed', Reason_For_Closing__c = 'Tech Support Query', Reason_for_Closing_Comments__c = 'Handover to Support Team');
             update updateLead;
 
         } catch (Exception ex) {

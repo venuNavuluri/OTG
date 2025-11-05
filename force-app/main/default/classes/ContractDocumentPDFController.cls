@@ -91,7 +91,7 @@ public class ContractDocumentPDFController {
             Invoice_Account__r.Town_City__c, Invoice_Account__r.County_State__c, Invoice_Account__r.Postcode_Zipcode__c,
             Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, CurrencyIsoCode, Package__r.Temp_Quote_Line_Group__r.Installation_Price__c
             FROM Installation__c
-            WHERE Package__c IN :packIdList AND Installation_Order_Status__c != 'Terminated'
+            WHERE Package__c IN :packIdList AND Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated'
         ];
         
         totalInstallationCost = 0; // Initialize total cost
@@ -106,7 +106,7 @@ public class ContractDocumentPDFController {
             {
                 inst.Invoice_Account__r.Invoice_Emails__c = inst.Invoice_Account__r.Invoice_Emails__c.replaceAll(';', '\n');
             }
-            if (inst.Package__r.Installation_Cost__c != null) {
+            if (inst.Package__r.Temp_Quote_Line_Group__r.Installation_Price__c != null) {
                 totalInstallationCost += inst.Package__r.Temp_Quote_Line_Group__r.Installation_Price__c;
             }
             

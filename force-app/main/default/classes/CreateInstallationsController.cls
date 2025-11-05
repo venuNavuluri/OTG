@@ -49,6 +49,7 @@ public class CreateInstallationsController
                     FROM Order
                     WHERE SBQQ__Quote__r.SBQQ__MasterContract__c IN :quoteIds
                       AND (Status = 'Draft' OR Status = 'Pending Implementation')
+                      AND Type != 'Service Delivery'
                 ];
             } else {
                 draftOrders = [
@@ -56,6 +57,7 @@ public class CreateInstallationsController
                     FROM Order
                     WHERE SBQQ__Quote__r.SBQQ__MasterContract__c = :contractId
                       AND (Status = 'Draft' OR Status = 'Pending Implementation')
+                      AND Type != 'Service Delivery'
                 ];
             }
 
@@ -122,7 +124,6 @@ public class CreateInstallationsController
                 inst.Package__c = packId;
                 inst.Quote__c = pack.Quote__c;
                 inst.Installation_Order_Status__c = STATUS_DRAFT;
-                inst.Installation_Start_Date__c = (startDate != null ? startDate : Date.today().addDays(DEFAULT_INSTALLATION_START_OFFSET_DAYS));
                 inst.Auto_Installation__c = true;
                 
                 insert inst;
@@ -133,7 +134,7 @@ public class CreateInstallationsController
                 }
             }
 
-            Date effectiveStartDate = startDate != null ? startDate : Date.today().addDays(DEFAULT_INSTALLATION_START_OFFSET_DAYS);
+            Date effectiveStartDate = startDate != null ? startDate : Date.today();
             modifyContract(inst.Id, effectiveStartDate, contrId, inst.Package__c != null ? inst.Package__c : packId, isTerminate);
 
             return 'SUCCESS' + (isTerminate ? '' : ': ' + inst.Id);
@@ -374,7 +375,8 @@ public class CreateInstallationsController
 
                 if (opp.SBQQ__AmendedContract__c != null) {
                     opp.Existing_Opportunity_Type__c = 'Account Growth';
-                    opp.Contract_Term__c = String.valueOf(opp.SBQQ__AmendedContract__r.ContractTerm);
+                    opp.Contract_Type__c = 'Existing Contract';
+                    opp.Contract_Term__c = String.valueOf(12);
                     opp.Description = (isTerminate ? 'Amendment - Auto Termination' : 'Amendment - Auto Installation');
                     opp.NextStep = (isTerminate ? 'Amendment - Auto Termination' : 'Amendment - Auto Installation');
                     if (opp.SBQQ__AmendedContract__r.SBQQ__Opportunity__c != null) {
