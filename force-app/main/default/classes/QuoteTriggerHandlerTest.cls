@@ -243,4 +243,54 @@ private class QuoteTriggerHandlerTest {
         System.assertEquals(expected.setScale(2), gAfter.Installation_Price__c.setScale(2),
             'Installation_Price__c must equal SUM(ASV) of active non-cancel lines');
     }
+
+    // ------------------------------------------------------------------
+    // 6) afterUpdate on Approval: Renewal quote sets Renewal_Type__c
+    //    when QLG Products__c differs from Package.Products__c
+    // ------------------------------------------------------------------
+    @IsTest
+    static void test_afterUpdate_approved_setsNonStandardRenewalType() {
+        TestDataFactory_OTG.enableOrgVRConfig();
+        TestDataFactory_OTG.primeDefaultOwnerAllRegions(UserInfo.getUserId());
+
+        TestDataFactory_OTG.QuoteContext ctx =
+            TestDataFactory_OTG.buildDraftQuoteContext('Americas', false, false);
+
+        // Convert to Renewal and keep Draft before approval
+        update new SBQQ__Quote__c(
+            Id = ctx.quote.Id,
+            SBQQ__Type__c = 'Renewal',
+            SBQQ__Status__c = 'Draft'
+        );
+
+        Contract ctr = TestDataFactory_OTG.createContractBasic(
+            ctx.b2bAccount.Id, 'USD', Date.today(), 12, null
+        );
+
+        SBQQ__QuoteLineGroup__c qlg =
+            TestDataFactory_OTG.createQuoteLineGroup(ctx.quote.Id, 'Renewal QLG', true, 1);
+
+        Package__c pkg = TestDataFactory_OTG.createPackageLinkedToQLG(ctr.Id, ctx.quote.Id, qlg, 1);
+
+        // Mismatch products between QLG and Package
+        update new Package__c(Id = pkg.Id, Products__c = 'Prod A;Prod B');
+        update new SBQQ__QuoteLineGroup__c(
+            Id = qlg.Id,
+            Package__c = pkg.Id,
+            Products__c = 'Prod A;Prod C'
+        );
+
+        Test.startTest();
+        update new SBQQ__Quote__c(Id = ctx.quote.Id, SBQQ__Status__c = 'Approved');
+        Test.stopTest();
+
+        SBQQ__Quote__c qAfter = [
+            SELECT Id, Renewal_Type__c
+            FROM SBQQ__Quote__c
+            WHERE Id = :ctx.quote.Id
+        ];
+        System.assertEquals('Non Standard Renewal', qAfter.Renewal_Type__c,
+            'Renewal_Type__c should be set when QLG products differ from package');
+    }
+
 }

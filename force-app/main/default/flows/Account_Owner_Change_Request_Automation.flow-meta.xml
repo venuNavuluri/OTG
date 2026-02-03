@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Submit_For_Approval</name>
+        <label>Submit For Approval</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>submit</actionName>
+        <actionType>submit</actionType>
+        <faultConnector>
+            <targetReference>Error_Message</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>objectId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>processDefinitionNameOrId</name>
+            <value>
+                <stringValue>Account_Owner_Change_Request_Nov_V1</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>submit</nameSegment>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>65.0</apiVersion>
+    <decisions>
+        <name>Account_Owner_Change_Approved</name>
+        <label>Account Owner Change Approved</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Account_Owner_Change_Rejected</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Approved - False</defaultConnectorLabel>
+        <rules>
+            <name>Approved_True</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ChangeApproved</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Account_Owner</targetReference>
+            </connector>
+            <label>Approved - True</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Account_Owner_Change_Rejected</name>
+        <label>Account Owner Change Rejected</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Rejected - True</defaultConnectorLabel>
+        <rules>
+            <name>Rejected_False</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Approval_Status__c</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Approval_Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Rejected</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Account_Owner_Status</targetReference>
+            </connector>
+            <label>Rejected - False</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Approval_Submitted</name>
+        <label>Approval Submitted?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Account_Owner_Change_Approved</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>False - Approved</defaultConnectorLabel>
+        <rules>
+            <name>Approval_Submitted_True</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ApprovalSubmitted</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Submit_For_Approval</targetReference>
+            </connector>
+            <label>Approval Submitted - True</label>
+        </rules>
+    </decisions>
+    <description>Account Owner Change Request - Submit for Approval</description>
+    <environments>Default</environments>
+    <formulas>
+        <name>ApprovalSubmitted</name>
+        <dataType>Boolean</dataType>
+        <expression>(ISNEW() &amp;&amp; ISPICKVAL({!$Record.Approval_Status__c}, &apos;Submitted&apos;)  || ISCHANGED({!$Record.Approval_Status__c} ) &amp;&amp; ISPICKVAL({!$Record.Approval_Status__c}, &quot;Submitted&quot; ) &amp;&amp; {!$Record.Record_Created_By_Flow__c} = FALSE)</expression>
+    </formulas>
+    <formulas>
+        <description>formula to check Account Owner Change Approval status is Approved</description>
+        <name>ChangeApproved</name>
+        <dataType>Boolean</dataType>
+        <expression>(ISNEW() || ISCHANGED({!$Record.Approval_Status__c} ) &amp;&amp; ISPICKVAL({!$Record.Approval_Status__c}, &quot;Approved&quot; ) &amp;&amp; {!$Record.Record_Created_By_Flow__c} = TRUE )</expression>
+    </formulas>
+    <interviewLabel>Account Owner Change Request Automation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Account Owner Change Request Automation</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Update_Account_Owner</name>
+        <label>Update Account Owner</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <inputAssignments>
+            <field>Account_Owner_status__c</field>
+            <value>
+                <stringValue>Approved</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>$Record.New_Account_Owner__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record.Account__r</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Account_Owner_Status</name>
+        <label>Update Account Owner Status</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <inputAssignments>
+            <field>Account_Owner_status__c</field>
+            <value>
+                <stringValue>Rejected</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record.Account__r</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Approval_Submitted</targetReference>
+        </connector>
+        <object>Account_Owner_Change_Request__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

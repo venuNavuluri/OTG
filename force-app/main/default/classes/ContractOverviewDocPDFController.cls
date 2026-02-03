@@ -43,28 +43,34 @@ public class ContractOverviewDocPDFController
         Map<String, List<ProductWrapper>> prodWrapMap = new Map<String, List<ProductWrapper>>();
         Set<String> packageNameProdStrSet = new Set<String>();
         
-        for(Package__c pk : packMap.values())
+        for (Package__c pk : packMap.values())
         {
-            if (!packProdMap.isEmpty())
-            {
-                String packageNumber = pk.Package_Number__c;
-                if (!prodWrapMap.containsKey(packageNumber)) {
-                    prodWrapMap.put(packageNumber, new List<ProductWrapper>());
+            // Skip if package has no package number or no products
+            if (String.isBlank(pk.Package_Number__c) || String.isBlank(pk.Products__c)) {
+                continue;
+            }
+        
+            String packageNumber = pk.Package_Number__c.trim();
+        
+            // Initialise list for this package number if not present
+            if (!prodWrapMap.containsKey(packageNumber)) {
+                prodWrapMap.put(packageNumber, new List<ProductWrapper>());
+            }
+        
+            // Split products only after we know Products__c is not blank
+            for (String prod : pk.Products__c.split(';')) {
+                if (String.isBlank(prod)) {
+                    continue;
                 }
-                
-                for(String prod : pk.Products__c.split(';'))
-                {
-                    ProductWrapper pw = new ProductWrapper();
-                    pw.productName = prod;
-                    //pw.annualCost = pk.Annual_Cost__c;
-                    //System.debug('current --> ' + ql.SBQQ__Group__r.Current_Price__c);
-                    pw.previousCost = pk.InstallationCost__c;
-                    //pw.installationCost = pk.Installation_Cost__c;
-                    pw.instQuantity = pk.Installation_Quantity__c;
-                    prodWrapMap.get(packageNumber).add(pw);
-                    packageNameProdStrSet.add(packageNumber + pw.productName);
-                    packIdList.add(pk.Id);
-                }
+        
+                ProductWrapper pw = new ProductWrapper();
+                pw.productName = prod;
+                pw.previousCost = pk.InstallationCost__c;
+                pw.instQuantity = pk.Installation_Quantity__c;
+        
+                prodWrapMap.get(packageNumber).add(pw);
+                packageNameProdStrSet.add(packageNumber + pw.productName);
+                packIdList.add(pk.Id);
             }
         }
         System.debug('prodWrapMap --> ' + prodWrapMap);

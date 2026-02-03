@@ -7,8 +7,8 @@ public class ConvertToOpportunityControllerTest {
         UserRole cfmSalesEmeaa = [select Id, Name from UserRole where Name = 'CFM Sales EMEAA'];
         UserRole vpoSales = [select Id, Name from UserRole where Name = 'VPO Sales'];
         UserRole isfwkSales = [select Id, Name from UserRole where Name = 'Watchkeeper Sales Director'];
-        UserRole apacSales = [select Id, Name from UserRole where Name = 'Other APAC1 Sales'];
-        UserRole emeaSales = [select Id, Name from UserRole where Name = 'EMEA1 Sales'];
+        UserRole apacSales = [select Id, Name from UserRole where Name = 'OTG APAC Sales'];
+        UserRole emeaSales = [select Id, Name from UserRole where Name = 'OO EMEA Sales 1'];
         Profile prof = [select Id, Name from Profile where Name = 'Identity User'];
         
         User cfmSalesUserAPAC = new User(FirstName='Test',
@@ -123,6 +123,8 @@ public class ConvertToOpportunityControllerTest {
         acc.Country__c = cm.Id;
         acc.Account_Segmentation__c = 'Unknown';
         acc.Customer_Type__c = 'Charity';
+        acc.LROO_Product_Acc_Owner__c = apacSalesUser.Id;
+        acc.OTG_Product_Acc_Owner__c = emeaSalesUser.Id;
         insert acc;
         
         // Create test contact
@@ -159,7 +161,7 @@ public class ConvertToOpportunityControllerTest {
     
     @isTest
     public static void fleetConvertToOpportunity() {
-        TestData('Technical Ship Management', 'Fleet Management System (TM Master)');
+        TestData('Technical Ship Management', 'TM Master');
         
         Lead testLead = [SELECT Id, Business_Units__c FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         System.debug('Test Lead Business Unit: ' + testLead.Business_Units__c);
@@ -173,7 +175,7 @@ public class ConvertToOpportunityControllerTest {
     
     @isTest
     public static void crewConvertToOpportunity() {
-        TestData('HCM Crew', 'Crew Management/HR System (Compas)');
+        TestData('HCM Crew', 'COMPAS');
         
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         
@@ -186,7 +188,7 @@ public class ConvertToOpportunityControllerTest {
     
     @isTest
     public static void marineConvertToOpportunity() {
-        TestData('Governance, Risk & Compliance', 'Marine Regulations');
+        TestData('Governance, Risk & Compliance', 'MarineRegulations');
         
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         
@@ -215,7 +217,9 @@ public class ConvertToOpportunityControllerTest {
                             'Should return error for missing account and contact');
     }
     
-    @isTest
+    // Test scenario no longer valid as Lead.Products__c should never be blank
+    // PB - 2026/01/13
+    /*@isTest
     public static void testNullBusinessUnit() {
         TestData(null, null); // No business unit
         
@@ -230,11 +234,11 @@ public class ConvertToOpportunityControllerTest {
         System.assertNotEquals(null, createdOpp, 'Opportunity should still be created');
         System.assertEquals(null, createdOpp.Product_Group__c, 'Product Group should be null when Business Unit is null');
         System.assertEquals(null, createdOpp.Business_Unit__c, 'Business Unit should be null when not specified');
-    }
+    }*/
     
     @isTest
     static void testGetActivatedContracts() {
-        TestData('Technical Ship Management', 'Fleet Management System (TM Master)');
+        TestData('Technical Ship Management', 'TM Master');
         
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         
@@ -262,7 +266,7 @@ public class ConvertToOpportunityControllerTest {
     
     @isTest
     static void testUpdateOpportunityWithContract() {
-        TestData('Technical Ship Management', 'Fleet Management System (TM Master)');
+        TestData('Technical Ship Management', 'TM Master');
         
         Lead testLead = [SELECT Id FROM Lead WHERE Company = 'Test Company' LIMIT 1];
         String opportunityId = ConvertToOpportunityController.convertToOpportunity(testLead.Id);

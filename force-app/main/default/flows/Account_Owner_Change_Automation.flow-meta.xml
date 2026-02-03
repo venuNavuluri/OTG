@@ -475,7 +475,7 @@
         <object>Account</object>
     </recordUpdates>
     <startElementReference>isChangedDecision6_myRule_5_Approval_Status_c</startElementReference>
-    <status>Active</status>
+    <status>Obsolete</status>
     <variables>
         <name>myVariable_current</name>
         <dataType>SObject</dataType>

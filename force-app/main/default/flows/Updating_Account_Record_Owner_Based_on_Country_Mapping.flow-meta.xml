@@ -29,7 +29,17 @@
         <description>custom Setting Value Account Owner</description>
         <name>customSettingValueId</name>
         <dataType>String</dataType>
-        <expression>{!$Setup.Default_Account_Owner_Settings__c.EMEA_Default_Owner_ID__c}</expression>
+        <expression>IF(ISPICKVAL({!$Record.Country__r.Sales_Region__c}, &apos;APAC&apos;), {!$Setup.Default_Account_Owner_Settings__c.APAC_Default_Owner_ID__c}, IF(ISPICKVAL({!$Record.Country__r.Sales_Region__c}, &apos;EMEA&apos;), {!$Setup.Default_Account_Owner_Settings__c.EMEA_Default_Owner_ID__c}, {!$Setup.Default_Account_Owner_Settings__c.Americas_Default_Owner_ID__c}))</expression>
+    </formulas>
+    <formulas>
+        <name>LROOProductAccOwner</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!$Record.Country__r.LROO_Product_Acc_Owner__r.Id}), {!customSettingValueId}, {!$Record.Country__r.LROO_Product_Acc_Owner__r.Id})</expression>
+    </formulas>
+    <formulas>
+        <name>OTGProductAccOwner</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!$Record.Country__r.OTG_Product_Acc_Owner__r.Id}), {!customSettingValueId}, {!$Record.Country__r.OTG_Product_Acc_Owner__r.Id})</expression>
     </formulas>
     <interviewLabel>Updating Account Record Owner Based on Country Mapping {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Updating Account Record Owner Based on Country Mapping</label>
@@ -65,6 +75,18 @@
             </value>
         </inputAssignments>
         <inputAssignments>
+            <field>LROO_Product_Acc_Owner__c</field>
+            <value>
+                <elementReference>LROOProductAccOwner</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OTG_Product_Acc_owner__c</field>
+            <value>
+                <elementReference>OTGProductAccOwner</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
             <field>OwnerId</field>
             <value>
                 <elementReference>customSettingValueId</elementReference>
@@ -82,6 +104,18 @@
             <field>Customer_Engagement_Manager__c</field>
             <value>
                 <elementReference>$Record.Country__r.Default_Customer_Engagement_Manager__r.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>LROO_Product_Acc_Owner__c</field>
+            <value>
+                <elementReference>LROOProductAccOwner</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OTG_Product_Acc_owner__c</field>
+            <value>
+                <elementReference>OTGProductAccOwner</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -104,6 +138,13 @@
             <operator>EqualTo</operator>
             <value>
                 <stringValue>B2B Account</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Country__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
             </value>
         </filters>
         <object>Account</object>

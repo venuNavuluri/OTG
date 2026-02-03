@@ -96,6 +96,13 @@
                 <elementReference>Get_Relevant_Sales_Director_Role.Id</elementReference>
             </value>
         </filters>
+        <filters>
+            <field>IsActive</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>User</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>

@@ -53,8 +53,8 @@ public class SalesOrderGeneratorService {
                         Installation__c = inst.Id,
                         Start_Date__c = periodStart,
                         End_Date__c = periodEnd,
-                        Status__c = 'Unbilled',
-                        CurrencyIsoCode = inst.CurrencyIsoCode
+                        Status__c = 'Pending Approval',
+                        CurrencyIsoCode = inst.Contract__r.CurrencyIsoCode
                     ));
                 }
             }
@@ -77,7 +77,7 @@ public class SalesOrderGeneratorService {
         return [
             SELECT Id, Contract__c, Invoice_Account__c, CurrencyIsoCode,
                    Installation_Start_Date__c, Installation_End_Date__c,
-                   Contract__r.Billing_Frequency__c, Contract__r.StartDate,
+                   Contract__r.Billing_Frequency__c, Contract__r.StartDate,Contract__r.CurrencyIsoCode,
                    Order__c,Order__r.ActivatedDate,Order__r.EffectiveDate
             FROM Installation__c
             WHERE Id IN :installations

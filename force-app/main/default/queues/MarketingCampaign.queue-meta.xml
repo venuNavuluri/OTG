@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Queue xmlns="http://soap.sforce.com/2006/04/metadata">
+    <doesSendEmailToMembers>false</doesSendEmailToMembers>
+    <name>MarketingCampaign</name>
+    <queueMembers>
+        <users>
+            <user>abigail.clarkson@oceantg.com</user>
+            <user>james.walton@oceantg.com</user>
+            <user>robert.mclaggan@oceantg.com</user>
+            <user>venu.navuluri_ext@oceantg.com</user>
+        </users>
+    </queueMembers>
+    <queueSobject>
+        <sobjectType>Lead</sobjectType>
+    </queueSobject>
+</Queue>

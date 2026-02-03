@@ -9,10 +9,16 @@
                         <valueListItems>
                             <value>CustomButton.SBQQ__Quote__c.SBQQ__EditLines</value>
                             <visibilityRule>
+                                <booleanFilter>1 OR 2</booleanFilter>
                                 <criteria>
                                     <leftValue>{!Record.SBQQ__Status__c}</leftValue>
                                     <operator>EQUAL</operator>
                                     <rightValue>Draft</rightValue>
+                                </criteria>
+                                <criteria>
+                                    <leftValue>{!$User.Alias}</leftValue>
+                                    <operator>CONTAINS</operator>
+                                    <rightValue>vnav</rightValue>
                                 </criteria>
                             </visibilityRule>
                         </valueListItems>
@@ -114,15 +120,12 @@
         </itemInstances>
         <itemInstances>
             <fieldInstance>
-                <fieldItem>Record.SBQQ__MasterContract__r.No_of_Installations__c</fieldItem>
-                <identifier>RecordSBQQ_MasterContract_rNo_of_Installations_cField</identifier>
-                <visibilityRule>
-                    <criteria>
-                        <leftValue>{!Record.SBQQ__Type__c}</leftValue>
-                        <operator>EQUAL</operator>
-                        <rightValue>Amendment</rightValue>
-                    </criteria>
-                </visibilityRule>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Total_Installations_Prior__c</fieldItem>
+                <identifier>RecordTotal_Installations_Prior_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -133,6 +136,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.Total_Installations__c</fieldItem>
                 <identifier>RecordTotal_Installations_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Total_Users__c</fieldItem>
+                <identifier>RecordTotal_Users_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -153,16 +166,6 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.Agreement_Type__c</fieldItem>
                 <identifier>RecordAgreement_Type_cField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>readonly</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.Total_Users__c</fieldItem>
-                <identifier>RecordTotal_Users_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -260,6 +263,23 @@
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
                     <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Renewal_Type__c</fieldItem>
+                <identifier>RecordRenewal_Type_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.SBQQ__Type__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>Renewal</rightValue>
+                    </criteria>
+                </visibilityRule>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.SBQQ__Status__c</fieldItem>
                 <identifier>RecordSBQQ_Status_cField</identifier>
@@ -725,16 +745,6 @@
                 <identifier>RecordSBQQ_QuoteProcessId_cField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.SBQQ__QuoteTemplateId__c</fieldItem>
-                <identifier>RecordSBQQ_QuoteTemplateId_cField</identifier>
-            </fieldInstance>
-        </itemInstances>
         <name>Facet-c83c3e18-a4a4-4655-a17c-bc4966f17f29</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -972,7 +982,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>relatedListComponentOverride</name>
-                    <value>NONE</value>
+                    <value>ADVGRID</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>rowsToDisplay</name>
@@ -997,10 +1007,15 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
-                            <value>MassChangeOwner</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>New</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>adminFilters</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Temp_Quote_Line_Group__c|NOT_EQUAL|null</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -1014,7 +1029,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListApiName</name>
-                    <value>Packages__r</value>
+                    <value>Packages2__r</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListDisplayType</name>
@@ -1027,13 +1042,13 @@
                             <value>NAME</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Contract__c</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Installation_Quantity__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>User_Quantity__c</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Contract__c</value>
+                            <value>InstallationCost__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>CREATED_DATE</value>
@@ -1072,9 +1087,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>richTextValue</name>
-                    <value>&lt;p class=&quot;ql-indent-1&quot;&gt;&lt;strong style=&quot;color:
-                        rgb(211, 22, 22); font-size: 18px;&quot;&gt;Manage Installations is
-                        restricted to Primary and Approved quotes only.&lt;/strong&gt;&lt;/p&gt;</value>
+                    <value>&lt;p class=&quot;ql-indent-1&quot;&gt;&lt;strong style=&quot;color: rgb(211, 22, 22); font-size: 18px;&quot;&gt;Manage Installations is restricted to Primary and Approved quotes only.&lt;/strong&gt;&lt;/p&gt;</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:richText</componentName>
                 <identifier>flexipage_richText</identifier>
@@ -1260,6 +1273,12 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>showChangeTypes</componentName>
+                <identifier>c_showChangeTypes</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentInstanceProperties>
                     <name>tabs</name>
                     <value>sidebartabs</value>
@@ -1404,6 +1423,32 @@
                         <rightValue>true</rightValue>
                     </criteria>
                 </visibilityRule>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>SBQQ__Quote__c.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>Histories</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListComponentOverride</name>
+                    <value>NONE</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>rowsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>force:relatedListSingleContainer</componentName>
+                <identifier>force_relatedListSingleContainer</identifier>
             </componentInstance>
         </itemInstances>
         <mode>Replace</mode>

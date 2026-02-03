@@ -3,15 +3,15 @@
     <actionCalls>
         <name>Navigate_To_Opportunity_Record</name>
         <label>Navigate To Opportunity Record</label>
-        <locationX>644</locationX>
-        <locationY>2114</locationY>
+        <locationX>1491</locationX>
+        <locationY>2390</locationY>
         <actionName>c:navigateToOppRecord</actionName>
         <actionType>component</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>recordId</name>
             <value>
-                <elementReference>Create_Opportunity</elementReference>
+                <elementReference>Get_Created_Opp.Id</elementReference>
             </value>
         </inputParameters>
         <nameSegment>c:navigateToOppRecord</nameSegment>
@@ -22,7 +22,7 @@
         <name>Assign_Amend_Contract</name>
         <label>Assign Amend Contract</label>
         <locationX>314</locationX>
-        <locationY>1622</locationY>
+        <locationY>1730</locationY>
         <assignmentItems>
             <assignToReference>Get_Created_Opp.Amend_Contract_Sales__c</assignToReference>
             <operator>Assign</operator>
@@ -37,14 +37,180 @@
                 <elementReference>Get_Contract.CurrencyIsoCode</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Get_Created_Opp.Contract_Type__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Existing Contract</stringValue>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Update_Amend_Contract_On_Opportunity</targetReference>
         </connector>
     </assignments>
+    <assignments>
+        <name>Assign_Business_Contract_Value</name>
+        <label>Assign Business Contract Value</label>
+        <locationX>1502</locationX>
+        <locationY>1814</locationY>
+        <assignmentItems>
+            <assignToReference>Get_Created_Opp.Business_Unit_Contracts__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>varBusinessUnitContractSelection</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Get_Created_Opp.Contract_Type__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>New Contract</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Selection_On_Opportunity</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_Crew_Selection</name>
+        <label>Assign Crew Selection</label>
+        <locationX>842</locationX>
+        <locationY>1514</locationY>
+        <assignmentItems>
+            <assignToReference>varBusinessUnitContractSelection</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Business_Unit_Contract_Selection_Crew</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_for_Other_Business_Unit_Contract_Selection</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GRC_Selection</name>
+        <label>Assign GRC Selection</label>
+        <locationX>1106</locationX>
+        <locationY>1514</locationY>
+        <assignmentItems>
+            <assignToReference>varBusinessUnitContractSelection</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Business_Unit_Contract_Selection_GRC</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_for_Other_Business_Unit_Contract_Selection</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_Other_Selection</name>
+        <label>Assign Other Selection</label>
+        <locationX>1634</locationX>
+        <locationY>1514</locationY>
+        <assignmentItems>
+            <assignToReference>varBusinessUnitContractSelection</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Business_Unit_Contract_Selection_HCM_LAC</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_for_Other_Business_Unit_Contract_Selection</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_TSM_Selection</name>
+        <label>Assign TSM Selection</label>
+        <locationX>1370</locationX>
+        <locationY>1514</locationY>
+        <assignmentItems>
+            <assignToReference>varBusinessUnitContractSelection</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Business_Unit_Contract_Selection_TSM</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_for_Other_Business_Unit_Contract_Selection</targetReference>
+        </connector>
+    </assignments>
+    <choices>
+        <name>GRC_Option1</name>
+        <choiceText>Regs4Ships customer purchasing Marine Regulations</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Regs4Ships customer purchasing Marine Regulations</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>GRC_Option2</name>
+        <choiceText>Marine Regulations customer purchasing Regs4Ships</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Marine Regulations customer purchasing Regs4Ships</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>HCMCrew_Option1</name>
+        <choiceText>Compas Customer looking to purchase Watchkeeper</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Compas Customer looking to purchase Watchkeeper</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>HCMCrew_Option2</name>
+        <choiceText>Watchkeeper Customer looking to purchase Compas</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Watchkeeper Customer looking to purchase Compas</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>No</name>
+        <choiceText>No</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>No</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>Other</name>
+        <choiceText>Other</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Other</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>TSM_Option1</name>
+        <choiceText>TM Master Customer purchasing Docmap</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>TM Master Customer purchasing Docmap</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>TSM_Option2</name>
+        <choiceText>Docmap Customer purchasing TM Master</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Docmap Customer purchasing TM Master</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>Yes</name>
+        <choiceText>Yes</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Yes</stringValue>
+        </value>
+    </choices>
     <decisions>
         <name>Check_Account_Owner_is_Active</name>
         <label>Check Account Owner is Active</label>
-        <locationX>347</locationX>
+        <locationX>770</locationX>
         <locationY>242</locationY>
         <defaultConnector>
             <targetReference>Check_for_Account_Owner</targetReference>
@@ -70,7 +236,7 @@
         <name>Check_Contracts</name>
         <label>Check Contracts</label>
         <locationX>446</locationX>
-        <locationY>1298</locationY>
+        <locationY>1406</locationY>
         <defaultConnector>
             <targetReference>ContractsNotPresentScreen</targetReference>
         </defaultConnector>
@@ -94,7 +260,7 @@
     <decisions>
         <name>Check_for_Account_Owner</name>
         <label>Check for Account Owner</label>
-        <locationX>644</locationX>
+        <locationX>1491</locationX>
         <locationY>350</locationY>
         <defaultConnector>
             <targetReference>Opportunity_Screen</targetReference>
@@ -117,17 +283,151 @@
         </rules>
     </decisions>
     <decisions>
+        <name>Check_for_Business_Unit</name>
+        <label>Check for Business Unit</label>
+        <locationX>1370</locationX>
+        <locationY>1298</locationY>
+        <defaultConnector>
+            <targetReference>Check_for_Other_Business_Unit_Contract_Selection</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>HCM_Crew</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Created_Opp.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Crew</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Business_Unit_Contracts_Screen_HCM_Crew</targetReference>
+            </connector>
+            <label>HCM Crew</label>
+        </rules>
+        <rules>
+            <name>Governance_Risk_Compliance</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Created_Opp.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Governance, Risk &amp; Compliance</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Business_Unit_Contracts_Screen_GRC</targetReference>
+            </connector>
+            <label>Governance, Risk &amp; Compliance</label>
+        </rules>
+        <rules>
+            <name>Technical_Ship_Management</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Created_Opp.Business_Unit__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Technical Ship Management</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Business_Unit_Contracts_Screen_TSM</targetReference>
+            </connector>
+            <label>Technical Ship Management</label>
+        </rules>
+        <rules>
+            <name>Others</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Created_Opp.Business_Unit__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>HCM Crew</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Created_Opp.Business_Unit__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Governance, Risk &amp; Compliance</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Created_Opp.Business_Unit__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Technical Ship Management</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Business_Unit_Contracts_Screen_Others</targetReference>
+            </connector>
+            <label>Others</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_for_Contract_Type</name>
+        <label>Check for Contract Type</label>
+        <locationX>908</locationX>
+        <locationY>1190</locationY>
+        <defaultConnector>
+            <targetReference>Check_for_Business_Unit</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>New Contract</defaultConnectorLabel>
+        <rules>
+            <name>Existing_Contract</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Upsell_Type</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Product upsell into an existing active contract</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Contracts</targetReference>
+            </connector>
+            <label>Existing Contract</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_for_Other_Business_Unit_Contract_Selection</name>
+        <label>Check for Other Business Unit Contract Selection</label>
+        <locationX>1370</locationX>
+        <locationY>1706</locationY>
+        <defaultConnector>
+            <targetReference>Assign_Business_Contract_Value</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Other_Selection</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varBusinessUnitContractSelection</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Other</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Selection_Message_Screen</targetReference>
+            </connector>
+            <label>Other Selection?</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Check_Opportunity_Type</name>
         <label>Check Opportunity Type</label>
-        <locationX>644</locationX>
-        <locationY>1082</locationY>
+        <locationX>1491</locationX>
+        <locationY>974</locationY>
         <defaultConnector>
             <targetReference>Success_Message</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
         <rules>
             <name>If_Opportunity_Type_is_UpSell</name>
-            <conditionLogic>(1 OR 2) AND 3</conditionLogic>
+            <conditionLogic>or</conditionLogic>
             <conditions>
                 <leftValueReference>Get_Created_Opp.Existing_Opportunity_Type__c</leftValueReference>
                 <operator>EqualTo</operator>
@@ -142,15 +442,8 @@
                     <stringValue>Account Growth</stringValue>
                 </rightValue>
             </conditions>
-            <conditions>
-                <leftValueReference>Get_Created_Opp.Contract_Type__c</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>Existing Contract</stringValue>
-                </rightValue>
-            </conditions>
             <connector>
-                <targetReference>Get_Contracts</targetReference>
+                <targetReference>Upsell_Contract_Confirmation</targetReference>
             </connector>
             <label>If Opportunity Type is UpSell</label>
         </rules>
@@ -162,6 +455,14 @@
         <displayField xsi:nil="true"/>
         <object xsi:nil="true"/>
         <picklistField>Business_Unit__c</picklistField>
+        <picklistObject>Opportunity</picklistObject>
+    </dynamicChoiceSets>
+    <dynamicChoiceSets>
+        <name>BusinessUnitContracts</name>
+        <dataType>Picklist</dataType>
+        <displayField xsi:nil="true"/>
+        <object xsi:nil="true"/>
+        <picklistField>Business_Unit_Contracts__c</picklistField>
         <picklistObject>Opportunity</picklistObject>
     </dynamicChoiceSets>
     <dynamicChoiceSets>
@@ -190,6 +491,14 @@
         <picklistObject>Opportunity</picklistObject>
     </dynamicChoiceSets>
     <dynamicChoiceSets>
+        <name>ProductGroups</name>
+        <dataType>Multipicklist</dataType>
+        <displayField xsi:nil="true"/>
+        <object xsi:nil="true"/>
+        <picklistField>Product_Group__c</picklistField>
+        <picklistObject>Opportunity</picklistObject>
+    </dynamicChoiceSets>
+    <dynamicChoiceSets>
         <name>SalesType</name>
         <dataType>Picklist</dataType>
         <displayField xsi:nil="true"/>
@@ -203,6 +512,28 @@
         <displayField xsi:nil="true"/>
         <object xsi:nil="true"/>
         <picklistField>StageName</picklistField>
+        <picklistObject>Opportunity</picklistObject>
+    </dynamicChoiceSets>
+    <dynamicChoiceSets>
+        <name>testbu</name>
+        <dataType>String</dataType>
+        <displayField>Business_Unit_Contracts__c</displayField>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Created_Opp.Id</elementReference>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+    </dynamicChoiceSets>
+    <dynamicChoiceSets>
+        <name>UpsellType</name>
+        <dataType>Picklist</dataType>
+        <displayField xsi:nil="true"/>
+        <object xsi:nil="true"/>
+        <picklistField>Upsell_Type__c</picklistField>
         <picklistObject>Opportunity</picklistObject>
     </dynamicChoiceSets>
     <environments>Default</environments>
@@ -241,8 +572,8 @@
     <recordCreates>
         <name>Create_Opportunity</name>
         <label>Create Opportunity</label>
-        <locationX>644</locationX>
-        <locationY>866</locationY>
+        <locationX>1491</locationX>
+        <locationY>758</locationY>
         <connector>
             <targetReference>Get_Created_Opp</targetReference>
         </connector>
@@ -283,12 +614,6 @@
             <field>Contract_Term__c</field>
             <value>
                 <stringValue>12</stringValue>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Contract_Type__c</field>
-            <value>
-                <elementReference>Contract_Type</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -336,7 +661,7 @@
     <recordLookups>
         <name>Get_Account</name>
         <label>Get Account</label>
-        <locationX>347</locationX>
+        <locationX>770</locationX>
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
@@ -358,7 +683,7 @@
         <name>Get_Contract</name>
         <label>Get Contract</label>
         <locationX>314</locationX>
-        <locationY>1514</locationY>
+        <locationY>1622</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Assign_Amend_Contract</targetReference>
@@ -379,7 +704,7 @@
         <name>Get_Contracts</name>
         <label>Get Contracts</label>
         <locationX>446</locationX>
-        <locationY>1190</locationY>
+        <locationY>1298</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Check_Contracts</targetReference>
@@ -413,8 +738,8 @@
     <recordLookups>
         <name>Get_Created_Opp</name>
         <label>Get Created Opp</label>
-        <locationX>644</locationX>
-        <locationY>974</locationY>
+        <locationX>1491</locationX>
+        <locationY>866</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Check_Opportunity_Type</targetReference>
@@ -435,17 +760,121 @@
         <name>Update_Amend_Contract_On_Opportunity</name>
         <label>Update Amend Contract On Opportunity</label>
         <locationX>314</locationX>
-        <locationY>1730</locationY>
+        <locationY>1838</locationY>
+        <connector>
+            <targetReference>Success_Message</targetReference>
+        </connector>
+        <inputReference>Get_Created_Opp</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Selection_On_Opportunity</name>
+        <label>Update Selection On Opportunity</label>
+        <locationX>1370</locationX>
+        <locationY>2006</locationY>
         <connector>
             <targetReference>Success_Message</targetReference>
         </connector>
         <inputReference>Get_Created_Opp</inputReference>
     </recordUpdates>
     <screens>
+        <name>Business_Unit_Contracts_Screen_GRC</name>
+        <label>Business Unit Contracts Screen GRC</label>
+        <locationX>1106</locationX>
+        <locationY>1406</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Assign_GRC_Selection</targetReference>
+        </connector>
+        <fields>
+            <name>Business_Unit_Contract_Selection_GRC</name>
+            <choiceReferences>GRC_Option1</choiceReferences>
+            <choiceReferences>GRC_Option2</choiceReferences>
+            <choiceReferences>Other</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Business Unit Contract Selection</fieldText>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Business_Unit_Contracts_Screen_HCM_Crew</name>
+        <label>Business Unit Contracts Screen HCM Crew</label>
+        <locationX>842</locationX>
+        <locationY>1406</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Assign_Crew_Selection</targetReference>
+        </connector>
+        <fields>
+            <name>Business_Unit_Contract_Selection_Crew</name>
+            <choiceReferences>HCMCrew_Option1</choiceReferences>
+            <choiceReferences>HCMCrew_Option2</choiceReferences>
+            <choiceReferences>Other</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Business Unit Contract Selection</fieldText>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Business_Unit_Contracts_Screen_Others</name>
+        <label>Business Unit Contracts Screen Others</label>
+        <locationX>1634</locationX>
+        <locationY>1406</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Assign_Other_Selection</targetReference>
+        </connector>
+        <fields>
+            <name>Business_Unit_Contract_Selection_HCM_LAC</name>
+            <choiceReferences>Other</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Business Unit Contract Selection</fieldText>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>false</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Business_Unit_Contracts_Screen_TSM</name>
+        <label>Business Unit Contracts Screen TSM</label>
+        <locationX>1370</locationX>
+        <locationY>1406</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Assign_TSM_Selection</targetReference>
+        </connector>
+        <fields>
+            <name>Business_Unit_Contract_Selection_TSM</name>
+            <choiceReferences>TSM_Option1</choiceReferences>
+            <choiceReferences>TSM_Option2</choiceReferences>
+            <choiceReferences>Other</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Business Unit Contract Selection</fieldText>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Contract_Selection</name>
         <label>Contract Selection</label>
         <locationX>314</locationX>
-        <locationY>1406</locationY>
+        <locationY>1514</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
@@ -464,32 +893,10 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
-        <name>Contract_Type_Selection</name>
-        <label>Contract Type Selection</label>
-        <locationX>644</locationX>
-        <locationY>758</locationY>
-        <allowBack>true</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>true</allowPause>
-        <connector>
-            <targetReference>Create_Opportunity</targetReference>
-        </connector>
-        <fields>
-            <name>Contract_Type</name>
-            <choiceReferences>ContractType</choiceReferences>
-            <dataType>String</dataType>
-            <fieldText>Contract Type</fieldText>
-            <fieldType>DropdownBox</fieldType>
-            <isRequired>true</isRequired>
-        </fields>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
-    </screens>
-    <screens>
         <name>ContractsNotPresentScreen</name>
         <label>ContractsNotPresentScreen</label>
         <locationX>578</locationX>
-        <locationY>1406</locationY>
+        <locationY>1514</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -523,8 +930,8 @@
     <screens>
         <name>Opportunity_Error_Message</name>
         <label>Opportunity Error Message</label>
-        <locationX>1018</locationX>
-        <locationY>974</locationY>
+        <locationX>2250</locationX>
+        <locationY>866</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -539,13 +946,13 @@
     <screens>
         <name>Opportunity_Screen</name>
         <label>Opportunity Screen</label>
-        <locationX>644</locationX>
+        <locationX>1491</locationX>
         <locationY>650</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Contract_Type_Selection</targetReference>
+            <targetReference>Create_Opportunity</targetReference>
         </connector>
         <fields>
             <name>Opportunity_Screen_Section1</name>
@@ -708,10 +1115,29 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
+        <name>Selection_Message_Screen</name>
+        <label>Selection Message Screen</label>
+        <locationX>1238</locationX>
+        <locationY>1814</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>false</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Update_Selection_On_Opportunity</targetReference>
+        </connector>
+        <fields>
+            <name>SelectionMessage</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(255, 0, 0); font-size: 16px;&quot;&gt;Please Select the Valid option for the Business Unit and Contract Type. Go to the Previous step and select Valid Option.&lt;/strong&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Success_Message</name>
         <label>Success Message</label>
-        <locationX>644</locationX>
-        <locationY>2006</locationY>
+        <locationX>1491</locationX>
+        <locationY>2282</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -727,9 +1153,31 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
+        <name>Upsell_Contract_Confirmation</name>
+        <label>Upsell Contract Confirmation</label>
+        <locationX>908</locationX>
+        <locationY>1082</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Check_for_Contract_Type</targetReference>
+        </connector>
+        <fields>
+            <name>Upsell_Type</name>
+            <choiceReferences>UpsellType</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Upsell Type?</fieldText>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Warning_Message_Screen</name>
         <label>Warning Message Screen</label>
-        <locationX>512</locationX>
+        <locationX>1359</locationX>
         <locationY>458</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
@@ -746,18 +1194,32 @@
         <showHeader>true</showHeader>
     </screens>
     <start>
-        <locationX>221</locationX>
+        <locationX>644</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Get_Account</targetReference>
         </connector>
     </start>
-    <status>Obsolete</status>
+    <status>Active</status>
+    <variables>
+        <name>BusinessUnitContratsValues</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <name>recordId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varBusinessUnitContractSelection</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
         <isOutput>false</isOutput>
     </variables>
 </Flow>

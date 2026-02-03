@@ -1,91 +1,112 @@
 public class ContractTriggerHandler {
-    private static Boolean isExecuting = false; // Declare the variable
-    
+
     public static void onBeforeInsert() {
         updatePreviousContract((List<Contract>)Trigger.new);
     }
 
     public static void onBeforeUpdate() {
-        if (checkRecursion()) {
-            updatePreviousContract((List<Contract>)Trigger.new);
-           // updateSubscriptionValue((List<Contract>)Trigger.new, (Map<Id, Contract>)Trigger.oldMap);
-            
-        }
+        updatePreviousContract((List<Contract>)Trigger.new);
     }
 
     public static void onAfterInsert() {
+        enqueueMetricsIfCpq((Map<Id, Contract>)Trigger.newMap, null);
         updateContractDetails((Map<Id, Contract>)Trigger.newMap);
         updateNextContract((Map<Id, Contract>)Trigger.newMap);
     }
     
+    private static Boolean suppressMetricsRecalc = false;
+
     public static void onAfterUpdate() {
-        if (!isSystemUser()) {
-            activateContracts((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
+        enqueueMetricsIfCpq((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
+        activateContracts((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
+    }
+
+    // Enqueue metrics recalculation only for CPQ contracts with a quote and non-terminated status.
+    public static void enqueueMetricsIfCpq(Map<Id, Contract> newMap, Map<Id, Contract> oldMap) {
+        Set<Id> contractIdsToRecalc = new Set<Id>();
+        for (Contract updated : newMap.values()) {
+            if (updated == null || updated.Id == null) continue;
+            if (updated.Status != null && updated.Status.equalsIgnoreCase('Terminated')) continue;
+            if (updated.SBQQ__Quote__c == null) continue; // skip when quote is blank
+            Contract oldRec = oldMap != null ? oldMap.get(updated.Id) : null;
+            Boolean isCpq =
+                (updated.Subscription_System__c != null && updated.Subscription_System__c.equalsIgnoreCase('Salesforce CPQ')) ||
+                (oldRec != null && oldRec.Subscription_System__c != null && oldRec.Subscription_System__c.equalsIgnoreCase('Salesforce CPQ'));
+            if (!isCpq) continue; // only recalc for CPQ-sourced contracts
+            contractIdsToRecalc.add(updated.Id);
+        }
+        if (!contractIdsToRecalc.isEmpty() && !suppressMetricsRecalc) {
+            enqueueContractMetricsRecalc(contractIdsToRecalc);
         }
     }
 
-    private static Boolean checkRecursion() {
-        if (isExecuting) return false;
-        isExecuting = true;
-        return true;
-    }
-
-    private static Boolean isSystemUser() {
-        return [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias == 'duser';
-    }
-    
     /**
      * Activates contracts and processes related installations.
      */
     public static void activateContracts(Map<Id, Contract> newContrMap, Map<Id, Contract> oldContrMap) {
-    try {
-        Set<Id> contractIds = newContrMap.keySet();
-        Logger.info('Processing contract activation for contract IDs: ' + contractIds);
+        try {
+            if (newContrMap == null || newContrMap.isEmpty()) {
+                return;
+            }
 
-        // 🔁 Requery contracts to get all required fields, including SBQQ__Quote__r
-        Map<Id, Contract> queriedContracts = new Map<Id, Contract>([
-            SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c ,Subscription_System__c
-            FROM Contract
-            WHERE Id IN :contractIds
-        ]);
+            // Maintain previous/next contract relationships regardless of activation
+            updateNextContract(newContrMap);
 
-        List<Id> activeContrList = new List<Id>();
-
-        for (Id contrId : contractIds) {
-            Contract newContr = queriedContracts.get(contrId);
-            Contract oldContr = oldContrMap.get(contrId);
-
-            if (newContr.Status == 'Activated' && oldContr.Status != 'Activated') {
-                if (newContr.SBQQ__Quote__r != null && newContr.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
-                    activeContrList.add(contrId);
+            Set<Id> activationCandidates = new Set<Id>();
+            for (Contract newContr : newContrMap.values()) {
+                if (newContr == null || newContr.Id == null) {
+                    continue;
+                }
+                Contract oldContr = oldContrMap != null ? oldContrMap.get(newContr.Id) : null;
+                Boolean newActivated = newContr.Status != null && newContr.Status.equalsIgnoreCase('Activated');
+                Boolean oldActivated = oldContr != null && oldContr.Status != null && oldContr.Status.equalsIgnoreCase('Activated');
+                if (newActivated && !oldActivated) {
+                    activationCandidates.add(newContr.Id);
                 }
             }
-        }
 
-        Logger.info('Activated Renewal Contracts: ' + activeContrList);
+            if (activationCandidates.isEmpty()) {
+                return;
+            }
 
-        if (!activeContrList.isEmpty()) {
+
+            Map<Id, Contract> queriedContracts = new Map<Id, Contract>([
+                SELECT Id, Status, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__Type__c, Previous_Contract__c ,Subscription_System__c
+                FROM Contract
+                WHERE Id IN :activationCandidates
+            ]);
+
+            List<Id> renewalContracts = new List<Id>();
+            for (Contract contr : queriedContracts.values()) {
+                if (contr.SBQQ__Quote__r != null && contr.SBQQ__Quote__r.SBQQ__Type__c == 'Renewal') {
+                    renewalContracts.add(contr.Id);
+                }
+            }
+
+            if (renewalContracts.isEmpty()) {
+                return;
+            }
+
             List<Installation__c> instList = [
                 SELECT Id, Name, Contract__c, Contract__r.SBQQ__Quote__r.SBQQ__Type__c, 
                        Contract__r.StartDate, Contract__r.EndDate, 
                        Order__c, Order__r.SBQQ__Quote__c, 
                        Quote_Line_Group__r.SBQQ__Quote__c, Order__r.ActivatedDate
                 FROM Installation__c 
-                WHERE Contract__c IN :activeContrList 
+                WHERE Contract__c IN :renewalContracts 
                 AND Installation_Order_Status__c = 'Active'
                 ORDER BY CreatedDate DESC
             ];
-            activateInstallations(instList);
-        } 
-        updateNextContract(queriedContracts);
 
-    } catch (Exception ex) {
-        Logger.error('Error in activateContracts: ' + ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
-    } finally {
-        isExecuting = false;
-        Logger.saveLog();
+            if (!instList.isEmpty()) {
+                activateInstallations(instList);
+            }
+        } catch (Exception ex) {
+            Logger.error('Error in activateContracts: ' + ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
+        } finally {
+            Logger.saveLog();
+        }
     }
-}
 
    public static void updatePreviousContract(List<Contract> newContrList) {
     try {        
@@ -243,15 +264,16 @@ public class ContractTriggerHandler {
 
             // Step 3: Retrieve and update Installation__c records
             List<Installation__c> installationList = [
-                SELECT Id, Contract__c, Contract__r.SBQQ__Quote__r.SBQQ__Type__c, Package__c, Package__r.Contract__c, 
-                Installation_Start_date__c, Installation_End_date__c, Package__r.Quote_Line_Group__c
+                SELECT Id, Contract__c, Contract__r.SBQQ__Quote__r.SBQQ__Type__c, Package__c, Package__r.Contract__c, CurrencyIsoCode, Subscription_Annual_Order_Value__c,
+                Installation_Start_date__c, Installation_End_date__c, Package__r.Quote_Line_Group__c, Contract__r.CurrencyIsoCode, Package__r.InstallationCost__c
                 FROM Installation__c 
                 WHERE Package__c IN :packageList AND Installation_Order_Status__c != 'Terminated'
             ];
-
             for (Installation__c installationRecord : installationList) {
                 installationRecord.Contract__c = installationRecord.Package__r.Contract__c;
                 installationRecord.Quote_Line_Group__c = installationRecord.Package__r.Quote_Line_Group__c;
+                installationRecord.CurrencyIsoCode = installationRecord.Contract__r.CurrencyIsoCode;
+                installationRecord.Subscription_Annual_Order_Value__c = installationRecord.Package__r.InstallationCost__c;
                 Contract relatedContract = contractMap.get(installationRecord.Contract__c);
                 if (installationRecord.Contract__r.SBQQ__Quote__r.SBQQ__Type__c != 'Renewal') {
                     if (installationRecord.Installation_Start_date__c == null && installationRecord.Installation_End_date__c == null) {
@@ -274,10 +296,181 @@ public class ContractTriggerHandler {
         }
     }
 
+    private static Set<Id> pendingContractMetricsIds = new Set<Id>();
+    private static Boolean contractMetricsJobQueued = false;
+
+    public static void enqueueContractMetricsRecalc(Set<Id> contractIds) {
+        if (contractIds == null || contractIds.isEmpty()) {
+            return;
+        }
+
+        pendingContractMetricsIds.addAll(contractIds);
+
+        if (System.isFuture() || System.isQueueable() || System.isBatch()) {
+            runContractMetricsRecalc(new Set<Id>(pendingContractMetricsIds));
+            pendingContractMetricsIds.clear();
+            contractMetricsJobQueued = false;
+            return;
+        }
+
+        if (contractMetricsJobQueued) {
+            return;
+        }
+
+        recalcContractMetricsAsync(new Set<Id>(pendingContractMetricsIds));
+        pendingContractMetricsIds.clear();
+        contractMetricsJobQueued = true;
+    }
+
+    public static void recalcContractMetricsAsync(Set<Id> contractIds) {
+        if (contractIds == null || contractIds.isEmpty()) {
+            return;
+        }
+        System.enqueueJob(new ContractMetricsRecalcQueueable(contractIds));
+    }
+
+    public class ContractMetricsRecalcQueueable implements Queueable {
+        private final Set<Id> contractIds;
+
+        public ContractMetricsRecalcQueueable(Set<Id> ids) {
+            this.contractIds = (ids == null) ? new Set<Id>() : new Set<Id>(ids);
+        }
+
+        public void execute(QueueableContext context) {
+            if (contractIds == null || contractIds.isEmpty()) {
+                return;
+            }
+            runContractMetricsRecalc(contractIds);
+            contractMetricsJobQueued = false;
+        }
+    }
+
+    private static void runContractMetricsRecalc(Set<Id> contractIds) {
+        if (contractIds == null || contractIds.isEmpty()) {
+            return;
+        }
+        Boolean previousSuppression = suppressMetricsRecalc;
+        suppressMetricsRecalc = true;
+        try {
+            recalcContractMetrics(contractIds);
+        } finally {
+            suppressMetricsRecalc = previousSuppression;
+        }
+    }
+
+    private static void recalcContractMetrics(Set<Id> contractIds) {
+        if (contractIds == null || contractIds.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Contract> contractsToProcess = new Map<Id, Contract>([
+            SELECT Id, Status, Subscription_Value__c, No_of_Installations__c
+            FROM Contract
+            WHERE Id IN :contractIds
+        ]);
+
+        updateContractMetricsFromPackages(contractsToProcess);
+    }
+
+    @TestVisible
+    private static void updateContractMetricsFromPackages(Map<Id, Contract> updatedContracts) {
+        if (updatedContracts == null || updatedContracts.isEmpty()) {
+            return;
+        }
+
+        Set<Id> eligibleContractIds = new Set<Id>();
+        for (Contract contractRecord : updatedContracts.values()) {
+            if (contractRecord == null || contractRecord.Id == null) {
+                continue;
+            }
+            if (contractRecord.Status != null && contractRecord.Status.equalsIgnoreCase('Terminated')) {
+                continue;
+            }
+            eligibleContractIds.add(contractRecord.Id);
+        }
+
+        if (eligibleContractIds.isEmpty()) {
+            return;
+        }
+
+        List<Package__c> contractPackages = [
+            SELECT Id, Contract__c, InstallationCost__c, Installation_Cost__c, Installation_Quantity__c
+            FROM Package__c
+            WHERE Contract__c IN :eligibleContractIds
+        ];
+
+        if (contractPackages.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Decimal> subscriptionTotals = new Map<Id, Decimal>();
+        Map<Id, Decimal> installationTotals = new Map<Id, Decimal>();
+
+        // Roll up manually so currency math uses each package record currency (multi-currency safe)
+        for (Package__c pkg : contractPackages) {
+            if (pkg == null || pkg.Contract__c == null) {
+                continue;
+            }
+
+            Decimal quantity = pkg.Installation_Quantity__c == null ? 0 : pkg.Installation_Quantity__c;
+            Decimal unitCost = pkg.InstallationCost__c != null ? pkg.InstallationCost__c : pkg.Installation_Cost__c;
+            Decimal packageValue = (unitCost == null || quantity == null) ? 0 : unitCost * quantity;
+
+            if (!subscriptionTotals.containsKey(pkg.Contract__c)) {
+                subscriptionTotals.put(pkg.Contract__c, 0);
+            }
+            if (!installationTotals.containsKey(pkg.Contract__c)) {
+                installationTotals.put(pkg.Contract__c, 0);
+            }
+
+            subscriptionTotals.put(pkg.Contract__c, subscriptionTotals.get(pkg.Contract__c) + packageValue);
+            installationTotals.put(pkg.Contract__c, installationTotals.get(pkg.Contract__c) + quantity);
+        }
+
+        List<Contract> contractsToUpdate = new List<Contract>();
+
+        for (Id contractId : eligibleContractIds) {
+            Boolean hasPackages = subscriptionTotals.containsKey(contractId) || installationTotals.containsKey(contractId);
+            if (!hasPackages) {
+                continue;
+            }
+
+            Contract source = updatedContracts.get(contractId);
+            Contract updateRecord = new Contract(Id = contractId);
+            Boolean needsUpdate = false;
+
+            if (subscriptionTotals.containsKey(contractId)) {
+                Decimal newSubscriptionTotal = subscriptionTotals.get(contractId).setScale(2);
+                Decimal currentSubscription = source.Subscription_Value__c;
+
+                if (currentSubscription == null || currentSubscription.setScale(2) != newSubscriptionTotal) {
+                    updateRecord.Subscription_Value__c = newSubscriptionTotal;
+                    needsUpdate = true;
+                }
+            }
+
+            if (installationTotals.containsKey(contractId)) {
+                Decimal newInstallationTotal = installationTotals.get(contractId).setScale(0);
+                Decimal currentInstallations = source.No_of_Installations__c;
+
+                if (currentInstallations == null || currentInstallations.setScale(0) != newInstallationTotal) {
+                    updateRecord.No_of_Installations__c = newInstallationTotal;
+                    needsUpdate = true;
+                }
+            }
+
+            if (needsUpdate) {
+                contractsToUpdate.add(updateRecord);
+            }
+        }
+
+        if (!contractsToUpdate.isEmpty()) {
+            update contractsToUpdate;
+        }
+    }
+
     private static void activateInstallations(List<Installation__c> instList) {
-        Logger.info('Start: activateInstallations | Total Installations: ' + instList.size());
-        Logger.saveLog();
-    
+     
         List<Installation__c> renewalInsts = new List<Installation__c>();
     
         for (Installation__c inst : instList) {
@@ -294,7 +487,15 @@ public class ContractTriggerHandler {
         }
     
         if (!renewalInsts.isEmpty()) {
-            InstallationsRenewalService.processRenewalInstallations(renewalInsts);
+            Set<Id> renewalInstIds = new Set<Id>();
+            for (Installation__c inst : renewalInsts) {
+                if (inst != null && inst.Id != null) {
+                    renewalInstIds.add(inst.Id);
+                }
+            }
+            if (!renewalInstIds.isEmpty()) {
+                Database.executeBatch(new InstallationsRenewalBatch(renewalInstIds), 50);
+            }
         } 
     }
 

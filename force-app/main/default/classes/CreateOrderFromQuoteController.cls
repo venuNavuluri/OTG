@@ -36,12 +36,41 @@ public with sharing class CreateOrderFromQuoteController
     @AuraEnabled(cacheable=true)
     public static String validateInstallationCount(String qtId)
     {
-        List<Package__c> packList = [SELECT Id, Name, Quote__c, Temp_Quote_Line_Group__r.Installation_Quantity__c, Installation_Quantity__c, (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated') CreatedDate FROM Package__c WHERE Temp_Quote__c = :qtId ORDER BY CreatedDate DESC];
-        for(Package__c pack : packList)
-        {
-            if((pack.Installations__r != NULL) && (pack.Temp_Quote_Line_Group__r.Installation_Quantity__c != pack.Installations__r.size()))
-            {
-                System.debug('In If');
+        SBQQ__Quote__c quote = [
+            SELECT Id, SBQQ__Type__c
+            FROM SBQQ__Quote__c
+            WHERE Id = :qtId
+            LIMIT 1
+        ];
+        Boolean isRenewal = quote.SBQQ__Type__c == 'Renewal';
+
+        List<Package__c> packList;
+        if (isRenewal) {
+            packList = [
+                SELECT Id, Name, Quote__c, Temp_Quote_Line_Group__r.Installation_Quantity__c, Installation_Quantity__c,
+                    (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated')
+                FROM Package__c
+                WHERE Temp_Quote__c = :qtId AND Temp_Quote_Line_Group__c != null
+                ORDER BY CreatedDate DESC
+            ];
+        } else {
+            packList = [
+                SELECT Id, Name, Quote__c, Temp_Quote_Line_Group__r.Installation_Quantity__c, Installation_Quantity__c,
+                    (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
+                FROM Package__c
+                WHERE Temp_Quote__c = :qtId AND Temp_Quote_Line_Group__c != null
+                ORDER BY CreatedDate DESC
+            ];
+        }
+
+        for (Package__c pack : packList) {
+            Integer activeInstallations = (pack.Installations__r == null) ? 0 : pack.Installations__r.size();
+            Decimal expectedQty = pack.Temp_Quote_Line_Group__r == null ? null : pack.Temp_Quote_Line_Group__r.Installation_Quantity__c;
+            System.debug('validateInstallationCount pack ' + pack.Id + ' expectedQty=' + expectedQty + ' activeInstallations=' + activeInstallations);
+            if (pack.Installations__r != null &&
+                expectedQty != null &&
+                expectedQty != activeInstallations) {
+                System.debug('validateInstallationCount mismatch pack ' + pack.Id + ' expectedQty=' + expectedQty + ' activeInstallations=' + activeInstallations);
                 return 'No. of active installations on package must match with the Installation Quantity on package';
             }
         }

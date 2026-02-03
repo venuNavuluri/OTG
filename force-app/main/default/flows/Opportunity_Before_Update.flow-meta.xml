@@ -43,6 +43,13 @@
                 <stringValue>Subscription</stringValue>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ContractType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Existing Contract</stringValue>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Update_Opportunity</targetReference>
         </connector>
@@ -64,6 +71,13 @@
             <operator>Assign</operator>
             <value>
                 <stringValue>Subscription</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ContractType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>New Contract</stringValue>
             </value>
         </assignmentItems>
         <connector>
@@ -135,6 +149,13 @@
                 <stringValue>Subscription</stringValue>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Contract_Move_Value__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.SBQQ__RenewedContract__r.Subscription_Value__c</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Update_Opportunity</targetReference>
         </connector>
@@ -158,6 +179,13 @@
                 <stringValue>Subscription</stringValue>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ContractType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Existing Contract</stringValue>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Update_Opportunity</targetReference>
         </connector>
@@ -179,6 +207,13 @@
             <operator>Assign</operator>
             <value>
                 <stringValue>Subscription</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ContractType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>New Contract</stringValue>
             </value>
         </assignmentItems>
         <connector>
@@ -590,6 +625,12 @@
         <locationX>974</locationX>
         <locationY>803</locationY>
         <inputAssignments>
+            <field>Contract_Type__c</field>
+            <value>
+                <elementReference>ContractType</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
             <field>Existing_Opportunity_Type__c</field>
             <value>
                 <elementReference>opportunityType</elementReference>
@@ -613,7 +654,7 @@
         <recordTriggerType>Update</recordTriggerType>
         <triggerType>RecordBeforeSave</triggerType>
     </start>
-    <status>Obsolete</status>
+    <status>Active</status>
     <variables>
         <name>ContractType</name>
         <dataType>String</dataType>

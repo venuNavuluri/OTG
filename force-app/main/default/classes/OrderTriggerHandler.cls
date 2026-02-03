@@ -250,7 +250,8 @@ public class OrderTriggerHandler
         
                     if (ord.Type == 'Renewal') {
                         renewalQuoteIds.add(ord.SBQQ__Quote__c);
-                    } else {
+                    }
+                    if (ord.Type == 'New' || ord.Type == 'Amendment') {
                         nonRenewalQuoteIds.add(ord.SBQQ__Quote__c);
                     }
                 }
@@ -282,7 +283,8 @@ public class OrderTriggerHandler
                             SELECT Id, Package__c, Quote__c, Quote_Line_Group__c,
                                    Order__c, Installation_Order_Status__c
                             FROM Installation__c
-                            WHERE Package__c IN :pkgById.keySet()
+                            WHERE Package__c IN :pkgById.keySet() 
+                            AND Installation_Order_Status__c != 'Terminated' and Installation_Order_Status__c != 'Future Terminated'
                         ];
         
                         // 3) Update installations that currently belong to the temp quote

@@ -116,7 +116,7 @@ private class ActivateInstallationControllerTest {
             Installation__c = inst.Id,
             Start_Date__c = Date.today().addMonths(-3),
             End_Date__c = Date.today().addMonths(-2),
-            Status__c = 'Unbilled',
+            Status__c = 'Pending Approval',
             CurrencyIsoCode = contractRec.CurrencyIsoCode
         );
         insert obsoleteSO;

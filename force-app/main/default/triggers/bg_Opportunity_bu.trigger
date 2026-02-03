@@ -10,12 +10,6 @@
 
 trigger bg_Opportunity_bu on Opportunity (before update) {
     
-    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance();
-    if (bypassTrig != null && bypassTrig.ByPass_Opportunity_Triggers__c) {
-        System.debug('bg_Opportunity_bu Trigger skipped for user: ');
-        return;
-    }
-
     List<Opportunity> oppsToGenerateName = new List<Opportunity>();
     
     for (Opportunity opp : Trigger.new)

@@ -1,53 +1,42 @@
 public with sharing class InstallationsRenewalService {
 
     public static void processRenewalInstallations(List<Installation__c> installations) {
-        Logger.info('Start: processRenewalInstallations | Installations count: ' + installations.size());
-        Logger.saveLog();
-        
-        Map<Id, List<SBQQ__Subscription__c>> subsByInstallation = fetchSubscriptionsByInstallations(installations);
-        List<Installation__c> validInstallationsForSO = new List<Installation__c>();
+        try {
+            Map<Id, List<SBQQ__Subscription__c>> subsByInstallation = fetchSubscriptionsByInstallations(installations);
+            List<Installation__c> validInstallationsForSO = new List<Installation__c>();
+            List<Installation_Line__c> allLinesToInsert = new List<Installation_Line__c>();
+            Set<Id> lineInstallations = new Set<Id>();
 
         for (Installation__c inst : installations) {
             Date installStartDate = inst.Contract__r.StartDate;
             List<SBQQ__Subscription__c> subsForInst = subsByInstallation.get(inst.Id);
 
             if (subsForInst != null && !subsForInst.isEmpty()) {
-                Logger.info('Creating installation lines for Installation: ' + inst.Id + ' with ' + subsForInst.size() + ' subscriptions.');
-                Logger.saveLog();
-                ActivateInstallationController.createInstallationLines(inst, subsForInst, installStartDate);
-
-                Integer lineCount = [
-                    SELECT COUNT()
-                    FROM Installation_Line__c
-                    WHERE Installation__c = :inst.Id
-                ];
-
-                if (lineCount > 0) {
-                    validInstallationsForSO.add(inst);
-                    Logger.info('Installation lines created for Installation: ' + inst.Id);
-                    Logger.saveLog();
-                } else {
-                    Logger.warn('No installation lines created for Installation: ' + inst.Id);
-                    Logger.saveLog();
+                List<Installation_Line__c> instLines = ActivateInstallationController.buildInstallationLines(inst, subsForInst, installStartDate);
+                if (!instLines.isEmpty()) {
+                    allLinesToInsert.addAll(instLines);
+                    lineInstallations.add(inst.Id);
                 }
-            } else {
-                Logger.warn('No subscriptions found for Installation: ' + inst.Id);
-                Logger.saveLog();
             }
         }
 
-        if (!validInstallationsForSO.isEmpty()) {
-            Logger.info('Generating Sales Orders for ' + validInstallationsForSO.size() + ' installations.');
-            Logger.saveLog();
-            SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true, false);
-        } else {
-            Logger.info('No valid installations found for Sales Order generation.');
-            Logger.saveLog();
-        }
+            if (!allLinesToInsert.isEmpty()) {
+                insert allLinesToInsert;
+            }
 
-        Logger.info('End: processRenewalInstallations');
-        Logger.saveLog();
+            for (Installation__c inst : installations) {
+                if (lineInstallations.contains(inst.Id)) {
+                    validInstallationsForSO.add(inst);
+                }
+            }
+
+            if (!validInstallationsForSO.isEmpty()) {
+                SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true, false);
+            }
+        } finally {
+        }
     }
+
 
     public static Map<Id, List<SBQQ__Subscription__c>> fetchSubscriptionsByInstallations(List<Installation__c> installations) {
         Map<Id, List<SBQQ__Subscription__c>> subsByInstId = new Map<Id, List<SBQQ__Subscription__c>>();
@@ -60,9 +49,6 @@ public with sharing class InstallationsRenewalService {
             if (inst.Quote_Line_Group__c != null) quoteLineGroupIds.add(inst.Quote_Line_Group__c);
             if (inst.Order__c != null) orderIds.add(inst.Order__c);
         }
-    
-        Logger.info('Fetching OrderItems with QLGs: ' + quoteLineGroupIds.size() + ', Orders: ' + orderIds.size());
-        Logger.saveLog();
     
         List<OrderItem> orderItems = [
             SELECT Id, Quote_Line_Group_ID__c, OrderId
@@ -83,12 +69,8 @@ public with sharing class InstallationsRenewalService {
         }
     
         if (orderItemToInstallationIds.isEmpty()) {
-            Logger.warn('No OrderItems matched for installations.');
             return subsByInstId;
         }
-    
-        Logger.info('Fetching Subscriptions for matched OrderItems: ' + orderItemToInstallationIds.keySet().size());
-        Logger.saveLog();
     
         List<SBQQ__Subscription__c> subs = [
             SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c,SBQQ__StartDate__c, SBQQ__EndDate__c,
@@ -110,8 +92,6 @@ public with sharing class InstallationsRenewalService {
             }
         }
     
-        Logger.info('Subscription mapping complete. Installations with subscriptions: ' + subsByInstId.size());
-        Logger.saveLog();
         return subsByInstId;
     }
 }

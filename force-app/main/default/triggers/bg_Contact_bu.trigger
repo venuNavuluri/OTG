@@ -10,12 +10,6 @@
 
 trigger bg_Contact_bu on Contact (before update) {
 
-    VRConfiguration__c bypassTrig = VRConfiguration__c.getInstance();
-    if (bypassTrig != null && bypassTrig.ByPass_Contact_Triggers__c) {
-        System.debug('bg_Contact_bu Trigger skipped for user: ');
-        return;
-    }
-
     List<Contact> inactiveContactChange = new List<Contact>();
 
     for(Contact con : Trigger.new) {

@@ -367,11 +367,11 @@ public class bg_AccountUtils
             for(Account acc : accounts){
                 for(string businessUnit : BUSINESS_UNITS){
                     Product_Solutions__c ps = new Product_Solutions__c(
-                    	Account_ID__c = acc.id,
+                        Account_ID__c = acc.id,
                         Product_Solution__c = businessUnit,
                         Product_Area_Status__c = 'Prospect'
                     );
-                   productSolutionsToInsert.add(ps); 
+                    productSolutionsToInsert.add(ps); 
                 }
                 
             }
@@ -388,4 +388,98 @@ public class bg_AccountUtils
         }
         
     }
+    
+    Public static Map<String, String> getRoleToSalesTeamMap() {
+        
+        Map<String, String> mapping = new Map<String, String>();
+        
+        // Query your Custom Metadata
+        for (Sales_Person_Role_Mapping__mdt m : [
+            SELECT Label,
+            QualifiedApiName,
+            Sales_Team__c
+            FROM Sales_Person_Role_Mapping__mdt
+        ]) {
+            if (m.Label != null && m.Sales_Team__c != null) {
+                mapping.put(m.Label.trim(), m.Sales_Team__c.trim());
+            }
+        }
+        return mapping;
+    } 
+    
+    /* Assigns Sales Team on Account based on Owner.UserRole.
+    public static void assignSalesTeamToAccounts(List<Account> newList, Map<Id, Account> oldMap) {
+        
+        if (newList.isEmpty()) return;
+        
+        Set<Id> allOwnerIds = new Set<Id>();
+        for (Account acc : newList) {
+            if (acc.OTG_Product_Acc_Owner__c != null) {
+                allOwnerIds.add(acc.OTG_Product_Acc_Owner__c);
+            }
+            if (acc.LROO_Product_Acc_Owner__c != null) {
+                allOwnerIds.add(acc.LROO_Product_Acc_Owner__c);
+            }
+        }
+        
+        Map<Id, String> userRoleMap = new Map<Id, String>();
+        
+        if (!allOwnerIds.isEmpty()) {
+            for (User u : [
+                SELECT Id, UserRole.Name
+                FROM User
+                WHERE Id IN :allOwnerIds
+            ]) {
+                userRoleMap.put(
+                    u.Id,
+                    (u.UserRole != null ? u.UserRole.Name : null)
+                );
+            }
+        }
+        
+        Map<String, String> roleToTeam = getRoleToSalesTeamMap();
+      
+        for (Account accNew : newList) {
+            
+            Account accOld = oldMap != null ? oldMap.get(accNew.Id) : null;
+            
+            Boolean otgOwnerChanged = accOld == null ? true :
+            accNew.OTG_Product_Acc_Owner__c != accOld.OTG_Product_Acc_Owner__c;
+            
+            Boolean lrooOwnerChanged = accOld == null ? true :
+            accNew.LROO_Product_Acc_Owner__c != accOld.LROO_Product_Acc_Owner__c;
+            
+            if (accNew.OTG_Product_Acc_Owner__c != null) {
+                
+                String otgRole = userRoleMap.get(accNew.OTG_Product_Acc_Owner__c);
+                String otgTeam = (otgRole != null ? roleToTeam.get(otgRole) : null);
+                
+                if (otgTeam != null) {
+                    if (String.isBlank(accNew.OTG_Sales_Team__c)) {
+                        accNew.OTG_Sales_Team__c = otgTeam;
+                    }
+                    else if (otgOwnerChanged) {
+                        accNew.OTG_Sales_Team__c = otgTeam;
+                    }
+                }
+            }
+            
+            //  LROO SALES TEAM LOGIC UPDATE
+            if (accNew.LROO_Product_Acc_Owner__c != null) {
+                
+                String lrooRole = userRoleMap.get(accNew.LROO_Product_Acc_Owner__c);
+                String lrooTeam = (lrooRole != null ? roleToTeam.get(lrooRole) : null);
+                
+                if (lrooTeam != null) {
+                    
+                    if (String.isBlank(accNew.LROO_Sales_Team__c)) {
+                        accNew.LROO_Sales_Team__c = lrooTeam;
+                    }
+                    else if (lrooOwnerChanged) {
+                        accNew.LROO_Sales_Team__c = lrooTeam;
+                    }
+                }
+            }
+        }
+    }  */
 }

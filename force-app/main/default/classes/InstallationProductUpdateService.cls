@@ -540,7 +540,7 @@ public with sharing class InstallationProductUpdateService {
                     continue;
                 }
 
-                if (salesOrder.Status__c == 'Unbilled') {
+                if (salesOrder.Status__c == 'Unbilled' || salesOrder.Status__c == 'Pending Approval') {
                     Date overlapStart = resolvedOrderStart;
                     if (line.Start_Date__c != null && line.Start_Date__c > overlapStart) {
                         overlapStart = line.Start_Date__c;
@@ -603,7 +603,7 @@ public with sharing class InstallationProductUpdateService {
                             Installation__c = salesOrder.Installation__c,
                             Start_Date__c = overlapStart,
                             End_Date__c = overlapEnd,
-                            Status__c = 'Unbilled',
+                            Status__c = 'Pending Approval',
                             CurrencyIsoCode = salesOrder.CurrencyIsoCode,
                             Credit_Note__c = isCancelLine
                         );

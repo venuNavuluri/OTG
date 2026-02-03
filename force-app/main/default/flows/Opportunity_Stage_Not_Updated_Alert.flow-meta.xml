@@ -33,6 +33,13 @@
                     <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
+            <conditions>
+                <leftValueReference>$Record.Owner.Profile.Name</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
             <connector>
                 <targetReference>Send_Email_Alert</targetReference>
             </connector>

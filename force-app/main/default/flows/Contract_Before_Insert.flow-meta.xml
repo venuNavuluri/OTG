@@ -1,6 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>55.0</apiVersion>
+    <decisions>
+        <name>Legal_Entity_Check</name>
+        <label>Legal Entity Check?</label>
+        <locationX>314</locationX>
+        <locationY>287</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Ocean_Technologies_Group</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Legal_Entity__r.Legal_Entity__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>OTG</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.OwnerId</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Account.OTG_Product_Acc_owner__c</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Account.OTG_Product_Acc_owner__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_OTG_Product_Owner</targetReference>
+            </connector>
+            <label>Ocean Technologies Group</label>
+        </rules>
+        <rules>
+            <name>OneOcean</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Legal_Entity__r.Legal_Entity__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>OneOcean</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.OwnerId</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Account.LROO_Product_Acc_Owner__c</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Account.LROO_Product_Acc_Owner__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_OO_Product_Owner</targetReference>
+            </connector>
+            <label>OneOcean</label>
+        </rules>
+    </decisions>
     <environments>Default</environments>
     <interviewLabel>Contract Before Insert {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Contract Before Insert</label>
@@ -24,32 +89,61 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordUpdates>
-        <name>Set_Contract_Number</name>
-        <label>Set Contract Number</label>
-        <locationX>176</locationX>
-        <locationY>311</locationY>
+        <name>Set_OO_Product_Owner</name>
+        <label>Set OO Product Owner</label>
+        <locationX>314</locationX>
+        <locationY>395</locationY>
         <inputAssignments>
             <field>Contract_Number__c</field>
             <value>
                 <elementReference>$Record.ContractNumber</elementReference>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <field>OwnerExpirationNotice</field>
+            <value>
+                <stringValue>90</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>$Record.Account.LROO_Product_Acc_Owner__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Set_OTG_Product_Owner</name>
+        <label>Set OTG Product Owner</label>
+        <locationX>50</locationX>
+        <locationY>395</locationY>
+        <inputAssignments>
+            <field>Contract_Number__c</field>
+            <value>
+                <elementReference>$Record.ContractNumber</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerExpirationNotice</field>
+            <value>
+                <stringValue>90</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>$Record.Account.OTG_Product_Acc_owner__c</elementReference>
+            </value>
+        </inputAssignments>
         <inputReference>$Record</inputReference>
     </recordUpdates>
     <start>
-        <locationX>50</locationX>
+        <locationX>188</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Set_Contract_Number</targetReference>
+            <targetReference>Legal_Entity_Check</targetReference>
         </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Contract_Number__c</field>
-            <operator>IsNull</operator>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </filters>
         <object>Contract</object>
         <recordTriggerType>Create</recordTriggerType>
         <triggerType>RecordBeforeSave</triggerType>

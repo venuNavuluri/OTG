@@ -100,7 +100,7 @@ private class InstallationTriggerHandlerTest {
             Contract__c = contractRec.Id,
             Start_Date__c = Date.today().addDays(5),
             End_Date__c = Date.today().addDays(35),
-            Status__c = 'Unbilled',
+            Status__c = 'Pending Approval',
             CurrencyIsoCode = contractRec.CurrencyIsoCode
         );
 
@@ -145,7 +145,7 @@ private class InstallationTriggerHandlerTest {
             WHERE Installation__c = :inst.Id AND Credit_Note__c = true
         ];
         System.assertEquals(1, creditOrders.size(), 'Exactly one credit note should be created.');
-        System.assertEquals('Unbilled', creditOrders[0].Status__c, 'Credit note should be unbilled.');
+        System.assertEquals('Pending Approval', creditOrders[0].Status__c, 'Credit note should be unbilled.');
         System.assertEquals(terminationDate, creditOrders[0].Start_Date__c,
             'Credit note should start on termination date.');
 

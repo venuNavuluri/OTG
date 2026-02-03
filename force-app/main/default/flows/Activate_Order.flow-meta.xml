@@ -51,7 +51,7 @@
     <start>
         <locationX>50</locationX>
         <locationY>0</locationY>
-        <filterFormula>ISPICKVAL({!$Record.SBQQ__Quote__r.SBQQ__Type__c}, &apos;Renewal&apos;) || {!$Record.SBQQ__Quote__r.Auto_Termination__c} || {!$Record.SBQQ__Quote__r.Auto_Installation__c}</filterFormula>
+        <filterFormula>{!$Record.SBQQ__Quote__r.Auto_Termination__c} || {!$Record.SBQQ__Quote__r.Auto_Installation__c}</filterFormula>
         <object>Order</object>
         <recordTriggerType>Create</recordTriggerType>
         <scheduledPaths>

@@ -137,7 +137,7 @@ public class InstallationProductUpdateServiceTest {
             'Contract__c'        => contractRec.Id,
             'Start_Date__c'      => Date.today(),
             'End_Date__c'        => Date.today().addMonths(2),
-            'Status__c'          => 'Unbilled',
+            'Status__c'          => 'Pending Approval',
             'Invoice_Account__c' => invoiceAccount.Id,
             'CurrencyIsoCode'    => contractRec.CurrencyIsoCode
         };
@@ -304,7 +304,7 @@ public class InstallationProductUpdateServiceTest {
 
         Set<Id> unbilledOrderIds = new Set<Id>();
         for (Sales_Order__c order : resultingOrders) {
-            if (order.Status__c == 'Unbilled' && !order.Credit_Note__c) {
+            if (order.Status__c == 'Pending Approval' && !order.Credit_Note__c) {
                 unbilledOrderIds.add(order.Id);
             }
         }
@@ -427,7 +427,7 @@ public class InstallationProductUpdateServiceTest {
 
         Boolean foundCredit = false;
         for (Sales_Order__c credit : creditOrders) {
-            if (credit.Credit_Note__c && credit.Status__c == 'Unbilled') {
+            if (credit.Credit_Note__c && credit.Status__c == 'Pending Approval') {
                 foundCredit = true;
                 break;
             }

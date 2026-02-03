@@ -1,0 +1,34 @@
+<template>
+    <lightning-modal-header label="Cancel Future Termination"></lightning-modal-header>
+
+    <lightning-modal-body>
+        <div class="slds-p-around_medium">
+            <p class="slds-text-body_regular">
+                This will set Installation Order Status to Active and clear termination fields. Continue?
+            </p>
+        </div>
+    </lightning-modal-body>
+
+    <lightning-modal-footer>
+        <div class="slds-grid slds-grid_align-end slds-p-around_small">
+            <lightning-button
+                variant="brand"
+                label="Cancel Future Termination"
+                title="Cancel Future Termination"
+                onclick={handleReactivate}
+                class="slds-m-right_small">
+            </lightning-button>
+
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                title="Cancel"
+                onclick={close}>
+            </lightning-button>
+        </div>
+    </lightning-modal-footer>
+
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+    </template>
+</template>

@@ -1,5 +1,31 @@
 @IsTest
 public class ContractTriggerHandlerTest {
+    private static Id baseContractId;
+    private static List<Id> basePackageIds = new List<Id>();
+    
+    private static void ensureBaseContractData() {
+        if (baseContractId == null) {
+            Contract fallback = [
+                SELECT Id
+                FROM Contract
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            baseContractId = fallback.Id;
+        }
+        if (basePackageIds == null) {
+            basePackageIds = new List<Id>();
+        }
+        if (basePackageIds.isEmpty()) {
+            for (Package__c pkg : [
+                SELECT Id
+                FROM Package__c
+                WHERE Contract__c = :baseContractId
+            ]) {
+                basePackageIds.add(pkg.Id);
+            }
+        }
+    }
     
     @TestSetUp
     public static void createTestData() {
@@ -48,6 +74,11 @@ public class ContractTriggerHandlerTest {
             2, 
             1
         );
+        baseContractId = cpc.contractRec.Id;
+        basePackageIds.clear();
+        for (Package__c pkg : cpc.packages) {
+            basePackageIds.add(pkg.Id);
+        }
         
         // Create installations
         List<Installation__c> installations = new List<Installation__c>();
@@ -187,8 +218,6 @@ public class ContractTriggerHandlerTest {
     
     @IsTest
     public static void testActivateContractsRenewal() {
-        Test.startTest();
-        
         // Get existing contract with all required fields
         Contract con = [SELECT Id, Name, SBQQ__Quote__c, SBQQ__Opportunity__c, AccountId FROM Contract ORDER BY CreatedDate DESC LIMIT 1];
         
@@ -214,15 +243,14 @@ public class ContractTriggerHandlerTest {
         // Insert renewal contract
         insert renewalCon;
         
+        Test.startTest();
         // Activate the renewal contract to trigger activateContracts
         renewalCon.Status = 'Activated';
         update renewalCon;
+        Test.stopTest();
         
         // Verify that activateContracts was called without errors
-        // (This test mainly verifies that no exceptions are thrown)
         System.assert(true, 'activateContracts should complete without throwing exceptions');
-        
-        Test.stopTest();
     }
     
     @IsTest
@@ -322,8 +350,6 @@ public class ContractTriggerHandlerTest {
     
     @IsTest
     public static void testActivateInstallationsRenewal() {
-        Test.startTest();
-        
         // Create a contract with renewal quote and installation to trigger activateInstallations
         Contract con = [SELECT Id, Name, SBQQ__Quote__c, SBQQ__Opportunity__c, AccountId FROM Contract ORDER BY CreatedDate DESC LIMIT 1];
         
@@ -349,13 +375,59 @@ public class ContractTriggerHandlerTest {
         // Insert renewal contract
         insert renewalCon;
         
+        Test.startTest();
         // Activate the renewal contract to trigger activateContracts which calls activateInstallations
         renewalCon.Status = 'Activated';
         update renewalCon;
+        Test.stopTest();
         
         // Verify that activateContracts was called without errors
         System.assert(true, 'activateContracts should complete without throwing exceptions');
-        
+    }
+
+    @IsTest
+    public static void testAfterUpdateRecalculatesPackageMetrics() {
+        ensureBaseContractData();
+        System.assertNotEquals(null, baseContractId, 'Base contract must exist from test setup');
+        System.assert(basePackageIds != null && basePackageIds.size() >= 2, 'At least two packages required for metric test');
+
+        List<Package__c> packages = [
+            SELECT Id, InstallationCost__c, Installation_Quantity__c
+            FROM Package__c
+            WHERE Id IN :basePackageIds
+            ORDER BY CreatedDate ASC
+        ];
+
+        packages[0].Installation_Quantity__c = 2;
+        packages[0].InstallationCost__c = 150;
+        packages[1].Installation_Quantity__c = 3;
+        packages[1].InstallationCost__c = 200;
+        update packages;
+
+        Test.startTest();
+        Map<Id, Contract> contractSnapshot = new Map<Id, Contract>([
+            SELECT Id, Status, Subscription_Value__c, No_of_Installations__c
+            FROM Contract
+            WHERE Id = :baseContractId
+        ]);
+        ContractTriggerHandler.updateContractMetricsFromPackages(contractSnapshot);
         Test.stopTest();
+
+        Contract refreshed = [
+            SELECT Subscription_Value__c, No_of_Installations__c
+            FROM Contract
+            WHERE Id = :baseContractId
+        ];
+
+        System.assertEquals(
+            900,
+            refreshed.Subscription_Value__c,
+            'Subscription value should sum cost * quantity for each package'
+        );
+        System.assertEquals(
+            5,
+            refreshed.No_of_Installations__c,
+            'Installation count should sum Installation_Quantity__c from related packages'
+        );
     }
 }

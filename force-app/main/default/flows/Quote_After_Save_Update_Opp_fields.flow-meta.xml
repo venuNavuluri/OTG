@@ -46,7 +46,7 @@
         <name>Check_for_Next_Step_and_Description_Value</name>
         <label>Check for Next Step and Description Value</label>
         <locationX>314</locationX>
-        <locationY>1055</locationY>
+        <locationY>1355</locationY>
         <defaultConnector>
             <targetReference>Update_Opportunity_Records</targetReference>
         </defaultConnector>
@@ -66,6 +66,45 @@
                 <targetReference>Update_Opportunity_Records_With_Next_Step_and_Desc</targetReference>
             </connector>
             <label>Next Step and Desc is Blank?</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Opportunity_Type</name>
+        <label>Opportunity Type</label>
+        <locationX>314</locationX>
+        <locationY>1055</locationY>
+        <defaultConnector>
+            <targetReference>Update_Opportunity_Contract_Term</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>UpSell_Account_Growth</name>
+            <conditionLogic>(1 OR 2)AND 3</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.SBQQ__Opportunity2__r.Existing_Opportunity_Type__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Up-sell</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.SBQQ__Opportunity2__r.Existing_Opportunity_Type__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Account Growth</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.SBQQ__Opportunity2__r.StageName</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Closed Won</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Opportunity_Contract_Term_Upsell_Account_Growth</targetReference>
+            </connector>
+            <label>UpSell/Account Growth?</label>
         </rules>
     </decisions>
     <environments>Default</environments>
@@ -97,7 +136,7 @@
         <locationY>947</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Check_for_Next_Step_and_Description_Value</targetReference>
+            <targetReference>Opportunity_Type</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -157,7 +196,7 @@
         <name>Copy_2_of_Update_Bypass_True</name>
         <label>Copy 2 of Update Bypass - True</label>
         <locationX>578</locationX>
-        <locationY>1271</locationY>
+        <locationY>1571</locationY>
         <filterLogic>and</filterLogic>
         <filters>
             <field>ByPass_Flow__c</field>
@@ -178,7 +217,7 @@
         <name>Update_Bypass_True</name>
         <label>Update Bypass - True</label>
         <locationX>50</locationX>
-        <locationY>1271</locationY>
+        <locationY>1571</locationY>
         <filterLogic>and</filterLogic>
         <filters>
             <field>ByPass_Flow__c</field>
@@ -196,10 +235,42 @@
         <object>VRConfiguration__c</object>
     </recordUpdates>
     <recordUpdates>
+        <name>Update_Opportunity_Contract_Term</name>
+        <label>Update Opportunity Contract Term</label>
+        <locationX>446</locationX>
+        <locationY>1163</locationY>
+        <connector>
+            <targetReference>Check_for_Next_Step_and_Description_Value</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Contract_Term__c</field>
+            <value>
+                <elementReference>GetMasterContract.ContractTerm</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record.SBQQ__Opportunity2__r</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Opportunity_Contract_Term_Upsell_Account_Growth</name>
+        <label>Update Opportunity Contract Term - Upsell &amp; Account Growth</label>
+        <locationX>182</locationX>
+        <locationY>1163</locationY>
+        <connector>
+            <targetReference>Check_for_Next_Step_and_Description_Value</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Contract_Term__c</field>
+            <value>
+                <stringValue>12</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record.SBQQ__Opportunity2__r</inputReference>
+    </recordUpdates>
+    <recordUpdates>
         <name>Update_Opportunity_Records</name>
         <label>Update Opportunity Records</label>
         <locationX>578</locationX>
-        <locationY>1163</locationY>
+        <locationY>1463</locationY>
         <connector>
             <targetReference>Copy_2_of_Update_Bypass_True</targetReference>
         </connector>
@@ -222,12 +293,6 @@
             <field>Contact_Name__c</field>
             <value>
                 <elementReference>Get_Master_Opportunity.Contact_Name__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Contract_Term__c</field>
-            <value>
-                <elementReference>GetMasterContract.ContractTerm</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -254,7 +319,7 @@
         <name>Update_Opportunity_Records_With_Next_Step_and_Desc</name>
         <label>Update Opportunity Records - With Next Step and Desc</label>
         <locationX>50</locationX>
-        <locationY>1163</locationY>
+        <locationY>1463</locationY>
         <connector>
             <targetReference>Update_Bypass_True</targetReference>
         </connector>
@@ -277,12 +342,6 @@
             <field>Contact_Name__c</field>
             <value>
                 <elementReference>Get_Master_Opportunity.Contact_Name__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Contract_Term__c</field>
-            <value>
-                <elementReference>GetMasterContract.ContractTerm</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -366,5 +425,5 @@
         <recordTriggerType>Update</recordTriggerType>
         <triggerType>RecordAfterSave</triggerType>
     </start>
-    <status>Active</status>
+    <status>Obsolete</status>
 </Flow>

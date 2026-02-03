@@ -19,6 +19,7 @@ public class QuoteTriggerHandler extends TriggerHandler {
     private static final String CHARGE_TYPE_ONE_TIME = 'One-Time';
     private static final String INSTALLATION_TERMINATED = 'Terminated';
     private static final Integer DEFAULT_SUBSCRIPTION_TERM = 12;
+    private static final String RENEWAL_TYPE_NON_STANDARD = 'Non Standard Renewal';
     
     
     public override void beforeInsert() {
@@ -72,6 +73,7 @@ public class QuoteTriggerHandler extends TriggerHandler {
                         approvedQuotes.put(qId, (SBQQ__Quote__c) Trigger.newMap.get(qId));
                     }
                     syncPackageRecords(approvedQuotes, (Map<Id, SBQQ__Quote__c>) Trigger.oldMap);
+                    updateRenewalTypeOnApproval(approvedQuotes);
             
                     for (Id qId : approvedQuoteIds) {
                         SBQQ__Quote__c q = (SBQQ__Quote__c) Trigger.newMap.get(qId);
@@ -94,6 +96,67 @@ public class QuoteTriggerHandler extends TriggerHandler {
                     
                 }
             }  
+
+    private void updateRenewalTypeOnApproval(Map<Id, SBQQ__Quote__c> approvedQuotes)
+    {
+        if (approvedQuotes == null || approvedQuotes.isEmpty()) return;
+
+        Set<Id> renewalApprovedQuoteIds = new Set<Id>();
+        for (SBQQ__Quote__c q : approvedQuotes.values())
+        {
+            if (q.SBQQ__Type__c == QUOTE_TYPE_RENEWAL) {
+                renewalApprovedQuoteIds.add(q.Id);
+            }
+        }
+
+        if (renewalApprovedQuoteIds.isEmpty()) return;
+
+        try
+        {
+            List<SBQQ__QuoteLineGroup__c> qlgs = [
+                SELECT Id, SBQQ__Quote__c, Products__c, Package__c, Package__r.Products__c
+                FROM SBQQ__QuoteLineGroup__c
+                WHERE SBQQ__Quote__c IN :renewalApprovedQuoteIds
+                  AND Package__c != null
+            ];
+
+            Set<Id> mismatchQuoteIds = new Set<Id>();
+            for (SBQQ__QuoteLineGroup__c qlg : qlgs)
+            {
+                String groupProducts = qlg.Products__c;
+                String packageProducts = qlg.Package__r == null ? null : qlg.Package__r.Products__c;
+                if (groupProducts != packageProducts)
+                {
+                    mismatchQuoteIds.add(qlg.SBQQ__Quote__c);
+                }
+            }
+
+            if (mismatchQuoteIds.isEmpty()) return;
+
+            List<SBQQ__Quote__c> quotesToUpdate = new List<SBQQ__Quote__c>();
+            for (Id quoteId : mismatchQuoteIds)
+            {
+                SBQQ__Quote__c q = approvedQuotes.get(quoteId);
+                if (q == null) continue;
+                if (q.Renewal_Type__c == RENEWAL_TYPE_NON_STANDARD) continue;
+
+                quotesToUpdate.add(new SBQQ__Quote__c(
+                    Id = q.Id,
+                    Renewal_Type__c = RENEWAL_TYPE_NON_STANDARD
+                ));
+            }
+
+            if (!quotesToUpdate.isEmpty()) {
+                update quotesToUpdate;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
+        }
+    }
+
     
     public void syncPackageRecords(
     Map<Id, SBQQ__Quote__c> newQuoteMap,
@@ -249,7 +312,7 @@ public class QuoteTriggerHandler extends TriggerHandler {
             
             if (!contractIdToQuoteIdMap.isEmpty()) {
                 List<Package__c> packages = [
-                    SELECT Id,Temp_Quote__c , Temp_Quote_Line_Group__c , Name, CurrencyISOCode,InstallationCost__c, Prior_Installation_Quantity__c, Installation_Quantity__c, Contract__c,Number_of_Special_Products__c,User_Quantity__c,Number_of_Virtual_Classrooms__c
+                    SELECT Id,Temp_Quote__c ,Products__c, Temp_Quote_Line_Group__c , Name, CurrencyISOCode,InstallationCost__c, Prior_Installation_Quantity__c, Installation_Quantity__c, Contract__c,Number_of_Special_Products__c,User_Quantity__c,Number_of_Virtual_Classrooms__c
                     FROM Package__c
                     WHERE Contract__c IN :contractIdToQuoteIdMap.keySet()
                 ];
@@ -276,6 +339,7 @@ public class QuoteTriggerHandler extends TriggerHandler {
                             quoteLineGroup.CurrencyIsoCode = packageObj.CurrencyISOCode;
                             quoteLineGroup.Package__c = packageObj.Id;
                             quoteLineGroup.Created_From_Package__c = TRUE;
+                            quoteLineGroup.Products__c = packageObj.Products__c;
                             quoteLineGroup.Installation_Price__c = packageObj.InstallationCost__c; 
                             quoteLineGroup.Prior_Installation_Quantity__c = packageObj.Installation_Quantity__c;
                             newQuoteLineGroups.add(quoteLineGroup);

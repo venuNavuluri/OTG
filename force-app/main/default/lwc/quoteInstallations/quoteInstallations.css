@@ -10,6 +10,64 @@
     padding: 8px;
   }
   
-  .highLight {
+.highLight {
     background-color: #ff660082;
   }
+
+.qlg-body {
+    background: #ffffff;
+}
+
+.products-bar {
+    background: #f3f5f7;
+    border-left: 4px solid #1b96ff;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.products-text {
+    display: inline-block;
+    margin-left: 0.5rem;
+    word-break: break-word;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.count-badge {
+    background: #eef4ff;
+    color: #1d4e89;
+}
+
+.empty-state {
+    border: 1px dashed #d8dde6;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    color: #54698d;
+    background: #fafbfc;
+}
+
+.actions-bar {
+    border-top: 1px solid #d8dde6;
+}
+
+.action-note {
+    color: #54698d;
+}
+
+.note-text {
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+.action-buttons lightning-button {
+    margin-right: 0.5rem;
+}
+
+.action-upload {
+    display: inline-block;
+}

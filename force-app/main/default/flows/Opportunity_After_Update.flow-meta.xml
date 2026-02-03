@@ -3,12 +3,12 @@
     <actionCalls>
         <name>ClosedWonOpportunitySalesUser</name>
         <label>ClosedWonOpportunitySalesUser</label>
-        <locationX>50</locationX>
-        <locationY>2411</locationY>
+        <locationX>182</locationX>
+        <locationY>3695</locationY>
         <actionName>Opportunity.ClosedWonOpportunitySalesUser</actionName>
         <actionType>emailAlert</actionType>
         <connector>
-            <targetReference>Add_Closed_Won_Opp_Emails</targetReference>
+            <targetReference>Evaluate_Account_Owner_Email</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -20,10 +20,29 @@
         <nameSegment>Opportunity.ClosedWonOpportunitySalesUser</nameSegment>
     </actionCalls>
     <actionCalls>
+        <name>Opportunity_Owner_Change_Notification</name>
+        <label>Opportunity Owner Change Notification</label>
+        <locationX>446</locationX>
+        <locationY>947</locationY>
+        <actionName>Opportunity.Opportunity_Owner_Change_Notification</actionName>
+        <actionType>emailAlert</actionType>
+        <connector>
+            <targetReference>Has_Stage_Changed</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>SObjectRowId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>Opportunity.Opportunity_Owner_Change_Notification</nameSegment>
+    </actionCalls>
+    <actionCalls>
         <name>Send_Closed_Won_Opp_Email</name>
         <label>Send Closed Won Opp Email</label>
         <locationX>50</locationX>
-        <locationY>2627</locationY>
+        <locationY>5027</locationY>
         <actionName>emailSimple</actionName>
         <actionType>emailSimple</actionType>
         <connector>
@@ -59,8 +78,8 @@
     <actionCalls>
         <name>Send_OppStageChanged_Email</name>
         <label>Send OppStageChanged Email</label>
-        <locationX>182</locationX>
-        <locationY>1271</locationY>
+        <locationX>446</locationX>
+        <locationY>1871</locationY>
         <actionName>emailSimple</actionName>
         <actionType>emailSimple</actionType>
         <connector>
@@ -96,8 +115,8 @@
     <actionCalls>
         <name>Send_StageProposalQuote_Email</name>
         <label>Send StageProposalQuote Email</label>
-        <locationX>50</locationX>
-        <locationY>1895</locationY>
+        <locationX>270</locationX>
+        <locationY>3095</locationY>
         <actionName>emailSimple</actionName>
         <actionType>emailSimple</actionType>
         <connector>
@@ -133,8 +152,8 @@
     <actionCalls>
         <name>WonOpp_Over50K</name>
         <label>WonOpp Over50K</label>
-        <locationX>50</locationX>
-        <locationY>1487</locationY>
+        <locationX>270</locationX>
+        <locationY>2387</locationY>
         <actionName>Opportunity.WonOpp_Over50K</actionName>
         <actionType>emailAlert</actionType>
         <connector>
@@ -151,10 +170,10 @@
     </actionCalls>
     <apiVersion>54.0</apiVersion>
     <assignments>
-        <name>Add_Closed_Won_Opp_Emails</name>
-        <label>Add Closed Won Opp Emails</label>
-        <locationX>50</locationX>
-        <locationY>2519</locationY>
+        <name>Add_Closed_Won_Opp_Emails_Account_Owner</name>
+        <label>Add Closed Won Opp Emails - Account Owner</label>
+        <locationX>270</locationX>
+        <locationY>3911</locationY>
         <assignmentItems>
             <assignToReference>closedWonOppEmailCollection</assignToReference>
             <operator>Add</operator>
@@ -162,6 +181,15 @@
                 <elementReference>$Record.Account.Owner.Email</elementReference>
             </value>
         </assignmentItems>
+        <connector>
+            <targetReference>Get_Group_Owner_Email_Helper_User_Closed_Won</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Closed_Won_Opp_Emails_Group_Owner_Email_Helper</name>
+        <label>Add Closed Won Opp Emails - Group Owner Email Helper</label>
+        <locationX>270</locationX>
+        <locationY>4319</locationY>
         <assignmentItems>
             <assignToReference>closedWonOppEmailCollection</assignToReference>
             <operator>Add</operator>
@@ -169,6 +197,15 @@
                 <elementReference>$Record.Group_Owner_Email_Helper__c</elementReference>
             </value>
         </assignmentItems>
+        <connector>
+            <targetReference>Get_Opportunity_Owner_Manager_Email_Help_User_Closed_Won</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Closed_Won_Opp_Emails_Opp_Owner_Manager_Email_Helper</name>
+        <label>Add Closed Won Opp Emails - Opp Owner Manager Email Helper</label>
+        <locationX>270</locationX>
+        <locationY>4727</locationY>
         <assignmentItems>
             <assignToReference>closedWonOppEmailCollection</assignToReference>
             <operator>Add</operator>
@@ -177,14 +214,14 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Send_Closed_Won_Opp_Email</targetReference>
+            <targetReference>Evaluate_Closed_Won_Email_Recipients_Collection</targetReference>
         </connector>
     </assignments>
     <assignments>
         <name>Add_Stage_Proposal_Quote_Emails</name>
         <label>Add Stage Proposal Quote Emails</label>
-        <locationX>50</locationX>
-        <locationY>1787</locationY>
+        <locationX>182</locationX>
+        <locationY>2771</locationY>
         <assignmentItems>
             <assignToReference>proposalQuoteEmailCollection</assignToReference>
             <operator>Add</operator>
@@ -193,14 +230,14 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Send_StageProposalQuote_Email</targetReference>
+            <targetReference>Get_Group_Owner_Email_Helper_User</targetReference>
         </connector>
     </assignments>
     <assignments>
         <name>Assigned_OppStageChanged_Recepients</name>
         <label>Assigned OppStageChanged Recepients</label>
-        <locationX>182</locationX>
-        <locationY>1163</locationY>
+        <locationX>446</locationX>
+        <locationY>1763</locationY>
         <assignmentItems>
             <assignToReference>oppStageChangedEmailCollection</assignToReference>
             <operator>Add</operator>
@@ -213,10 +250,242 @@
         </connector>
     </assignments>
     <decisions>
+        <name>Evaluate_Account_Owner_Email</name>
+        <label>Evaluate Account Owner Email</label>
+        <locationX>182</locationX>
+        <locationY>3803</locationY>
+        <defaultConnector>
+            <targetReference>Add_Closed_Won_Opp_Emails_Account_Owner</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Add to Collection</defaultConnectorLabel>
+        <rules>
+            <name>LROO_Don_t_Add_to_Collection</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Account.Owner.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Group_Owner_Email_Helper_User_Closed_Won</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Add to Collection</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Closed_Won_Email_Recipients_Collection</name>
+        <label>Evaluate Closed Won Email Recipients Collection</label>
+        <locationX>182</locationX>
+        <locationY>4919</locationY>
+        <defaultConnector>
+            <targetReference>Update_Page_Layouts_for_Closed_Opps</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Collection Empty - Don&apos;t Send Email</defaultConnectorLabel>
+        <rules>
+            <name>Collection_Not_Empty_Send_Email</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>closedWonOppEmailCollection</leftValueReference>
+                <operator>IsEmpty</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Closed_Won_Opp_Email</targetReference>
+            </connector>
+            <label>Collection Not Empty - Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Group_Owner_Email_Helper_User</name>
+        <label>Evaluate Group Owner Email Helper User</label>
+        <locationX>182</locationX>
+        <locationY>2987</locationY>
+        <defaultConnector>
+            <targetReference>Send_StageProposalQuote_Email</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Send Email</defaultConnectorLabel>
+        <rules>
+            <name>Identity_User_Don_t_Send_Email_ProposalStage</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Group_Owner_Email_Helper_User.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Opportunity_Closed_Won</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Group_Owner_Email_Helper_User_Closed_Won</name>
+        <label>Evaluate Group Owner Email Helper User</label>
+        <locationX>182</locationX>
+        <locationY>4211</locationY>
+        <defaultConnector>
+            <targetReference>Add_Closed_Won_Opp_Emails_Group_Owner_Email_Helper</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Send Email</defaultConnectorLabel>
+        <rules>
+            <name>Identity_User_Don_t_Send_Email_Closed_Won</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Group_Owner_Email_Helper_User.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Opportunity_Owner_Manager_Email_Help_User_Closed_Won</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Opportunity_Owner</name>
+        <label>Evaluate Opportunity Owner</label>
+        <locationX>358</locationX>
+        <locationY>839</locationY>
+        <defaultConnector>
+            <targetReference>Opportunity_Owner_Change_Notification</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Send Email</defaultConnectorLabel>
+        <rules>
+            <name>Identity_User_Don_t_Send_Email</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Owner.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Has_Stage_Changed</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Opportunity_Owner_Manager_Email_Help_User</name>
+        <label>Evaluate Opportunity Owner Manager Email Help User</label>
+        <locationX>182</locationX>
+        <locationY>2279</locationY>
+        <defaultConnector>
+            <targetReference>WonOpp_Over50K</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Send Email</defaultConnectorLabel>
+        <rules>
+            <name>Identity_User_Don_t_Send_Email_WonOpp50k</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Opportunity_Owner_Manager_Email_Help_User.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Stage_Proposal_Quote</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Opportunity_Owner_Manager_Email_Help_User_Closed_Won</name>
+        <label>Evaluate Opportunity Owner Manager Email Help User</label>
+        <locationX>182</locationX>
+        <locationY>4619</locationY>
+        <defaultConnector>
+            <targetReference>Add_Closed_Won_Opp_Emails_Opp_Owner_Manager_Email_Helper</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Send Email</defaultConnectorLabel>
+        <rules>
+            <name>Identity_User_Don_t_Send_Email_Manager_Closed_Won</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Opportunity_Owner_Manager_Email_Help_User.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Evaluate_Closed_Won_Email_Recipients_Collection</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Evaluate_Related_Account_Owner</name>
+        <label>Evaluate Related Account Owner</label>
+        <locationX>358</locationX>
+        <locationY>1655</locationY>
+        <defaultConnector>
+            <targetReference>Assigned_OppStageChanged_Recepients</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Regular User - Send Email</defaultConnectorLabel>
+        <rules>
+            <name>LROO_Don_t_Send_Email</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Account.Owner.Profile.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Identity User</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Won_Over_50k</targetReference>
+            </connector>
+            <label>Identity User - Don&apos;t Send Email</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Has_Owner_Changed</name>
+        <label>Has Owner Changed?</label>
+        <locationX>534</locationX>
+        <locationY>731</locationY>
+        <defaultConnector>
+            <targetReference>Has_Stage_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Owner Not Changed</defaultConnectorLabel>
+        <rules>
+            <name>Owner_Changed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.OwnerId</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.LastModifiedById</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.OwnerId</leftValueReference>
+                <operator>IsChanged</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Evaluate_Opportunity_Owner</targetReference>
+            </connector>
+            <label>Owner Changed</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Has_Stage_Changed</name>
         <label>Has Stage Changed?</label>
-        <locationX>336</locationX>
-        <locationY>731</locationY>
+        <locationX>534</locationX>
+        <locationY>1223</locationY>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_Stage_Changed</name>
@@ -244,10 +513,10 @@
     <decisions>
         <name>Is_Product_Solution_Changed</name>
         <label>Is Product Solution Changed</label>
-        <locationX>336</locationX>
+        <locationX>534</locationX>
         <locationY>323</locationY>
         <defaultConnector>
-            <targetReference>Has_Stage_Changed</targetReference>
+            <targetReference>Has_Owner_Changed</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
         <rules>
@@ -269,8 +538,8 @@
     <decisions>
         <name>Opportunity_Closed_Won</name>
         <label>Opportunity Closed Won</label>
-        <locationX>182</locationX>
-        <locationY>2087</locationY>
+        <locationX>358</locationX>
+        <locationY>3371</locationY>
         <defaultConnector>
             <targetReference>Update_Page_Layouts_for_Closed_Opps</targetReference>
         </defaultConnector>
@@ -294,8 +563,8 @@
     <decisions>
         <name>Stage_Proposal_Quote</name>
         <label>Stage Proposal Quote</label>
-        <locationX>182</locationX>
-        <locationY>1679</locationY>
+        <locationX>358</locationX>
+        <locationY>2663</locationY>
         <defaultConnector>
             <targetReference>Opportunity_Closed_Won</targetReference>
         </defaultConnector>
@@ -340,8 +609,8 @@
     <decisions>
         <name>Won_Over_50k</name>
         <label>Won Over 50k</label>
-        <locationX>182</locationX>
-        <locationY>1379</locationY>
+        <locationX>358</locationX>
+        <locationY>2063</locationY>
         <defaultConnector>
             <targetReference>Stage_Proposal_Quote</targetReference>
         </defaultConnector>
@@ -364,13 +633,22 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>WonOpp_Over50K</targetReference>
+                <targetReference>Get_Opportunity_Owner_Manager_Email_Help_User</targetReference>
             </connector>
             <label>Yes</label>
         </rules>
     </decisions>
-    <description>Case 63769</description>
     <environments>Default</environments>
+    <formulas>
+        <name>AccountLink</name>
+        <dataType>String</dataType>
+        <expression>HYPERLINK({!BaseURL} &amp; {!$Record.Account.Id}, {!$Record.Account.Name})</expression>
+    </formulas>
+    <formulas>
+        <name>BaseURL</name>
+        <dataType>String</dataType>
+        <expression>LEFT({!$Api.Partner_Server_URL_540},FIND(&quot;/services&quot;, {!$Api.Partner_Server_URL_540}))</expression>
+    </formulas>
     <formulas>
         <name>OpportunityLink</name>
         <dataType>String</dataType>
@@ -400,8 +678,8 @@
     <recordLookups>
         <name>Get_Closed_Record_Type_0</name>
         <label>Get Closed Record Type</label>
-        <locationX>182</locationX>
-        <locationY>839</locationY>
+        <locationX>358</locationX>
+        <locationY>1331</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Get_Open_Record_Type_0</targetReference>
@@ -426,10 +704,52 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <name>Get_Group_Owner_Email_Helper_User</name>
+        <label>Get Group Owner Email Helper User</label>
+        <locationX>182</locationX>
+        <locationY>2879</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Evaluate_Group_Owner_Email_Helper_User</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Group_Owner_Email_Helper__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Group_Owner_Email_Helper_User_Closed_Won</name>
+        <label>Get Group Owner Email Helper User</label>
+        <locationX>182</locationX>
+        <locationY>4103</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Evaluate_Group_Owner_Email_Helper_User_Closed_Won</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Group_Owner_Email_Helper__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
         <name>Get_Open_Record_Type_0</name>
         <label>Get Open Record Type</label>
-        <locationX>182</locationX>
-        <locationY>947</locationY>
+        <locationX>358</locationX>
+        <locationY>1439</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Update_Stage_Changed_Fields</targetReference>
@@ -454,9 +774,51 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <name>Get_Opportunity_Owner_Manager_Email_Help_User</name>
+        <label>Get Opportunity Owner Manager Email Help User</label>
+        <locationX>182</locationX>
+        <locationY>2171</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Evaluate_Opportunity_Owner_Manager_Email_Help_User</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Opportunity_Owner_Manager_Email_Help__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Opportunity_Owner_Manager_Email_Help_User_Closed_Won</name>
+        <label>Get Opportunity Owner Manager Email Help User</label>
+        <locationX>182</locationX>
+        <locationY>4511</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Evaluate_Opportunity_Owner_Manager_Email_Help_User_Closed_Won</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Opportunity_Owner_Manager_Email_Help__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
         <name>Get_Product_Solution</name>
         <label>Get Product Solution</label>
-        <locationX>204</locationX>
+        <locationX>402</locationX>
         <locationY>431</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
@@ -477,8 +839,8 @@
     <recordUpdates>
         <name>Update_Close_Date_and_Manager_Email</name>
         <label>Update Close Date and Manager Email</label>
-        <locationX>50</locationX>
-        <locationY>2303</locationY>
+        <locationX>182</locationX>
+        <locationY>3587</locationY>
         <connector>
             <targetReference>ClosedWonOpportunitySalesUser</targetReference>
         </connector>
@@ -499,10 +861,10 @@
     <recordUpdates>
         <name>Update_Opporturnity</name>
         <label>Update Opporturnity</label>
-        <locationX>204</locationX>
+        <locationX>402</locationX>
         <locationY>539</locationY>
         <connector>
-            <targetReference>Has_Stage_Changed</targetReference>
+            <targetReference>Has_Owner_Changed</targetReference>
         </connector>
         <inputAssignments>
             <field>Account_Contracted_Fleet_Size__c</field>
@@ -527,8 +889,8 @@
     <recordUpdates>
         <name>Update_Page_Layouts_for_Closed_Opps</name>
         <label>Update Page Layouts for Closed Opps</label>
-        <locationX>182</locationX>
-        <locationY>2819</locationY>
+        <locationX>358</locationX>
+        <locationY>5303</locationY>
         <connector>
             <targetReference>Update_Page_Layouts_for_Unclosed_Opps</targetReference>
         </connector>
@@ -572,8 +934,8 @@
     <recordUpdates>
         <name>Update_Page_Layouts_for_Unclosed_Opps</name>
         <label>Update Page Layouts for Unclosed Opps</label>
-        <locationX>182</locationX>
-        <locationY>2927</locationY>
+        <locationX>358</locationX>
+        <locationY>5411</locationY>
         <filterLogic>and</filterLogic>
         <filters>
             <field>StageName</field>
@@ -614,10 +976,10 @@
     <recordUpdates>
         <name>Update_Stage_Changed_Fields</name>
         <label>Update Stage Changed Fields</label>
-        <locationX>182</locationX>
-        <locationY>1055</locationY>
+        <locationX>358</locationX>
+        <locationY>1547</locationY>
         <connector>
-            <targetReference>Assigned_OppStageChanged_Recepients</targetReference>
+            <targetReference>Evaluate_Related_Account_Owner</targetReference>
         </connector>
         <inputAssignments>
             <field>Last_Stage_Change_Date__c</field>
@@ -634,7 +996,7 @@
         <inputReference>$Record</inputReference>
     </recordUpdates>
     <start>
-        <locationX>210</locationX>
+        <locationX>408</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Is_Product_Solution_Changed</targetReference>
@@ -647,8 +1009,8 @@
     <subflows>
         <name>Get_Sales_Director_Email_Address</name>
         <label>Get Sales Director Email Address</label>
-        <locationX>50</locationX>
-        <locationY>2195</locationY>
+        <locationX>182</locationX>
+        <locationY>3479</locationY>
         <connector>
             <targetReference>Update_Close_Date_and_Manager_Email</targetReference>
         </connector>
@@ -687,6 +1049,11 @@ Opportunity Link: {!OpportunityLink}
 
 Thank you!
 OTG</text>
+    </textTemplates>
+    <textTemplates>
+        <name>OwnerChangeNotificationBody</name>
+        <isViewedAsPlainText>false</isViewedAsPlainText>
+        <text>&lt;p&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(255, 255, 255);&quot;&gt;Dear {!$Record.Owner.FirstName} {!$Record.Owner.LastName},&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(255, 255, 255);&quot;&gt;An Opportunity has been assigned to you:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 14px; color: rgb(0, 0, 0);&quot;&gt;Opportunity Name: {!$Record.Name}&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 14px; color: rgb(0, 0, 0);&quot;&gt;Opportunity Link: {!OpportunityLink}&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(255, 255, 255);&quot;&gt;Account Name: {!$Record.Account.Name}&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(255, 255, 255);&quot;&gt;Account link: {!AccountLink}&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(255, 255, 255);&quot;&gt;Thank you!&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(255, 255, 255);&quot;&gt;OTG&lt;/span&gt;&lt;/p&gt;</text>
     </textTemplates>
     <textTemplates>
         <name>StageProposalQuoteEmailBody</name>

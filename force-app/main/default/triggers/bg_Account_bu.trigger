@@ -14,6 +14,8 @@ trigger bg_Account_bu on Account (before update)
     List<Account> replicaToInvoiceRTAccounts = new List<Account>();
     List<Account> hierarchyUpdates = new List<Account>();
     
+    List<Account> salesTeamAccUpdate = new List<Account>();
+    
     for (Account acc : Trigger.new)
     {
         System.debug(LoggingLevel.ERROR, acc.Ultimate_Parent_Email__c);
@@ -77,4 +79,6 @@ trigger bg_Account_bu on Account (before update)
     {
         bg_AccountUtils.PopulateHierarchyFields(hierarchyUpdates);
     }
+    
+        //bg_AccountUtils.assignSalesTeamToAccounts(Trigger.new, Trigger.oldMap);    
 }

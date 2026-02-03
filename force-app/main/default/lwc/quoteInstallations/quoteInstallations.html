@@ -28,18 +28,24 @@
             installation-price={eachQuoteGroup.installationPrice}
             user-price={eachQuoteGroup.userPrice}>
 
-            <div class="slds-box slds-m-top_small">
-                <div class="slds slds-wrap">
-                    <div class="slds-col slds-size_1-of-1 slds-p-right_small slds-p-bottom_small">
-                        {eachQuoteGroup.productsString}
+            <div class="slds-box slds-m-top_small qlg-body">
+                <template if:true={eachQuoteGroup.productsString}>
+                    <div class="products-bar slds-m-bottom_small">
+                        <span class="slds-text-title_caps">Products</span>
+                        <span class="products-text">{eachQuoteGroup.productsString}</span>
                     </div>
-                </div>
+                </template>
 
                 <!-- Existing installations list (custom table) -->
                 <template if:true={eachQuoteGroup.existingInstallations.length} >
-                    <table class="border">
-                        <thead>
-                            <tr class="row">
+                    <div class="section-title">
+                        <span class="slds-text-title_caps">Existing Installations</span>
+                        <span class="slds-badge count-badge">{eachQuoteGroup.existingInstallations.length}</span>
+                    </div>
+                    <div class="slds-scrollable_x">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered border">
+                            <thead>
+                                <tr class="row slds-text-title_caps">
                                 <th class="cell">Installation Id</th>
                                 <th class="cell">Installation Type</th>
                                 <th class="cell">Quote</th>
@@ -48,42 +54,53 @@
                                 <th class="cell">Client</th>
                                 <th class="cell">Delivery Contact</th>
                                 <th class="cell"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template for:each={eachQuoteGroup.existingInstallations} for:item="installation">
-                                <tr class={installation.rowStyle} key={installation.Name}>
-                                    <td class="cell">
-                                        <a href={installation.recordUrl}>{installation.Name}</a>
-                                    </td>
-                                    <td class="cell">{installation.Installation_Type__c}</td>
-                                    <td class="cell">{installation.Quote__r.Name}</td>
-                                    <td class="cell"><a href={installation.vesselOrgLink}>{installation.vesselOrgName}</a></td>
-                                    <td class="cell"><a href={installation.invAcctLink}>{installation.invAcctName}</a></td>
-                                    <td class="cell"> {installation.clientName}</td>
-                                    <td class="cell">{installation.deliveryContactName}</td>
-                                    <td class="cell">
-                                        <lightning-button-menu alternative-text="Actions">
-                                            <lightning-menu-item value="Edit" label="Edit" name={installation.Id} onclick={editInstallation}></lightning-menu-item>
-                                            <!-- UPDATED: call changePackageFromMenu instead of changePackage1 -->
-                                            <template if:true={installation.canChangePackage}>
-                                              <lightning-menu-item
-                                                value="Change Package"
-                                                name={installation.Id}
-                                                label="Change Package"
-                                                onclick={changePackageFromMenu}
-                                                disabled={installation.disableChangePackage}>
-                                              </lightning-menu-item>
-                                            </template>
-                                        </lightning-button-menu>
-                                    </td>
                                 </tr>
-                            </template>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <template for:each={eachQuoteGroup.existingInstallations} for:item="installation">
+                                    <tr class={installation.rowStyle} key={installation.Name}>
+                                        <td class="cell">
+                                            <a href={installation.recordUrl}>{installation.Name}</a>
+                                        </td>
+                                        <td class="cell">{installation.Installation_Type__c}</td>
+                                        <td class="cell">{installation.Quote__r.Name}</td>
+                                        <td class="cell"><a href={installation.vesselOrgLink}>{installation.vesselOrgName}</a></td>
+                                        <td class="cell"><a href={installation.invAcctLink}>{installation.invAcctName}</a></td>
+                                        <td class="cell"> {installation.clientName}</td>
+                                        <td class="cell">{installation.deliveryContactName}</td>
+                                        <td class="cell">
+                                        <lightning-button-menu alternative-text="Actions" menu-alignment="auto">
+                                                <lightning-menu-item value="Edit" label="Edit" name={installation.Id} onclick={editInstallation}></lightning-menu-item>
+                                                <!-- UPDATED: call changePackageFromMenu instead of changePackage1 -->
+                                                <template if:true={installation.canChangePackage}>
+                                                  <lightning-menu-item
+                                                    value="Change Package"
+                                                    name={installation.Id}
+                                                    label="Change Package"
+                                                    onclick={changePackageFromMenu}
+                                                    disabled={installation.disableChangePackage}>
+                                                  </lightning-menu-item>
+                                                </template>
+                                            </lightning-button-menu>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+                <template if:false={eachQuoteGroup.existingInstallations.length}>
+                    <div class="empty-state slds-text-body_small">
+                        No existing installations for this quote line group yet.
+                    </div>
                 </template>
 
                 <!-- New installations row editor (unchanged) -->
+                <template if:true={eachQuoteGroup.newInstallations}>
+                    <div class="section-title">
+                        <span class="slds-text-title_caps">New Installations</span>
+                    </div>
+                </template>
                 <template for:each={eachQuoteGroup.newInstallations} for:item="installation" for:index="indexVar">
                     <div key={eachQuoteGroup.Id} class="slds-m-top_small">
                         <lightning-record-edit-form object-api-name="Installation__c">
@@ -152,12 +169,23 @@
                     </div>
                 </template>
 
-                <div class="slds-p-around_small">
-                    <lightning-button label="+ Add New" onclick={handleAddNew}
-                        lwc:if={eachQuoteGroup.remainingInstallations} data-lgid={eachQuoteGroup.Id}></lightning-button>&nbsp;&nbsp;
-                    <lightning-file-upload label="Upload CSV to create records in Bulk" name="fileUploader" data-qgindex={qgIndexVar} data-lgid={eachQuoteGroup.Id} accept={acceptedFormats} onuploadfinished={handleUploadFinished} lwc:if={eachQuoteGroup.remainingInstallations} ></lightning-file-upload>
-                    <p lwc:if={eachQuoteGroup.remainingInstallations} >Note: Please make sure the first column in csv as Vessel IMO Number and second column as Invoice Account Number</p>
-                </div>
+                <template if:true={eachQuoteGroup.remainingInstallations}>
+                    <div class="slds-p-around_small actions-bar">
+                        <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_7-of-12 action-note">
+                                <span class="slds-text-title_caps">Note</span>
+                                <span class="note-text">Please make sure the first column in csv as Vessel IMO Number and second column as Invoice Account Number</span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_5-of-12 slds-text-align_right action-buttons">
+                                <lightning-button label="+ Add New" onclick={handleAddNew}
+                                    data-lgid={eachQuoteGroup.Id}></lightning-button>
+                                <lightning-file-upload class="action-upload" label="Upload CSV to create records in Bulk"
+                                    name="fileUploader" data-qgindex={qgIndexVar} data-lgid={eachQuoteGroup.Id}
+                                    accept={acceptedFormats} onuploadfinished={handleUploadFinished}></lightning-file-upload>
+                            </div>
+                        </div>
+                    </div>
+                </template>
 
                 <!-- existing bulk modal / old change package modal region (kept) -->
                 <div class="slds-p-around_small">

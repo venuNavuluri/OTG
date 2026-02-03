@@ -2,10 +2,26 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>54.0</apiVersion>
     <assignments>
+        <name>One_time_Service_PS_LIST_PRICE_Amount</name>
+        <label>One-time Service (PS) LIST PRICE Amount</label>
+        <locationX>50</locationX>
+        <locationY>503</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.One_time_Service_PS_LIST_PRICE_Amount__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>One_Time_Service_PS_List_Price</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_for_Next_Step_Changed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Update_Next_Step_Timestamp</name>
         <label>Update Next Step Timestamp</label>
         <locationX>50</locationX>
-        <locationY>395</locationY>
+        <locationY>803</locationY>
         <assignmentItems>
             <assignToReference>$Record.Next_Step_Change_Date__c</assignToReference>
             <operator>Assign</operator>
@@ -21,7 +37,7 @@
         <name>Update_Subscription_Currency</name>
         <label>Update Subscription Currency</label>
         <locationX>50</locationX>
-        <locationY>695</locationY>
+        <locationY>1103</locationY>
         <assignmentItems>
             <assignToReference>$Record.Account_Subscription_Annual_Order_Value__c</assignToReference>
             <operator>Assign</operator>
@@ -34,7 +50,7 @@
         <name>Check_for_Next_Step_Changed</name>
         <label>Check for Next Step Changed</label>
         <locationX>182</locationX>
-        <locationY>287</locationY>
+        <locationY>695</locationY>
         <defaultConnector>
             <targetReference>Check_if_Currency_is_Updated</targetReference>
         </defaultConnector>
@@ -59,7 +75,7 @@
         <name>Check_if_Currency_is_Updated</name>
         <label>Check if Currency is Updated</label>
         <locationX>182</locationX>
-        <locationY>587</locationY>
+        <locationY>995</locationY>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
         <rules>
             <name>Currency_is_Updated</name>
@@ -77,11 +93,59 @@
             <label>Currency is Updated</label>
         </rules>
     </decisions>
+    <decisions>
+        <name>Is_Opportunity_Open</name>
+        <label>Is Opportunity Open?</label>
+        <locationX>182</locationX>
+        <locationY>287</locationY>
+        <defaultConnector>
+            <targetReference>Check_for_Next_Step_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Opportunity Closed</defaultConnectorLabel>
+        <rules>
+            <name>Open</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.IsClosed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_One_Time_PS_Rate</targetReference>
+            </connector>
+            <label>Open?</label>
+        </rules>
+    </decisions>
     <environments>Default</environments>
     <formulas>
         <name>AnnualSubscriptionValue</name>
         <dataType>Currency</dataType>
         <expression>{!$Record.Account_Subscription_Annual_Order_Value__c} * CURRENCYRATE(TEXT({!$Record.CurrencyIsoCode})) / CURRENCYRATE(TEXT({!$Record__Prior.CurrencyIsoCode}))</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>One_Time_Service_PS_List_Price</name>
+        <dataType>Currency</dataType>
+        <expression>IF(
+  AND(
+    {!$Record.One_time_Service_PS_HOURS__c} &gt; 0,
+    {!$Record.One_time_Service_PS_HOURS__c} &lt; 1
+  ),
+{!Get_One_Time_PS_Rate.Hourly_Rate__c}  * 
+  CURRENCYRATE(
+    TEXT({!$Record.CurrencyIsoCode})
+  ) /
+  CURRENCYRATE(&quot;USD&quot;),
+
+{!Get_One_Time_PS_Rate.Hourly_Rate__c} *
+  {!$Record.One_time_Service_PS_HOURS__c} *
+  CURRENCYRATE(
+    TEXT({!$Record.CurrencyIsoCode})
+  ) /
+  CURRENCYRATE(&quot;USD&quot;)
+)</expression>
         <scale>2</scale>
     </formulas>
     <interviewLabel>Opportunity After Update Flow {!$Flow.CurrentDateTime}</interviewLabel>
@@ -105,11 +169,24 @@
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_One_Time_PS_Rate</name>
+        <label>Get One-Time PS Rate</label>
+        <locationX>50</locationX>
+        <locationY>395</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>One_time_Service_PS_LIST_PRICE_Amount</targetReference>
+        </connector>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>One_Time_PS_Hourly_Rate__mdt</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <start>
         <locationX>56</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Check_for_Next_Step_Changed</targetReference>
+            <targetReference>Is_Opportunity_Open</targetReference>
         </connector>
         <object>Opportunity</object>
         <recordTriggerType>Update</recordTriggerType>

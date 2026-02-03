@@ -1,12 +1,37 @@
 public class InstallationTriggerHandler {
 
     public static Boolean byPassSOcreation = FALSE;
+    // Test-only bypass to avoid costly duplicate checks in unit tests.
+    @TestVisible private static Boolean bypassForTests = false;
+    @TestVisible
+    public static void setBypassForTests(Boolean bypass) {
+        bypassForTests = bypass;
+    }
+    private static String currentUserAlias;
+
+    private static String getCurrentUserAlias() {
+        if (currentUserAlias == null) {
+            // Cache to avoid repeated user alias queries within the same transaction.
+            currentUserAlias = [
+                SELECT Alias
+                FROM User
+                WHERE Id = :UserInfo.getUserId()
+                LIMIT 1
+            ].Alias;
+        }
+        return currentUserAlias;
+    }
 
     public static void beforeInsert(List<Installation__c> instList)
     {
         try
         {
-            String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
+            // Allow tests to exercise logic unless explicitly bypassed.
+            if (bypassForTests) {
+                return;
+            }
+
+            String currentUserAlias = getCurrentUserAlias();
 
             if (currentUserAlias == 'duser') {
                 return;  // Skip logic for "duser"
@@ -63,7 +88,12 @@ public class InstallationTriggerHandler {
 
     public static void afterUpdate(List<Installation__c> instList, Map<Id, Installation__c> oldInstMap) {
         try {
-            String currentUserAlias = [SELECT Alias FROM User WHERE Id = :UserInfo.getUserId()].Alias;
+            // Allow tests to exercise logic unless explicitly bypassed.
+            if (bypassForTests) {
+                return;
+            }
+
+            String currentUserAlias = getCurrentUserAlias();
     
             List<Id> instIdList = new List<Id>();
             Map<Id, Date> terminationDates = new Map<Id, Date>();
@@ -152,7 +182,7 @@ public class InstallationTriggerHandler {
             Map<Id, Id> oldToNewSalesOrderMap = new Map<Id, Id>();
     
             for (Sales_Order__c so : soList) {
-                if (so.Status__c == 'Unbilled') {
+                if (so.Status__c == 'Pending Approval' || so.Status__c == 'Unbilled') {
                     Logger.info('Cancelling Unbilled SO: ' + so.Id);
                     so.Status__c = 'Cancelled';
                     soListToUpdate.add(so);
@@ -179,7 +209,7 @@ public class InstallationTriggerHandler {
     
                     if (createCreditNote) {
                         Sales_Order__c creditSO = new Sales_Order__c(
-                            Status__c = 'Unbilled',
+                            Status__c = 'Pending Approval',
                             Credit_Note__c = TRUE,
                             Start_Date__c = creditStart,
                             End_Date__c = so.End_Date__c,

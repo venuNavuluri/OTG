@@ -211,8 +211,13 @@ export default class QuoteInstallations extends NavigationMixin(LightningElement
                     quoteLineGroup.installations = [];
                     let packInstList = (listItem.pack != null && listItem.pack != undefined) ? listItem.pack.Installations__r?.records : [];
                     if(!packInstList) { packInstList = []; }
+                    const installedCount = (listItem.pack && listItem.pack.Installations__r && listItem.pack.Installations__r.totalSize != null)
+                        ? listItem.pack.Installations__r.totalSize
+                        : packInstList.length;
                     for(let inst of packInstList){ quoteLineGroup.installations.push(inst); }
-                    quoteLineGroup.remainingInstallations = quoteLineGroup.Installation_Quantity__c != null?quoteLineGroup.Installation_Quantity__c-packInstList.length:0;
+                    quoteLineGroup.remainingInstallations = quoteLineGroup.Installation_Quantity__c != null
+                        ? Math.max(quoteLineGroup.Installation_Quantity__c - installedCount, 0)
+                        : 0;
                     quoteLineGroup.existingInstallations = []
                     for(let installExisting of quoteLineGroup.installations){
                         this.prepareRecordForTable(installExisting)

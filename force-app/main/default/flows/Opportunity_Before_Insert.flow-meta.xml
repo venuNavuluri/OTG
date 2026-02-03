@@ -211,7 +211,7 @@
             <assignToReference>$Record.Product_Group__c</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>OLP Vessel Based (Asset)</stringValue>
+                <stringValue>OLP</stringValue>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -646,7 +646,7 @@
         <inputAssignments>
             <field>Product_Group__c</field>
             <value>
-                <stringValue>OLP Vessel Based (Asset)</stringValue>
+                <stringValue>OLP</stringValue>
             </value>
         </inputAssignments>
         <inputReference>$Record</inputReference>

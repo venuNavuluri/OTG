@@ -4,7 +4,6 @@ public with sharing class ActivateInstallationController {
     public static String activateInstallation(String recId, Date startDate) {
     SavePoint sp = Database.setSavePoint();
     try {
-        Logger.info('Starting activateInstallation. Record ID: ' + recId + ', Start Date: ' + startDate);
 
         Installation__c inst = [
             SELECT Id, Name, Contract__c, Quote_Line_Group__c, Package__c, Order__c,
@@ -14,9 +13,6 @@ public with sharing class ActivateInstallationController {
             WHERE Id = :recId
             LIMIT 1
         ];
-
-        Logger.info('Fetched Installation: ' + inst.Name + ', Contract Start: ' + inst.Contract__r.StartDate + ', End: ' + inst.Contract__r.EndDate);
-        Logger.saveLog();
         
         inst.Installation_Start_Date__c = startDate;
         inst.Installation_End_Date__c = inst.Contract__r.EndDate;
@@ -25,29 +21,21 @@ public with sharing class ActivateInstallationController {
         deleteExistingInstallationLinesAndSalesOrders(inst.Id);
 
         List<SBQQ__Subscription__c> subscriptions = fetchSubscriptionsFromOrderItems(inst.Quote_Line_Group__c, inst.Package__c, inst.Order__c);
-        Logger.info('Fetched ' + subscriptions.size() + ' subscriptions from Order Items.');
-        Logger.saveLog();
 
         if (!subscriptions.isEmpty()) {
             createInstallationLines(inst, subscriptions, startDate);
         } else {
             Logger.warn('No subscriptions found. Skipping Installation Line creation.');
-            Logger.saveLog();
         }
 
         inst.Installation_Order_Status__c = 'Active';
         update inst;
 
         SalesOrderGeneratorService.generateSalesOrders(new List<Installation__c>{inst}, false, false);
-        Logger.info('Sales Orders generated for Installation: ' + inst.Id);
-
-        Logger.saveLog();
         return 'SUCCESS';
 
     } catch (Exception ex) {
         Database.rollback(sp);
-        Logger.error('Error in activateInstallation: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
-        Logger.saveLog();
         throw new AuraHandledException('Installation activation failed: ' + ex.getMessage());
     }
 }
@@ -81,11 +69,18 @@ public with sharing class ActivateInstallationController {
     }
 
     public static void createInstallationLines(Installation__c inst, List<SBQQ__Subscription__c> subscriptions, Date installationStartDate) {
-        Logger.info('--- START createInstallationLines for Installation: ' + inst.Id + ' ---');
-        Logger.info('Installation Start Date: ' + installationStartDate + ', End Date: ' + inst.Installation_End_Date__c);
-        Logger.info('Total subscriptions received: ' + subscriptions.size());
-        Logger.saveLog();
-    
+        List<Installation_Line__c> instLines = buildInstallationLines(inst, subscriptions, installationStartDate);
+        if (!instLines.isEmpty()) {
+            insert instLines;
+        } else {
+            Logger.warn('No Installation Lines generated for Installation: ' + inst.Id);
+            Logger.saveLog();
+        }
+    }
+
+    @TestVisible
+    public static List<Installation_Line__c> buildInstallationLines(Installation__c inst, List<SBQQ__Subscription__c> subscriptions, Date installationStartDate) {
+
         List<Installation_Line__c> instLines = new List<Installation_Line__c>();
         Date installationEndDate = inst.Installation_End_Date__c;
     
@@ -97,8 +92,6 @@ public with sharing class ActivateInstallationController {
             }
             subsByProduct.get(sub.SBQQ__Product__c).add(sub);
         }
-        Logger.info('Grouped subscriptions by product. Product groups: ' + subsByProduct.keySet().size());
-        Logger.saveLog();
     
         for (Id productId : subsByProduct.keySet()) {
             List<SBQQ__Subscription__c> productSubs = subsByProduct.get(productId);
@@ -131,11 +124,6 @@ public with sharing class ActivateInstallationController {
                     ? calculateProratedAmount(sub.SBQQ__NetPrice__c, subStart, subEnd, lineStart, lineEnd)
                     : sub.SBQQ__NetPrice__c;
     
-                Logger.info('Creating line for Product: ' + sub.SBQQ__Product__r.Name +
-                            ', Proration: ' + needsProration +
-                            ', Line Start: ' + lineStart + ', Line End: ' + lineEnd +
-                            ', Net Total: ' + netTotal);
-    
                 instLines.add(new Installation_Line__c(
                     Name = sub.SBQQ__Product__r.Name,
                     Installation__c = inst.Id,
@@ -151,19 +139,8 @@ public with sharing class ActivateInstallationController {
                 isFirst = false;
             }
         }
-    
-        if (!instLines.isEmpty()) {
-            Logger.info('Total Installation Lines to insert: ' + instLines.size());
-            insert instLines;
-            Logger.info('Inserted Installation Lines for Installation: ' + inst.Id);
-            Logger.saveLog();
-        } else {
-            Logger.warn('No Installation Lines generated for Installation: ' + inst.Id);
-            Logger.saveLog();
-        }
-    
-        Logger.info('--- END createInstallationLines for Installation: ' + inst.Id + ' ---');
-        Logger.saveLog();
+
+        return instLines;
     }
 	
     @TestVisible
