@@ -15,7 +15,12 @@ public class CreateInstallationsController
     @TestVisible
     private static Integer DEFAULT_INSTALLATION_START_OFFSET_DAYS = 30;
 
-    private static final Integer MAX_AMENDMENT_ATTEMPTS = 5;
+    private static final Integer MAX_AMENDMENT_ATTEMPTS = 2;
+    private static final Integer AMENDMENT_RETRY_DELAY_MINUTES = 3;
+    @TestVisible
+    private static Boolean TEST_FORCE_FIND_QUOTE_MASTER_ERROR = false;
+    @TestVisible
+    private static Boolean TEST_FORCE_FIND_QUOTE_AMENDED_ERROR = false;
     private class CPQQuoteResult {
         SBQQ__Quote__c quote;
         Boolean isSuccessful;
@@ -261,14 +266,14 @@ public class CreateInstallationsController
             CPQQuoteResult cpqResult = extractCPQServiceCall(contrId);
             if (cpqResult == null || cpqResult.quote == null || !cpqResult.isSuccessful) {
                 setInstallationError(instId, 'Awaiting amendment quote creation (retry 0)');
-                System.enqueueJob(new AmendmentPostProcessorQueueable(instId, contrId, packId, null, effectiveStart, isTerminate, 1));
+                enqueueAmendmentPostProcessor(instId, contrId, packId, null, effectiveStart, isTerminate, 1);
                 return;
             }
 
             Boolean success = tryUpdateQuoteAndInstallation(cpqResult.quote, instId, contrId, packId, effectiveStart, isTerminate);
             if (!success) {
                 setInstallationError(instId, 'Awaiting amendment quote line group (retry 0)');
-                System.enqueueJob(new AmendmentPostProcessorQueueable(instId, contrId, packId, cpqResult.quote.Id, effectiveStart, isTerminate, 1));
+                enqueueAmendmentPostProcessor(instId, contrId, packId, cpqResult.quote.Id, effectiveStart, isTerminate, 1);
             } else {
                 setInstallationError(instId, null);
             }
@@ -279,29 +284,37 @@ public class CreateInstallationsController
     
     private static CPQQuoteResult extractCPQServiceCall(Id contrId) {
         CPQQuoteResult result = new CPQQuoteResult();
+        if (contrId == null) {
+            Logger.error('CreateInstallationsController.extractCPQServiceCall - Contract Id is null.');
+            result.quote = null;
+            result.isSuccessful = false;
+            return result;
+        }
+
         String quoteId = null;
         try {
             ContractAmenderHelper helper = new ContractAmenderHelper();
             ContractAmenderHelper.QuoteModel quoteModel = helper.load(contrId, true);
             if (quoteModel != null) {
                 quoteId = quoteModel.Id;
+                Logger.info('CreateInstallationsController.extractCPQServiceCall - CPQ helper returned quoteId=' + quoteId + ' for contractId=' + contrId);
+            } else {
+                Logger.warn('CreateInstallationsController.extractCPQServiceCall - CPQ helper returned null quote model for contractId=' + contrId);
             }
         } catch (Exception ex) {
-            Logger.error('CreateInstallationsController.extractCPQServiceCall - CPQ helper failed: ' + ex.getMessage());
+            Logger.error(
+                'CreateInstallationsController.extractCPQServiceCall - CPQ helper failed for contractId=' + contrId +
+                ' with message=' + ex.getMessage() +
+                ' stack=' + ex.getStackTraceString()
+            );
         }
 
         try {
             if (String.isBlank(quoteId)) {
-                Logger.warn('CreateInstallationsController.extractCPQServiceCall - Quote Id not returned, falling back to latest quote on contract.');
-                List<SBQQ__Quote__c> fallbackQuotes = [
-                    SELECT Id, Name, SBQQ__Status__c, SBQQ__Opportunity2__c, SBQQ__Ordered__c, SBQQ__StartDate__c
-                    FROM SBQQ__Quote__c
-                    WHERE SBQQ__MasterContract__c = :contrId
-                    ORDER BY CreatedDate DESC
-                    LIMIT 1
-                ];
-                if (!fallbackQuotes.isEmpty()) {
-                    result.quote = fallbackQuotes[0];
+                Logger.warn('CreateInstallationsController.extractCPQServiceCall - Quote Id not returned for contractId=' + contrId + ', using fallback lookup.');
+                SBQQ__Quote__c fallbackQuote = findLatestQuoteForContract(contrId, 'extract_fallback');
+                if (fallbackQuote != null) {
+                    result.quote = fallbackQuote;
                     result.isSuccessful = true;
                     return result;
                 }
@@ -315,16 +328,85 @@ public class CreateInstallationsController
                 if (!quotes.isEmpty()) {
                     result.quote = quotes[0];
                     result.isSuccessful = true;
+                    Logger.info('CreateInstallationsController.extractCPQServiceCall - Quote loaded by helper id. quoteId=' + result.quote.Id + ' contractId=' + contrId);
                     return result;
                 }
             }
         } catch (Exception ex) {
-            Logger.error('CreateInstallationsController.extractCPQServiceCall - Quote lookup failed: ' + ex.getMessage());
+            Logger.error(
+                'CreateInstallationsController.extractCPQServiceCall - Quote lookup failed for contractId=' + contrId +
+                ' with message=' + ex.getMessage() +
+                ' stack=' + ex.getStackTraceString()
+            );
         }
 
+        Logger.warn('CreateInstallationsController.extractCPQServiceCall - No quote found for contractId=' + contrId + ' after helper and fallback lookups.');
         result.quote = null;
         result.isSuccessful = false;
         return result;
+    }
+
+    @TestVisible
+    private static SBQQ__Quote__c findLatestQuoteForContract(Id contrId, String contextLabel) {
+        if (contrId == null) {
+            Logger.warn('CreateInstallationsController.findLatestQuoteForContract - Contract Id is null. context=' + contextLabel);
+            return null;
+        }
+
+        try {
+            if (Test.isRunningTest() && TEST_FORCE_FIND_QUOTE_MASTER_ERROR) {
+                throw new AuraHandledException('Forced master contract lookup error');
+            }
+            List<SBQQ__Quote__c> masterContractQuotes = [
+                SELECT Id, Name, SBQQ__Status__c, SBQQ__Opportunity2__c, SBQQ__Ordered__c, SBQQ__StartDate__c
+                FROM SBQQ__Quote__c
+                WHERE SBQQ__MasterContract__c = :contrId
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (!masterContractQuotes.isEmpty()) {
+                Logger.info(
+                    'CreateInstallationsController.findLatestQuoteForContract - Found latest quote via master contract. quoteId=' +
+                    masterContractQuotes[0].Id + ' contractId=' + contrId + ' context=' + contextLabel
+                );
+                return masterContractQuotes[0];
+            }
+        } catch (Exception ex) {
+            Logger.error(
+                'CreateInstallationsController.findLatestQuoteForContract - Master contract lookup failed for contractId=' + contrId +
+                ' context=' + contextLabel + ' message=' + ex.getMessage()
+            );
+        }
+
+        try {
+            if (Test.isRunningTest() && TEST_FORCE_FIND_QUOTE_AMENDED_ERROR) {
+                throw new AuraHandledException('Forced amended opportunity lookup error');
+            }
+            List<SBQQ__Quote__c> amendedOpportunityQuotes = [
+                SELECT Id, Name, SBQQ__Status__c, SBQQ__Opportunity2__c, SBQQ__Ordered__c, SBQQ__StartDate__c
+                FROM SBQQ__Quote__c
+                WHERE SBQQ__Opportunity2__r.SBQQ__AmendedContract__c = :contrId
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (!amendedOpportunityQuotes.isEmpty()) {
+                Logger.info(
+                    'CreateInstallationsController.findLatestQuoteForContract - Found latest quote via amended opportunity. quoteId=' +
+                    amendedOpportunityQuotes[0].Id + ' contractId=' + contrId + ' context=' + contextLabel
+                );
+                return amendedOpportunityQuotes[0];
+            }
+        } catch (Exception ex) {
+            Logger.error(
+                'CreateInstallationsController.findLatestQuoteForContract - Amended opportunity lookup failed for contractId=' + contrId +
+                ' context=' + contextLabel + ' message=' + ex.getMessage()
+            );
+        }
+
+        Logger.warn(
+            'CreateInstallationsController.findLatestQuoteForContract - No quote found for contractId=' + contrId + ' context=' + contextLabel
+        );
+        return null;
     }
 
 
@@ -406,6 +488,65 @@ public class CreateInstallationsController
         return true;
     }
 
+    private static void enqueueAmendmentPostProcessor(
+        Id installationId,
+        Id contractId,
+        Id packageId,
+        Id quoteId,
+        Date effectiveDate,
+        Boolean isTerminate,
+        Integer attempt
+    ) {
+        Integer delayMinutes = Test.isRunningTest() ? 0 : AMENDMENT_RETRY_DELAY_MINUTES;
+        if (delayMinutes <= 0) {
+            System.enqueueJob(new AmendmentPostProcessorQueueable(installationId, contractId, packageId, quoteId, effectiveDate, isTerminate, attempt));
+            return;
+        }
+
+        Datetime runAt = System.now().addMinutes(delayMinutes);
+        String cron = buildSingleRunCron(runAt);
+        String jobName = 'AmendmentRetry_' + String.valueOf(installationId) + '_' + String.valueOf(Math.abs(Crypto.getRandomLong()));
+
+        System.schedule(
+            jobName,
+            cron,
+            new AmendmentPostProcessorScheduler(installationId, contractId, packageId, quoteId, effectiveDate, isTerminate, attempt)
+        );
+    }
+
+    private static String buildSingleRunCron(Datetime runAt) {
+        return String.valueOf(runAt.second()) + ' ' +
+            String.valueOf(runAt.minute()) + ' ' +
+            String.valueOf(runAt.hour()) + ' ' +
+            String.valueOf(runAt.day()) + ' ' +
+            String.valueOf(runAt.month()) + ' ? ' +
+            String.valueOf(runAt.year());
+    }
+
+    public class AmendmentPostProcessorScheduler implements Schedulable {
+        private final Id installationId;
+        private final Id contractId;
+        private final Id packageId;
+        private final Id quoteId;
+        private final Date effectiveDate;
+        private final Boolean isTerminate;
+        private final Integer attempt;
+
+        public AmendmentPostProcessorScheduler(Id installationId, Id contractId, Id packageId, Id quoteId, Date effectiveDate, Boolean isTerminate, Integer attempt) {
+            this.installationId = installationId;
+            this.contractId = contractId;
+            this.packageId = packageId;
+            this.quoteId = quoteId;
+            this.effectiveDate = effectiveDate;
+            this.isTerminate = isTerminate;
+            this.attempt = attempt;
+        }
+
+        public void execute(SchedulableContext context) {
+            System.enqueueJob(new AmendmentPostProcessorQueueable(installationId, contractId, packageId, quoteId, effectiveDate, isTerminate, attempt));
+        }
+    }
+
     public class AmendmentPostProcessorQueueable implements Queueable, Database.AllowsCallouts {
         private final Id installationId;
         private final Id contractId;
@@ -453,7 +594,7 @@ public class CreateInstallationsController
                 if (qt == null) {
                     if (attempt < MAX_AMENDMENT_ATTEMPTS) {
                         setInstallationError(installationId, 'Awaiting amendment quote creation (retry ' + String.valueOf(attempt) + ')');
-                        System.enqueueJob(new AmendmentPostProcessorQueueable(installationId, contractId, packageId, localQuoteId, effectiveDate, isTerminate, attempt + 1));
+                        enqueueAmendmentPostProcessor(installationId, contractId, packageId, localQuoteId, effectiveDate, isTerminate, attempt + 1);
                     } else {
                         setInstallationError(installationId, 'Unable to create amendment quote. Please resolve any open CPQ issues and try again.');
                     }
@@ -468,7 +609,7 @@ public class CreateInstallationsController
 
                 if (attempt < MAX_AMENDMENT_ATTEMPTS) {
                     setInstallationError(installationId, 'Awaiting amendment quote line group (retry ' + String.valueOf(attempt) + ')');
-                    System.enqueueJob(new AmendmentPostProcessorQueueable(installationId, contractId, packageId, qt.Id, effectiveDate, isTerminate, attempt + 1));
+                    enqueueAmendmentPostProcessor(installationId, contractId, packageId, qt.Id, effectiveDate, isTerminate, attempt + 1);
                 } else {
                     setInstallationError(installationId, 'Unable to update amendment quote. Quote line group is not available yet. Please retry manually.');
                 }

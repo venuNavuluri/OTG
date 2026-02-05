@@ -1,5 +1,6 @@
 trigger InstallationTrigger on Installation__c (before insert, after insert, after update)
 {
+    if (AutomationBypass.bypassTriggers('TRG:Installation__c')) return;
     if(Trigger.isBefore && Trigger.isInsert)
     {
         InstallationTriggerHandler.beforeInsert(Trigger.new);

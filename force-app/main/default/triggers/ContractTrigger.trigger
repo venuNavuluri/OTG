@@ -1,5 +1,6 @@
 trigger ContractTrigger on Contract (after insert, after update, before update, before insert)
 {
+    if (AutomationBypass.bypassTriggers('TRG:Contract')) return;
     if(Trigger.isAfter && Trigger.isInsert)
     {
         ContractTriggerHandler.onAfterInsert();

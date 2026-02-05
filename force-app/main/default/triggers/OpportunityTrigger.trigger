@@ -7,6 +7,9 @@ trigger OpportunityTrigger on Opportunity (
     after delete,
     after undelete
 ) {
+    // Respect org-wide bypass framework (Hierarchy + txn)
+    if (AutomationBypass.bypassTriggers('TRG:Opportunity')) return;
+
     // Guard against recursion is handled inside the handler
     if (Trigger.isBefore) {
         if (Trigger.isInsert) {

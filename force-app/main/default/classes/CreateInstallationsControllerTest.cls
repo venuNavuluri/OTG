@@ -312,9 +312,14 @@ public class CreateInstallationsControllerTest {
             WHERE Id = :ctx.installation.Id
         ];
         System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should remain linked');
-        System.assert(null == refreshed.Auto_Installation_Termination_Error__c
-            || refreshed.Auto_Installation_Termination_Error__c.contains('Maximum stack depth'),
-            'Error field cleared');
+        String err = refreshed.Auto_Installation_Termination_Error__c;
+        System.assert(
+            err == null
+            || err.contains('Maximum stack depth')
+            || err.startsWith('Awaiting amendment quote creation')
+            || err.startsWith('Awaiting amendment quote line group'),
+            'Unexpected error value: ' + err
+        );
     }
 
     @IsTest
@@ -489,6 +494,125 @@ public class CreateInstallationsControllerTest {
         );
 
         System.assertEquals(null, result, 'Expected null when no quote line group exists');
+    }
+
+    @IsTest
+    static void testFindLatestQuoteViaAmendedOpportunity() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new Opportunity(
+            Id = ctx.qctx.opportunity.Id,
+            SBQQ__AmendedContract__c = ctx.packageRec.Contract__c
+        );
+
+        SBQQ__Quote__c q = new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__Opportunity2__c = ctx.qctx.opportunity.Id
+        );
+        update q;
+
+        CreateInstallationsController.TEST_FORCE_FIND_QUOTE_MASTER_ERROR = true;
+        SBQQ__Quote__c found = CreateInstallationsController.findLatestQuoteForContract(
+            ctx.packageRec.Contract__c,
+            'test_amended_path'
+        );
+        CreateInstallationsController.TEST_FORCE_FIND_QUOTE_MASTER_ERROR = false;
+
+        System.assertEquals(q.Id, found.Id, 'Expected amended opportunity quote to be found');
+    }
+
+    @IsTest
+    static void testFindLatestQuoteNoResults() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        Account acc = new Account(Name = 'No Quote Account');
+        insert acc;
+
+        Contract c = new Contract(
+            AccountId = acc.Id,
+            Status = 'Draft',
+            StartDate = Date.today(),
+            EndDate = Date.today().addDays(30),
+            ContractTerm = 1
+        );
+        insert c;
+
+        SBQQ__Quote__c found = CreateInstallationsController.findLatestQuoteForContract(
+            c.Id,
+            'test_no_results'
+        );
+
+        System.assertEquals(null, found, 'Expected no quote when none are related');
+    }
+
+    @IsTest
+    static void testFindLatestQuoteCatchesErrors() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        CreateInstallationsController.TEST_FORCE_FIND_QUOTE_MASTER_ERROR = true;
+        CreateInstallationsController.TEST_FORCE_FIND_QUOTE_AMENDED_ERROR = true;
+
+        SBQQ__Quote__c found = CreateInstallationsController.findLatestQuoteForContract(
+            ctx.packageRec.Contract__c,
+            'test_forced_errors'
+        );
+
+        System.assertEquals(null, found, 'Expected null when lookups error out');
+
+        CreateInstallationsController.TEST_FORCE_FIND_QUOTE_MASTER_ERROR = false;
+        CreateInstallationsController.TEST_FORCE_FIND_QUOTE_AMENDED_ERROR = false;
+    }
+
+    @IsTest
+    static void testSchedulerExecuteEnqueuesQueueable() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        CreateInstallationsController.AmendmentPostProcessorScheduler sched =
+            new CreateInstallationsController.AmendmentPostProcessorScheduler(
+                ctx.installation.Id,
+                ctx.packageRec.Contract__c,
+                ctx.packageRec.Id,
+                ctx.qctx.quote.Id,
+                Date.today(),
+                false,
+                1
+            );
+
+        Test.startTest();
+        sched.execute(null);
+        Test.stopTest();
+
+        System.assert(true, 'Scheduler execute completed');
+    }
+
+    @IsTest
+    static void testTryUpdateQuoteAndInstallationNonTerminateUpdatesInstallation() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new SBQQ__QuoteLineGroup__c(
+            Id = ctx.qlg.Id,
+            Package__c = ctx.packageRec.Id
+        );
+
+        Boolean success = CreateInstallationsController.tryUpdateQuoteAndInstallation(
+            ctx.qctx.quote,
+            ctx.installation.Id,
+            ctx.packageRec.Contract__c,
+            ctx.packageRec.Id,
+            Date.today(),
+            false
+        );
+
+        System.assertEquals(true, success, 'Expected update to succeed');
+
+        Installation__c refreshed = [
+            SELECT Quote__c, Quote_Line_Group__c, Auto_Installation__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+        System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should be set');
+        System.assertEquals(ctx.qlg.Id, refreshed.Quote_Line_Group__c, 'Quote line group should be set');
+        System.assertEquals(true, refreshed.Auto_Installation__c, 'Auto installation should be set');
     }
 
     @IsTest

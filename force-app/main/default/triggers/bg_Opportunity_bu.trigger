@@ -9,6 +9,7 @@
 ******************************************************************/
 
 trigger bg_Opportunity_bu on Opportunity (before update) {
+    if (AutomationBypass.bypassTriggers('TRG:Opportunity')) return;
     
     List<Opportunity> oppsToGenerateName = new List<Opportunity>();
     

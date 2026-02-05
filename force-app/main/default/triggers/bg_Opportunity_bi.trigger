@@ -9,5 +9,6 @@
 ******************************************************************/
 
 trigger bg_Opportunity_bi on Opportunity (before insert) {
+    if (AutomationBypass.bypassTriggers('TRG:Opportunity')) return;
     bg_OpportunityUtils.CalculateOpportunityNames(Trigger.new);
 }

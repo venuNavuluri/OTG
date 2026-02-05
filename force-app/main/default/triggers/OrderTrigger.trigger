@@ -1,5 +1,6 @@
 trigger OrderTrigger on Order (before insert, after insert, after update)
 {
+    if (AutomationBypass.bypassTriggers('TRG:Order')) return;
     if(Trigger.isBefore && Trigger.isInsert)
     {
         OrderTriggerHandler.onBeforeInsert(Trigger.new);
