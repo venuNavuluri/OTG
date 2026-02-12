@@ -17,6 +17,7 @@ public class OrderTriggerHandler
         List<Order> ordToCreateInst = new List<Order>();       // existing “activated” bucket
         List<Order> activatedAmendmentOrders = new List<Order>();
         List<Order> ordersToProcessBatch = new List<Order>();  // NEW: Activated + Amendment/Renewal
+        Set<Id> terminationOrderIds = new Set<Id>();
     
         updateSubscriptionOrderFromOpportunity(newOrderList);
     
@@ -53,6 +54,12 @@ public class OrderTriggerHandler
                     (cur.SBQQ__Quote__r.Auto_Installation__c || cur.SBQQ__Quote__r.Auto_Termination__c)) {
                     activatedAmendmentOrders.add(cur);
                 }
+
+                if (cur.Type == 'Amendment' &&
+                    cur.SBQQ__Quote__r != null &&
+                    cur.SBQQ__Quote__r.Auto_Termination__c == true) {
+                    terminationOrderIds.add(cur.Id);
+                }
             }
         }
     
@@ -63,6 +70,70 @@ public class OrderTriggerHandler
         triggerInstallationProductUpdateBatch(ordersToProcessBatch);
         if (!activatedAmendmentOrders.isEmpty()) {
             updateOpportunityStageForActivatedAmendment(activatedAmendmentOrders);
+        }
+        if (!terminationOrderIds.isEmpty()) {
+            createTerminationInstallationChangesAsync(terminationOrderIds);
+        }
+    }
+
+    @future
+    public static void createTerminationInstallationChangesAsync(Set<Id> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) return;
+
+        try {
+            List<Order> orders = [
+                SELECT Id, Status, Type, SBQQ__Quote__c,
+                       SBQQ__Quote__r.Auto_Termination__c,
+                       SBQQ__Quote__r.Installation__c
+                FROM Order
+                WHERE Id IN :orderIds
+                  AND Type = 'Amendment'
+                  AND SBQQ__Quote__r.Auto_Termination__c = true
+            ];
+            if (orders.isEmpty()) return;
+
+            Map<Id, Order> installationToOrder = new Map<Id, Order>();
+            Set<Id> installationIds = new Set<Id>();
+            for (Order ord : orders) {
+                Id instId = ord.SBQQ__Quote__r != null ? ord.SBQQ__Quote__r.Installation__c : null;
+                if (instId != null) {
+                    installationIds.add(instId);
+                    installationToOrder.put(instId, ord);
+                }
+            }
+            if (installationIds.isEmpty()) return;
+
+            List<Installation__c> installations = [
+                SELECT Id, Contract__c, Package__c, Quote_Line_Group__c
+                FROM Installation__c
+                WHERE Id IN :installationIds
+            ];
+            if (installations.isEmpty()) return;
+
+            List<Installation_Change__c> changes = new List<Installation_Change__c>();
+            for (Installation__c inst : installations) {
+                Order ord = installationToOrder.get(inst.Id);
+                if (ord == null) continue;
+                Installation_Change__c changeRec = InstallationChangeService.buildChangeRecord(
+                    'Termination',
+                    inst.Id,
+                    ord.SBQQ__Quote__c,
+                    inst.Package__c,
+                    inst.Quote_Line_Group__c,
+                    inst.Contract__c,
+                    ord.Id
+                );
+                if (changeRec != null) {
+                    changes.add(changeRec);
+                }
+            }
+            if (!changes.isEmpty()) {
+                insert changes;
+            }
+        } catch (Exception ex) {
+            Logger.error('Error in createTerminationInstallationChangesAsync: ' + ex.getMessage()
+                + ' | line: ' + ex.getLineNumber() + ' | stack: ' + ex.getStackTraceString());
+            Logger.saveLog();
         }
     }
     

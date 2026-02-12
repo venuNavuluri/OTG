@@ -140,6 +140,68 @@ public with sharing class InstallationProductUpdateService {
         return packageGroups;
     }
 
+    public static void createProductChangeInstallationChanges(Map<Id, PackageGroup> packageGroups) {
+        if (packageGroups == null || packageGroups.isEmpty()) return;
+
+        Set<String> allowedTypes = new Set<String>{
+            'Products Added & Removed',
+            'Product Removed',
+            'New Product Added'
+        };
+
+        Set<Id> instIds = new Set<Id>();
+        Set<Id> pkgIds = new Set<Id>();
+        for (PackageGroup grp : packageGroups.values()) {
+            if (grp == null || !allowedTypes.contains(grp.productChangeType)) continue;
+            for (Installation__c inst : grp.installations) {
+                if (inst == null) continue;
+                instIds.add(inst.Id);
+                if (grp.packageId != null) pkgIds.add(grp.packageId);
+            }
+        }
+
+        Set<String> existingKeys = new Set<String>();
+        if (!instIds.isEmpty() && !pkgIds.isEmpty()) {
+            for (Installation_Change__c rec : [
+                SELECT Installation__c, Package__c
+                FROM Installation_Change__c
+                WHERE Change_Type__c = 'Product Change'
+                  AND Installation__c IN :instIds
+                  AND Package__c IN :pkgIds
+                  AND CreatedDate = TODAY
+            ]) {
+                existingKeys.add(String.valueOf(rec.Installation__c) + ':' + String.valueOf(rec.Package__c));
+            }
+        }
+
+        List<Installation_Change__c> toInsert = new List<Installation_Change__c>();
+        for (PackageGroup grp : packageGroups.values()) {
+            if (grp == null || !allowedTypes.contains(grp.productChangeType)) continue;
+            for (Installation__c inst : grp.installations) {
+                if (inst == null) continue;
+                String key = String.valueOf(inst.Id) + ':' + String.valueOf(grp.packageId);
+                if (existingKeys.contains(key)) continue;
+                Installation_Change__c changeRec = InstallationChangeService.buildChangeRecord(
+                    'Product Change',
+                    inst.Id,
+                    grp.quoteId,
+                    grp.packageId,
+                    grp.quoteLineGroupId,
+                    inst.Contract__c,
+                    grp.orderId
+                );
+                if (changeRec != null) {
+                    toInsert.add(changeRec);
+                    existingKeys.add(key);
+                }
+            }
+        }
+
+        if (!toInsert.isEmpty()) {
+            insert toInsert;
+        }
+    }
+
     // Helper: Query Orders incl. Quote->Master Contract
     @TestVisible
     private static List<Order> fetchOrdersWithQuote(Set<Id> orderIds) {

@@ -32,6 +32,7 @@ public with sharing class InstallationProductUpdateBatch implements Database.Bat
                 InstallationProductUpdateService.processOrders(singleOrderIdSet);
 
             InstallationProductUpdateService.createInstallationLinesFromSubscriptions(packageGroups);
+            InstallationProductUpdateService.createProductChangeInstallationChanges(packageGroups);
         }
     }
     

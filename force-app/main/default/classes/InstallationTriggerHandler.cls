@@ -155,7 +155,8 @@ public class InstallationTriggerHandler {
                     }
                 }
             }
-    
+            InstallationChangeService.enqueueChanges(instList, oldInstMap);
+
         } catch (Exception ex) {
             Logger.error('afterUpdate - Exception: ', ex);
             Logger.savelog();

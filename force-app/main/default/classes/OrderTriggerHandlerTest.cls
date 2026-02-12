@@ -159,6 +159,32 @@ private class OrderTriggerHandlerTest {
         Order ord = [SELECT SBQQ__Quote__c FROM Order WHERE Id = :rc.orderRec.Id];
         System.assertEquals(ord.SBQQ__Quote__c, inst.Quote__c, 'Renewal path should set Installation.Quote__c to the Order’s Quote');
     }
+
+    @IsTest
+    static void test_createTerminationInstallationChangesAsync() {
+        TestDataFactory_OTG.OrderContext oc =
+            TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, true);
+
+        update new SBQQ__Quote__c(
+            Id = oc.qctx.quote.Id,
+            Auto_Termination__c = true,
+            Installation__c = oc.installation.Id
+        );
+
+        Test.startTest();
+        OrderTriggerHandler.createTerminationInstallationChangesAsync(new Set<Id>{ oc.orderRec.Id });
+        Test.stopTest();
+
+        List<Installation_Change__c> changes = [
+            SELECT Id, Change_Type__c, Installation__c, Quote__c, Order__c
+            FROM Installation_Change__c
+            WHERE Installation__c = :oc.installation.Id
+              AND Change_Type__c = 'Termination'
+        ];
+        System.assertEquals(1, changes.size(), 'Expected Termination change');
+        System.assertEquals(oc.qctx.quote.Id, changes[0].Quote__c, 'Expected quote set');
+        System.assertEquals(oc.orderRec.Id, changes[0].Order__c, 'Expected order set');
+    }
     
      /**
      * If the Quote has Auto flags (Auto_Installation__c or Auto_Termination__c),

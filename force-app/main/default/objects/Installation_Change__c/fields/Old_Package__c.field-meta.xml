@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Old_Package__c</fullName>
+    <label>Old Package</label>
+    <type>Lookup</type>
+    <referenceTo>Package__c</referenceTo>
+    <relationshipName>Installation_Changes_OldPackage</relationshipName>
+    <relationshipLabel>Installation Changes (Old Package)</relationshipLabel>
+</CustomField>
