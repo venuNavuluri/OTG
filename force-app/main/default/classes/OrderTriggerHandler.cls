@@ -54,6 +54,10 @@ public class OrderTriggerHandler
                     (cur.SBQQ__Quote__r.Auto_Installation__c || cur.SBQQ__Quote__r.Auto_Termination__c)) {
                     activatedAmendmentOrders.add(cur);
                 }
+                // Also update Opportunity stage for Renewal orders when Activated
+                if (cur.Type == 'Renewal') {
+                    activatedAmendmentOrders.add(cur);
+                }
 
                 if (cur.Type == 'Amendment' &&
                     cur.SBQQ__Quote__r != null &&
@@ -141,7 +145,6 @@ public class OrderTriggerHandler
     @TestVisible
     private static void updateOpportunityStageForActivatedAmendment(List<Order> orders) {
         try {
-            
             Set<Id> opportunityIds = new Set<Id>();
             Map<Id, Order> opportunityIdToOrderMap = new Map<Id, Order>();
             
@@ -154,7 +157,7 @@ public class OrderTriggerHandler
             
             if (!opportunityIds.isEmpty()) {
                 List<Opportunity> opportunities = [
-                    SELECT Id, StageName
+                    SELECT Id, StageName, Validation_Toggle__c
                     FROM Opportunity
                     WHERE Id IN :opportunityIds
                 ];
@@ -164,13 +167,20 @@ public class OrderTriggerHandler
                 
                 for (Opportunity opp : opportunities) {
                     if (opp.StageName != 'Completed') {
-                        opportunitiesToUpdate.add(new Opportunity(
+                        Opportunity oppUpdate = new Opportunity(
                             Id = opp.Id,
                             StageName = 'Completed',
                             CloseDate = System.today(),
-                            Won_Reason__c = 'Other',
-                            Won_Reason_Comments__c = 'Adding a vessel'
-                        ));
+                            Validation_Toggle__c = (opp.Validation_Toggle__c == null ? true : !opp.Validation_Toggle__c)
+                        );
+
+                        Order relatedOrder = opportunityIdToOrderMap.get(opp.Id);
+                        if (relatedOrder != null && relatedOrder.Type == 'Amendment') {
+                            oppUpdate.Won_Reason__c = 'Other';
+                            oppUpdate.Won_Reason_Comments__c = 'Adding a vessel';
+                        }
+
+                        opportunitiesToUpdate.add(oppUpdate);
                     } 
                 }
                 

@@ -6,7 +6,12 @@ public class bg_AccountUtilsTest
     {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
         List<Sales_Person_Role_Mapping__mdt> roleMappings = [SELECT Id, MasterLabel, DeveloperName FROM Sales_Person_Role_Mapping__mdt];
-        UserRole uRole = [SELECT Id FROM UserRole WHERE Name = :roleMappings[0].MasterLabel];
+        Set<String> mappedRoleNames = new Set<String>();
+        for (Sales_Person_Role_Mapping__mdt mapping : roleMappings) {
+            mappedRoleNames.add(mapping.MasterLabel);
+        }
+        List<UserRole> matchedRoles = [SELECT Id FROM UserRole WHERE Name IN :mappedRoleNames LIMIT 1];
+        UserRole uRole = !matchedRoles.isEmpty() ? matchedRoles[0] : [SELECT Id FROM UserRole LIMIT 1];
         User testUser = new User(Username='bgotgtest@test.com', LastName='bg_AccountUtilsTest');
         testUser.Email = 'bgotgtest@test.com';
         testUser.Alias = 'bgotg';
@@ -55,7 +60,12 @@ public class bg_AccountUtilsTest
     {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
         List<Sales_Person_Role_Mapping__mdt> roleMappings = [SELECT Id, MasterLabel, DeveloperName FROM Sales_Person_Role_Mapping__mdt];
-        UserRole uRole = [SELECT Id FROM UserRole WHERE Name = :roleMappings[0].MasterLabel];
+        Set<String> mappedRoleNames = new Set<String>();
+        for (Sales_Person_Role_Mapping__mdt mapping : roleMappings) {
+            mappedRoleNames.add(mapping.MasterLabel);
+        }
+        List<UserRole> matchedRoles = [SELECT Id FROM UserRole WHERE Name IN :mappedRoleNames LIMIT 1];
+        UserRole uRole = !matchedRoles.isEmpty() ? matchedRoles[0] : [SELECT Id FROM UserRole LIMIT 1];
         User testUser = new User(Username='bgotgtest@test.com', LastName='bg_AccountUtilsTest');
         testUser.Email = 'bgotgtest@test.com';
         testUser.Alias = 'bgotg';
@@ -420,7 +430,12 @@ insert orgDefaultDisc; */
         
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
         List<Sales_Person_Role_Mapping__mdt> roleMappings = [SELECT Id, MasterLabel, DeveloperName FROM Sales_Person_Role_Mapping__mdt];
-        UserRole uRole = [SELECT Id FROM UserRole WHERE Name = :roleMappings[0].MasterLabel];
+        Set<String> mappedRoleNames = new Set<String>();
+        for (Sales_Person_Role_Mapping__mdt mapping : roleMappings) {
+            mappedRoleNames.add(mapping.MasterLabel);
+        }
+        List<UserRole> matchedRoles = [SELECT Id FROM UserRole WHERE Name IN :mappedRoleNames LIMIT 1];
+        UserRole uRole = !matchedRoles.isEmpty() ? matchedRoles[0] : [SELECT Id FROM UserRole LIMIT 1];
         User testUser = new User(Username='bgotgtest@test.com', LastName='bg_AccountUtilsTest');
         testUser.Email = 'bgotgtest@test.com';
         testUser.Alias = 'bgotg';

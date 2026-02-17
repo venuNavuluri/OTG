@@ -6,6 +6,7 @@ private class OrderTriggerHandlerTest {
         // Keep org switches sane for all tests
         TestDataFactory_OTG.enableOrgVRConfig();
         TestDataFactory_OTG.primeDefaultOwnerAllRegions(UserInfo.getUserId());
+
     }
 
     @IsTest
@@ -184,6 +185,147 @@ private class OrderTriggerHandlerTest {
         System.assertEquals(1, changes.size(), 'Expected Termination change');
         System.assertEquals(oc.qctx.quote.Id, changes[0].Quote__c, 'Expected quote set');
         System.assertEquals(oc.orderRec.Id, changes[0].Order__c, 'Expected order set');
+    }
+
+    // ---------------------------------------------------------
+    // updateOpportunityStageForActivatedAmendment under Sales Ops user
+    // Amendment + Renewal activation should complete Opp;
+    // Won Reason fields set only for Amendment.
+    // ---------------------------------------------------------
+    @IsTest
+    static void test_salesOpsUser_canActivateAmendmentAndRenewal() {
+        Profile adminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+        Profile salesOpsProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'OTG Sales Operations'
+            LIMIT 1
+        ];
+
+        String uniqueAdmin = String.valueOf(Crypto.getRandomInteger());
+        User adminUser = new User(
+            ProfileId = adminProfile.Id,
+            Username = 'admin.' + uniqueAdmin + '@test.com',
+            LastName = 'Admin',
+            Email = 'admin.' + uniqueAdmin + '@test.com',
+            Alias = 'adm1',
+            TimeZoneSidKey = 'America/New_York',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert adminUser;
+
+        String unique = String.valueOf(Crypto.getRandomInteger());
+        User salesOpsUser = new User(
+            ProfileId = salesOpsProfile.Id,
+            Username = 'salesops.' + unique + '@test.com',
+            LastName = 'SalesOps',
+            Email = 'salesops.' + unique + '@test.com',
+            Alias = 'sops',
+            TimeZoneSidKey = 'America/New_York',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert salesOpsUser;
+        
+        List<PermissionSetLicense> cpqLicenses = [
+            SELECT Id, DeveloperName, MasterLabel
+            FROM PermissionSetLicense
+            WHERE DeveloperName LIKE '%CPQ%'
+               OR MasterLabel LIKE '%CPQ%'
+            LIMIT 1
+        ];
+        if (!cpqLicenses.isEmpty()) {
+            insert new PermissionSetLicenseAssign(
+                AssigneeId = salesOpsUser.Id,
+                PermissionSetLicenseId = cpqLicenses[0].Id
+            );
+        } else {
+            System.assert(false, 'CPQ Permission Set License not found for Sales Ops user setup');
+        }
+
+        PermissionSetGroup salesOpsPsg = [
+            SELECT Id
+            FROM PermissionSetGroup
+            WHERE DeveloperName = 'Sales_Ops_Persona'
+            LIMIT 1
+        ];
+        insert new PermissionSetAssignment(
+            AssigneeId = salesOpsUser.Id,
+            PermissionSetGroupId = salesOpsPsg.Id
+        );
+
+        System.runAs(salesOpsUser) {
+            upsert new Automation_Bypass_Settings__c(
+                SetupOwnerId = salesOpsUser.Id,
+                Bypass_Validations__c = true
+            );
+        }
+
+        // Create data as admin to avoid profile validation/access issues
+        TestDataFactory_OTG.OrderContext amendCtx;
+        TestDataFactory_OTG.OrderContext renewCtx;
+        System.runAs(adminUser) {
+            AutomationBypass.Guard guard = AutomationBypass.enterTxn(new Set<String>{ 'TRG:Account' });
+            try {
+                amendCtx = TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, false);
+                renewCtx = TestDataFactory_OTG.buildRenewalOrderContext();
+            } finally {
+                guard.close();
+            }
+        }
+
+        // Activate orders as admin (Sales Ops lacks Order update perms)
+        System.runAs(adminUser) {
+            update new Order(Id = amendCtx.orderRec.Id, Status = 'Activated', Is_Activated__c = true);
+            update new Order(Id = renewCtx.orderRec.Id, Status = 'Activated', Is_Activated__c = true);
+        }
+
+        List<Order> activatedOrders = [
+            SELECT Id, OpportunityId, Type
+            FROM Order
+            WHERE Id IN :new Set<Id>{ amendCtx.orderRec.Id, renewCtx.orderRec.Id }
+        ];
+        System.assertEquals(2, activatedOrders.size(), 'Expected both activated orders to be available');
+
+        System.runAs(salesOpsUser) {
+            Test.startTest();
+            AutomationBypass.Guard oppBypassGuard =
+                AutomationBypass.enterTxn(new Set<String>{ 'TRG:Opportunity' });
+            try {
+                OrderTriggerHandler.updateOpportunityStageForActivatedAmendment(activatedOrders);
+            } finally {
+                oppBypassGuard.close();
+            }
+            Test.stopTest();
+
+            Opportunity amendOpp = [
+                SELECT StageName, Won_Reason__c, Won_Reason_Comments__c
+                FROM Opportunity
+                WHERE Id = :amendCtx.qctx.opportunity.Id
+            ];
+            System.assertEquals('Completed', amendOpp.StageName, 'Amendment opp should be Completed');
+            System.assertEquals('Other', amendOpp.Won_Reason__c, 'Amendment won reason should be set');
+            System.assertEquals('Adding a vessel', amendOpp.Won_Reason_Comments__c,
+                'Amendment won reason comments should be set');
+
+            Opportunity renewOpp = [
+                SELECT StageName, Won_Reason__c, Won_Reason_Comments__c
+                FROM Opportunity
+                WHERE Id = :renewCtx.qctx.opportunity.Id
+            ];
+            System.assertEquals('Completed', renewOpp.StageName, 'Renewal opp should be Completed');
+            System.assertEquals(null, renewOpp.Won_Reason__c, 'Renewal won reason should not be set');
+            System.assertEquals(null, renewOpp.Won_Reason_Comments__c,
+                'Renewal won reason comments should not be set');
+        }
     }
     
      /**

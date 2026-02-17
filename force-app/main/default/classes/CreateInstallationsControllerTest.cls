@@ -22,6 +22,10 @@ public class CreateInstallationsControllerTest {
         upsert config;
 
         ensureBypassUser();
+        upsert new Automation_Bypass_Settings__c(
+            SetupOwnerId = UserInfo.getUserId(),
+            Bypass_Keys__c = 'TRG:Account'
+        );
     }
 
     private static void ensureBypassUser() {
@@ -43,6 +47,10 @@ public class CreateInstallationsControllerTest {
         );
         insert bypassUser;
         bypassUserId = bypassUser.Id;
+        upsert new Automation_Bypass_Settings__c(
+            SetupOwnerId = bypassUserId,
+            Bypass_Keys__c = 'TRG:Account'
+        );
     }
 
     private static User getBypassUser() {
