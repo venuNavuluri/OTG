@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Zero_Value_Sales_Orders</fullName>
+    <columns>NAME</columns>
+    <columns>Contract__c</columns>
+    <columns>CREATED_DATE</columns>
+    <columns>Status__c</columns>
+    <columns>Netsuite_Order__c</columns>
+    <columns>Total_Amount__c</columns>
+    <columns>Installation__c</columns>
+    <columns>Invoice_Account__c</columns>
+    <columns>NS_Subsidiary_ID__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Total_Amount__c</field>
+        <operation>equals</operation>
+        <value>USD 0</value>
+    </filters>
+    <label>Zero Value Sales Orders</label>
+</ListView>

@@ -1362,6 +1362,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Sales_Order__c.Original_Sales_Order__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Sales_Order__c.Sportal_Installation_ID__c</field>
         <readable>true</readable>
     </fieldPermissions>

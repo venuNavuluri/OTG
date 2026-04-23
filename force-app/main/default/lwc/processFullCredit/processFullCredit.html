@@ -1,0 +1,28 @@
+<template>
+    <lightning-quick-action-panel header="Process Full Credit">
+        <template if:true={showConfirmation}>
+            <div class="slds-p-around_medium">
+                <p class="slds-text-heading_small">Create a full credit note for this Sales Order?</p>
+                <p class="slds-text-body_regular slds-m-top_small">
+                    This creates a new credit-note Sales Order, copies the related Sales Order Items,
+                    and sets each copied item amount to a negative value.
+                </p>
+            </div>
+            <div slot="footer">
+                <lightning-button
+                    variant="brand"
+                    label="Process Credit"
+                    onclick={handleProcess}
+                    disabled={isProcessing}
+                    class="slds-m-right_small"
+                ></lightning-button>
+                <lightning-button
+                    variant="neutral"
+                    label="Cancel"
+                    onclick={closeModal}
+                    disabled={isProcessing}
+                ></lightning-button>
+            </div>
+        </template>
+    </lightning-quick-action-panel>
+</template>

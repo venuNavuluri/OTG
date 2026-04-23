@@ -98,7 +98,7 @@ private class InstallationTriggerHandlerTest {
         Sales_Order__c unbilledSO = new Sales_Order__c(
             Installation__c = inst.Id,
             Contract__c = contractRec.Id,
-            Start_Date__c = Date.today().addDays(5),
+            Start_Date__c = Date.today().addDays(-5),
             End_Date__c = Date.today().addDays(35),
             Status__c = 'Pending Approval',
             CurrencyIsoCode = contractRec.CurrencyIsoCode
@@ -139,6 +139,35 @@ private class InstallationTriggerHandlerTest {
         System.assertEquals('Cancelled', refreshedUnbilled.Status__c,
             'Unbilled sales order should be cancelled on termination.');
 
+        List<Sales_Order__c> replacementOrders = [
+            SELECT Id, Credit_Note__c, Start_Date__c, End_Date__c, Status__c, Original_Sales_Order__c
+            FROM Sales_Order__c
+            WHERE Installation__c = :inst.Id
+                AND Credit_Note__c = false
+                AND Original_Sales_Order__c = :unbilledSO.Id
+        ];
+        System.assertEquals(1, replacementOrders.size(), 'A truncated replacement order should be created.');
+        System.assertEquals('Pending Approval', replacementOrders[0].Status__c,
+            'Replacement order should remain in pending approval.');
+        System.assertEquals(unbilledSO.Start_Date__c, replacementOrders[0].Start_Date__c,
+            'Replacement order should keep the original start date.');
+        System.assertEquals(terminationDate, replacementOrders[0].End_Date__c,
+            'Replacement order should end on the termination date.');
+
+        List<Sales_Order_Item__c> replacementItems = [
+            SELECT Amount__c
+            FROM Sales_Order_Item__c
+            WHERE Sales_Order__c = :replacementOrders[0].Id
+        ];
+        System.assertEquals(1, replacementItems.size(), 'Replacement order should receive one prorated item.');
+        Decimal expectedReplacementAmount = (
+            instLine.Net_Total__c /
+            (instLine.Start_Date__c.daysBetween(instLine.End_Date__c) + 1) *
+            (unbilledSO.Start_Date__c.daysBetween(terminationDate) + 1)
+        ).setScale(2);
+        System.assertEquals(expectedReplacementAmount, replacementItems[0].Amount__c,
+            'Replacement order item should include the termination date when prorating.');
+
         List<Sales_Order__c> creditOrders = [
             SELECT Id, Credit_Note__c, Start_Date__c, End_Date__c, Status__c
             FROM Sales_Order__c
@@ -159,7 +188,7 @@ private class InstallationTriggerHandlerTest {
     }
 
     @IsTest
-    static void testAfterUpdateFutureTerminatedTriggersModifyContract() {
+    static void testAfterUpdateFutureTerminatedOnlyUpdatesStatus() {
         TestDataFactory_OTG.OrderContext ctx =
             TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, false);
 
@@ -187,6 +216,7 @@ private class InstallationTriggerHandlerTest {
 
         Date terminationDate = Date.today().addDays(10);
 
+        Test.startTest();
         update new Installation__c(
             Id = inst.Id,
             Contract__c = contractRec.Id,
@@ -195,22 +225,16 @@ private class InstallationTriggerHandlerTest {
             Termination_End_Date__c = terminationDate,
             Termination_Reason__c = 'Scheduled'
         );
-
-        Test.startTest();
-        update new Installation__c(
-            Id = inst.Id,
-            Installation_Order_Status__c = 'Terminated',
-            Termination_End_Date__c = terminationDate,
-            Termination_Reason__c = 'Completed'
-        );
         Test.stopTest();
 
         Installation__c refreshed = [
-            SELECT Auto_Installation_Termination_Error__c
+            SELECT Installation_Order_Status__c, Auto_Installation_Termination_Error__c
             FROM Installation__c
             WHERE Id = :inst.Id
         ];
+        System.assertEquals('Future Terminated', refreshed.Installation_Order_Status__c,
+            'Future termination should only update the installation status.');
         System.assertEquals(null, refreshed.Auto_Installation_Termination_Error__c,
-            'Future termination transition should not leave residual error');
+            'Future termination should not invoke amendment processing from the trigger.');
     }
 }

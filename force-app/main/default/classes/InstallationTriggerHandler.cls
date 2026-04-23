@@ -97,8 +97,6 @@ public class InstallationTriggerHandler {
     
             List<Id> instIdList = new List<Id>();
             Map<Id, Date> terminationDates = new Map<Id, Date>();
-            List<Installation__c> activeInstList = new List<Installation__c>();
-            Set<Id> futureTerminatedInstIds = new Set<Id>();
     
             for (Installation__c inst : instList) {
                 Installation__c oldInst = oldInstMap.get(inst.Id);
@@ -107,9 +105,6 @@ public class InstallationTriggerHandler {
                     if (inst.Installation_Order_Status__c == 'Terminated' && oldInst.Installation_Order_Status__c != 'Terminated') {
                         instIdList.add(inst.Id);
                         terminationDates.put(inst.Id, inst.Termination_End_Date__c); // Assuming this field exists
-                        if (oldInst.Installation_Order_Status__c == 'Future Terminated') {
-                            futureTerminatedInstIds.add(inst.Id);
-                        }
                     } 
                 }
             }
@@ -132,29 +127,6 @@ public class InstallationTriggerHandler {
                     }
                 }
             }
-    
-            if (!futureTerminatedInstIds.isEmpty()) {
-                List<Installation__c> futureTerminatedInsts = [
-                    SELECT Id, Contract__c, Contract__r.EndDate, Package__c, Termination_End_Date__c
-                    FROM Installation__c
-                    WHERE Id IN :futureTerminatedInstIds
-                ];
-                for (Installation__c inst : futureTerminatedInsts) {
-                    if (inst.Contract__c != null &&
-                        inst.Package__c != null &&
-                        inst.Termination_End_Date__c != null &&
-                        inst.Contract__r != null &&
-                        inst.Contract__r.EndDate != inst.Termination_End_Date__c) {
-                        CreateInstallationsController.modifyContract(
-                            inst.Id,
-                            inst.Termination_End_Date__c,
-                            inst.Contract__c,
-                            inst.Package__c,
-                            true
-                        );
-                    }
-                }
-            }
             InstallationChangeService.enqueueChanges(instList, oldInstMap);
 
         } catch (Exception ex) {
@@ -168,7 +140,8 @@ public class InstallationTriggerHandler {
             Logger.info('Handling Terminated Installations for: ' + instIdList + ' with Termination Date: ' + terminationDate);
     
             List<Sales_Order__c> soList = [
-                SELECT Id, Status__c, Start_Date__c, End_Date__c, Installation__c, Contract__c, Invoice_Account__c, CurrencyIsoCode 
+                SELECT Id, Status__c, Start_Date__c, End_Date__c, Installation__c, Contract__c,
+                    Invoice_Account__c, Comments__c, CurrencyIsoCode
                 FROM Sales_Order__c 
                 WHERE Installation__c IN :instIdList
             ];
@@ -180,13 +153,43 @@ public class InstallationTriggerHandler {
     
             List<Sales_Order__c> soListToUpdate = new List<Sales_Order__c>();
             List<Sales_Order__c> newCreditSalesOrders = new List<Sales_Order__c>();
+            List<Sales_Order__c> newReplacementSalesOrders = new List<Sales_Order__c>();
             Map<Id, Id> oldToNewSalesOrderMap = new Map<Id, Id>();
+            Map<Integer, Id> replacementIndexToSourceOrderId = new Map<Integer, Id>();
+            Map<Id, Sales_Order__c> oldToReplacementSalesOrderMap = new Map<Id, Sales_Order__c>();
     
             for (Sales_Order__c so : soList) {
                 if (so.Status__c == 'Pending Approval' || so.Status__c == 'Unbilled') {
-                    Logger.info('Cancelling Unbilled SO: ' + so.Id);
-                    so.Status__c = 'Cancelled';
-                    soListToUpdate.add(so);
+                    if (so.Start_Date__c == null || so.End_Date__c == null || terminationDate == null) {
+                        Logger.info('Skipping open SO with incomplete dates: ' + so.Id);
+                        continue;
+                    }
+
+                    if (terminationDate < so.Start_Date__c) {
+                        Logger.info('Cancelling open SO after termination date: ' + so.Id);
+                        so.Status__c = 'Cancelled';
+                        soListToUpdate.add(so);
+                    } else if (terminationDate <= so.End_Date__c) {
+                        Logger.info('Replacing open SO for terminated period: ' + so.Id);
+                        so.Status__c = 'Cancelled';
+                        soListToUpdate.add(so);
+
+                        replacementIndexToSourceOrderId.put(newReplacementSalesOrders.size(), so.Id);
+                        newReplacementSalesOrders.add(new Sales_Order__c(
+                            Status__c = 'Pending Approval',
+                            Credit_Note__c = false,
+                            Start_Date__c = so.Start_Date__c,
+                            End_Date__c = terminationDate,
+                            Contract__c = so.Contract__c,
+                            Invoice_Account__c = so.Invoice_Account__c,
+                            CurrencyIsoCode = so.CurrencyIsoCode,
+                            Installation__c = so.Installation__c,
+                            Comments__c = so.Comments__c,
+                            Original_Sales_Order__c = so.Id
+                        ));
+                    } else {
+                        Logger.info('Open SO is fully before termination date. Skipping: ' + so.Id);
+                    }
                 } 
                 else if (so.Status__c == 'Billed') {
                     Boolean createCreditNote = false;
@@ -246,11 +249,24 @@ public class InstallationTriggerHandler {
                     }
                 }
             }
+
+            if (!newReplacementSalesOrders.isEmpty()) {
+                insert newReplacementSalesOrders;
+                Logger.info('Inserted ' + newReplacementSalesOrders.size() + ' Replacement Sales Orders');
+
+                for (Integer index = 0; index < newReplacementSalesOrders.size(); index++) {
+                    Id sourceOrderId = replacementIndexToSourceOrderId.get(index);
+                    if (sourceOrderId != null) {
+                        oldToReplacementSalesOrderMap.put(sourceOrderId, newReplacementSalesOrders[index]);
+                    }
+                }
+            }
     
             Logger.info('Final Credit Note Mapping: ' + oldToNewSalesOrderMap);
             Logger.saveLog();
     
             createSalesOrderItems(oldToNewSalesOrderMap, terminationDate);
+            createReplacementSalesOrderItems(oldToReplacementSalesOrderMap);
     
         } catch (Exception ex) {
             Logger.error('handleTerminatedInstallations - Exception: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
@@ -313,5 +329,114 @@ public class InstallationTriggerHandler {
             Logger.saveLog();
             throw ex;
         }
+    }
+
+    @TestVisible
+    private static void createReplacementSalesOrderItems(Map<Id, Sales_Order__c> oldToReplacementSalesOrderMap) {
+        try {
+            if (oldToReplacementSalesOrderMap.isEmpty()) {
+                return;
+            }
+
+            Set<Id> installationIds = new Set<Id>();
+            Date minStartDate;
+            Date maxEndDate;
+            for (Sales_Order__c replacementSO : oldToReplacementSalesOrderMap.values()) {
+                if (replacementSO.Installation__c == null ||
+                    replacementSO.Start_Date__c == null ||
+                    replacementSO.End_Date__c == null) {
+                    continue;
+                }
+
+                installationIds.add(replacementSO.Installation__c);
+                if (minStartDate == null || replacementSO.Start_Date__c < minStartDate) {
+                    minStartDate = replacementSO.Start_Date__c;
+                }
+                if (maxEndDate == null || replacementSO.End_Date__c > maxEndDate) {
+                    maxEndDate = replacementSO.End_Date__c;
+                }
+            }
+
+            if (installationIds.isEmpty() || minStartDate == null || maxEndDate == null) {
+                return;
+            }
+
+            List<Installation_Line__c> installationLines = [
+                SELECT Id, Name, Installation__c, Subscription__c, CurrencyIsoCode,
+                    Net_Total__c, Start_Date__c, End_Date__c
+                FROM Installation_Line__c
+                WHERE Installation__c IN :installationIds
+                    AND Start_Date__c <= :maxEndDate
+                    AND End_Date__c >= :minStartDate
+                    AND Net_Total__c != null
+            ];
+
+            Map<Id, List<Installation_Line__c>> linesByInstallationId = new Map<Id, List<Installation_Line__c>>();
+            for (Installation_Line__c line : installationLines) {
+                if (!linesByInstallationId.containsKey(line.Installation__c)) {
+                    linesByInstallationId.put(line.Installation__c, new List<Installation_Line__c>());
+                }
+                linesByInstallationId.get(line.Installation__c).add(line);
+            }
+
+            List<Sales_Order_Item__c> salesOrderItemsToInsert = new List<Sales_Order_Item__c>();
+            for (Sales_Order__c replacementSO : oldToReplacementSalesOrderMap.values()) {
+                List<Installation_Line__c> lines = linesByInstallationId.get(replacementSO.Installation__c);
+                if (lines == null) {
+                    continue;
+                }
+
+                for (Installation_Line__c line : lines) {
+                    if (line.Start_Date__c <= replacementSO.End_Date__c &&
+                        line.End_Date__c >= replacementSO.Start_Date__c) {
+                        Date itemStartDate = line.Start_Date__c > replacementSO.Start_Date__c
+                            ? line.Start_Date__c
+                            : replacementSO.Start_Date__c;
+                        Date itemEndDate = line.End_Date__c < replacementSO.End_Date__c
+                            ? line.End_Date__c
+                            : replacementSO.End_Date__c;
+                        Decimal amount = calculateInclusiveProratedAmount(line, itemStartDate, itemEndDate);
+                        salesOrderItemsToInsert.add(new Sales_Order_Item__c(
+                            Name = line.Name,
+                            Sales_Order__c = replacementSO.Id,
+                            Installation_Line__c = line.Id,
+                            Subscription__c = line.Subscription__c,
+                            CurrencyIsoCode = line.CurrencyIsoCode,
+                            Amount__c = amount
+                        ));
+                    }
+                }
+            }
+
+            if (!salesOrderItemsToInsert.isEmpty()) {
+                insert salesOrderItemsToInsert;
+                Logger.info('Inserted Replacement Sales Order Items: ' + salesOrderItemsToInsert.size());
+                Logger.saveLog();
+            }
+        } catch (Exception ex) {
+            Logger.error('createReplacementSalesOrderItems - Exception: ' + ex.getMessage());
+            Logger.saveLog();
+            throw ex;
+        }
+    }
+
+    private static Decimal calculateInclusiveProratedAmount(Installation_Line__c line, Date itemStartDate, Date itemEndDate) {
+        if (line == null ||
+            line.Start_Date__c == null ||
+            line.End_Date__c == null ||
+            line.Net_Total__c == null ||
+            itemStartDate == null ||
+            itemEndDate == null ||
+            itemEndDate < itemStartDate) {
+            return 0;
+        }
+
+        Decimal totalDays = line.Start_Date__c.daysBetween(line.End_Date__c) + 1;
+        Decimal billableDays = itemStartDate.daysBetween(itemEndDate) + 1;
+        if (totalDays <= 0 || billableDays <= 0) {
+            return 0;
+        }
+
+        return ((line.Net_Total__c / totalDays) * billableDays).setScale(2);
     }
 }

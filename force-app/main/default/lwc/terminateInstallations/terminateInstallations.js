@@ -1,56 +1,41 @@
-import { LightningElement, api, track, wire } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
 import { getRecord } from 'lightning/uiRecordApi';
+import { CloseActionScreenEvent } from 'lightning/actions';
+import { RefreshEvent } from 'lightning/refresh';
+import Toast from 'lightning/toast';
+
 import terminateInstallationRecord from '@salesforce/apex/CreateInstallationsController.terminateSingleRecord';
 import getContractDates from '@salesforce/apex/CreateInstallationsController.getContractDetails';
 import validateOpenItems from '@salesforce/apex/CreateInstallationsController.validateOpenQuotesOrders';
-import { CloseActionScreenEvent } from 'lightning/actions';
-import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
 const INSTALLATION_FIELDS = ['Installation__c.Contract__c'];
 
 export default class TerminateInstallations extends LightningElement {
-    @track tValue = '';
     @api recordId;
-    @track showDetails = false;
-    @track error = false;
-    @track errorMessage = '';
-    @track endDate;
-    @track reason;
-    @track disableSaveButton = true; // 🟢 Prevents interaction until validation completes
-    @track warnings;
-    @track isValidating = true;
+
+    tValue = '';
+    showDetails = false;
+    error = false;
+    errorMessage = '';
+    endDate;
+    reason;
+    disableSaveButton = true;
+    warnings;
+    isValidating = true;
 
     contractStartDate;
     contractEndDate;
     contractId;
     hasRunInitialValidation = false;
 
-    options = [
-        { label: 'Yes', value: 'Yes' },
-        { label: 'No', value: 'No' }
-    ];
-
-    // 🟢 Fetch Contract Start & End Date from Apex
     @wire(getContractDates, { recordId: '$recordId' })
     wiredContractData({ error, data }) {
         if (data) {
-            this.contractStartDate = new Date(data.startDate);
-            this.contractEndDate = new Date(data.endDate);
+            this.contractStartDate = this.normalizeDateValue(data.startDate);
+            this.contractEndDate = this.normalizeDateValue(data.endDate);
         } else if (error) {
             console.error('Error fetching contract dates:', error);
         }
-    }
-
-    get isSaveDisabled() {
-        return this.disableSaveButton || this.isValidating;
-    }
-
-    get hasWarnings() {
-        return Array.isArray(this.warnings) && this.warnings.length > 0;
-    }
-
-    get showTerminationForm() {
-        return !this.isValidating && !this.hasWarnings;
     }
 
     @wire(getRecord, { recordId: '$recordId', fields: INSTALLATION_FIELDS })
@@ -66,17 +51,37 @@ export default class TerminateInstallations extends LightningElement {
         }
     }
 
+    get isSaveDisabled() {
+        return this.disableSaveButton || this.isValidating;
+    }
+
+    get hasWarnings() {
+        return Array.isArray(this.warnings) && this.warnings.length > 0;
+    }
+
+    get showTerminationForm() {
+        return !this.isValidating && !this.hasWarnings;
+    }
+
+    get isYesSelected() {
+        return this.tValue === 'Yes';
+    }
+
+    get isNoSelected() {
+        return this.tValue === 'No';
+    }
+
+    normalizeDateValue(value) {
+        return value ? String(value).slice(0, 10) : null;
+    }
+
     formatWarningMessages(warnings) {
         if (!warnings || !Array.isArray(warnings)) {
             return null;
         }
 
         return warnings.map((warning) => {
-            if (typeof warning !== 'string') {
-                return warning;
-            }
-
-            if (warning.includes('<a ')) {
+            if (typeof warning !== 'string' || warning.includes('<a ')) {
                 return warning;
             }
 
@@ -94,13 +99,12 @@ export default class TerminateInstallations extends LightningElement {
     }
 
     handleFieldChange(event) {
-        let fieldName = event.target.fieldName;
-        let fieldValue = event.currentTarget.value;
+        const fieldName = event.target.fieldName;
+        const fieldValue = event.detail?.value ?? event.target.value;
 
         if (fieldName === 'Termination_End_Date__c') {
-            this.endDate = new Date(fieldValue);
+            this.endDate = this.normalizeDateValue(fieldValue);
 
-            // 🟢 Validate Termination Date Against Contract Dates
             if (this.contractStartDate && this.contractEndDate) {
                 if (this.endDate < this.contractStartDate || this.endDate > this.contractEndDate) {
                     this.error = true;
@@ -116,25 +120,36 @@ export default class TerminateInstallations extends LightningElement {
     }
 
     handleSave() {
-        if (!this.error) {
-            if (this.tValue === 'Yes') {
-                const allFieldsValid = [...this.template.querySelectorAll('lightning-input-field')].reduce(
-                    (validSoFar, inputField) => validSoFar && inputField.reportValidity(),
-                    true
-                );
-
-                if (!allFieldsValid) {
-                    return;
-                }
-
-                this.disableSaveButton = true; // 🔴 Disable button after clicking
-                this.warnings = null;
-
-                this.validateBeforeTermination(true);
-            } else {
-                this.closeAction();
-            }
+        if (this.tValue === 'No') {
+            this.closeAction();
+            return;
         }
+
+        if (this.tValue !== 'Yes') {
+            this.showToast('Warning', 'Please confirm whether you want to terminate the installation.', 'warning');
+            return;
+        }
+
+        if (this.error) {
+            return;
+        }
+
+        const inputFields = [...this.template.querySelectorAll('lightning-input-field')];
+        const allFieldsValid = inputFields.reduce(
+            (validSoFar, inputField) => validSoFar && inputField.reportValidity(),
+            true
+        );
+
+        const hasRequiredValues = Boolean(this.endDate) && Boolean(this.reason?.trim());
+
+        if (!allFieldsValid || !hasRequiredValues) {
+            inputFields.forEach((inputField) => inputField.reportValidity());
+            return;
+        }
+
+        this.disableSaveButton = true;
+        this.warnings = null;
+        this.validateBeforeTermination(true);
     }
 
     validateBeforeTermination(proceedAfterValidation = false) {
@@ -150,13 +165,17 @@ export default class TerminateInstallations extends LightningElement {
 
         this.isValidating = true;
         validateOpenItems({ contractId: this.contractId })
-            .then(result => {
+            .then((result) => {
                 const formattedWarnings = this.formatWarningMessages(result);
-                if (formattedWarnings && formattedWarnings.length > 0) {
+                if (formattedWarnings?.length) {
                     this.warnings = formattedWarnings;
                     if (proceedAfterValidation) {
                         this.disableSaveButton = false;
-                        this.showToast('Warning', 'Open Quotes or Orders must be activated before terminating this installation.', 'warning');
+                        this.showToast(
+                            'Warning',
+                            'Open Quotes or Orders must be activated before terminating this installation.',
+                            'warning'
+                        );
                     } else {
                         this.disableSaveButton = true;
                     }
@@ -169,7 +188,7 @@ export default class TerminateInstallations extends LightningElement {
                     }
                 }
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error('Error validating open quotes/orders:', JSON.stringify(error));
                 this.showToast('Error', 'Unable to validate open Quotes/Orders. Please try again later.', 'error');
                 this.disableSaveButton = false;
@@ -185,16 +204,17 @@ export default class TerminateInstallations extends LightningElement {
             endDate: this.endDate,
             reason: this.reason
         })
-            .then(result => {
+            .then((result) => {
                 if (result === 'SUCCESS') {
-                    this.showToast('Success', 'Installation Terminated Successfully.', 'success');
+                    this.showToast('Success', 'Installation updated successfully.', 'success');
+                    this.dispatchEvent(new RefreshEvent());
                     this.closeAction();
                 } else {
                     this.disableSaveButton = false;
                     this.showToast('Error', 'Unable to terminate installation.', 'error');
                 }
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error('Error:', JSON.stringify(error));
                 this.disableSaveButton = false;
                 this.showToast('Error', 'Error occurred while terminating the installation.', 'error');
@@ -212,12 +232,14 @@ export default class TerminateInstallations extends LightningElement {
     }
 
     showToast(title, message, variant) {
-        const evt = new ShowToastEvent({
-            title: title,
-            message: message,
-            variant: variant
-        });
-        this.dispatchEvent(evt);
+        Toast.show(
+            {
+                label: title,
+                message,
+                variant
+            },
+            this
+        );
     }
 
     closeAction() {

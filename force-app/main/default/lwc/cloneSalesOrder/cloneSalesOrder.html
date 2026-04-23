@@ -1,0 +1,26 @@
+<template>
+    <lightning-quick-action-panel header="Clone Sales Order">
+        <div class="slds-p-around_medium">
+            <p class="slds-text-heading_small">Create a cloned Sales Order?</p>
+            <p class="slds-text-body_regular slds-m-top_small">
+                This creates a new Sales Order, copies the related Sales Order Items,
+                and sets the new Sales Order status to Pending Approval.
+            </p>
+        </div>
+        <div slot="footer">
+            <lightning-button
+                variant="brand"
+                label="Clone Sales Order"
+                onclick={handleClone}
+                disabled={isProcessing}
+                class="slds-m-right_small"
+            ></lightning-button>
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={closeModal}
+                disabled={isProcessing}
+            ></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

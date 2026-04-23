@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sales_Orders_with_No_Netsuite_Order</fullName>
+    <columns>NAME</columns>
+    <columns>Contract__c</columns>
+    <columns>CREATED_DATE</columns>
+    <columns>Status__c</columns>
+    <columns>Netsuite_Order__c</columns>
+    <columns>Total_Amount__c</columns>
+    <columns>Installation__c</columns>
+    <columns>Invoice_Account__c</columns>
+    <columns>NS_Subsidiary_ID__c</columns>
+    <columns>Package_Name__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Netsuite_Order_ID__c</field>
+        <operation>equals</operation>
+    </filters>
+    <filters>
+        <field>Status__c</field>
+        <operation>equals</operation>
+        <value>Unbilled,Pending Approval</value>
+    </filters>
+    <filters>
+        <field>Total_Amount__c</field>
+        <operation>notEqual</operation>
+        <value>USD 0</value>
+    </filters>
+    <label>Sales Orders with No Netsuite Order</label>
+</ListView>

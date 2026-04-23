@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Unbilled_sales_Orders</fullName>
+    <columns>Netsuite_Order__c</columns>
+    <columns>NAME</columns>
+    <columns>Total_Amount__c</columns>
+    <columns>Installation_Name__c</columns>
+    <columns>Invoice_Account__c</columns>
+    <columns>Agreement_ID__c</columns>
+    <columns>Installation__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Status__c</field>
+        <operation>equals</operation>
+        <value>Unbilled,Pending Approval</value>
+    </filters>
+    <label>Unbilled sales Orders</label>
+</ListView>

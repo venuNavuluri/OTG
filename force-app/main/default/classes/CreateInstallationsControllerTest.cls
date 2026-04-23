@@ -331,6 +331,34 @@ public class CreateInstallationsControllerTest {
     }
 
     @IsTest
+    static void testTerminateSingleRecordFutureDateSetsFutureTerminatedStatus() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+        Date futureTerminationDate = Date.today().addDays(10);
+
+        Test.startTest();
+        String response = CreateInstallationsController.terminateSingleRecord(
+            ctx.installation.Id,
+            futureTerminationDate,
+            'Scheduled Future Termination'
+        );
+        Test.stopTest();
+
+        System.assertEquals('SUCCESS', response, 'Future termination should succeed');
+
+        Installation__c refreshed = [
+            SELECT Installation_Order_Status__c, Termination_End_Date__c, Auto_Installation_Termination_Error__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+        System.assertEquals('Future Terminated', refreshed.Installation_Order_Status__c,
+            'Future termination date should set the installation to Future Terminated.');
+        System.assertEquals(futureTerminationDate, refreshed.Termination_End_Date__c,
+            'Future termination date should be saved on the installation.');
+        System.assertEquals(null, refreshed.Auto_Installation_Termination_Error__c,
+            'Future termination should not invoke immediate amendment processing.');
+    }
+
+    @IsTest
     static void testTerminateRecordsRequiresIds() {
         try {
             CreateInstallationsController.terminateRecords(null, Date.today(), '');
