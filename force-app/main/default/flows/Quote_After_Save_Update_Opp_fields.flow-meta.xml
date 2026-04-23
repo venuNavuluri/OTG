@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>62.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Assign_Bypass_Value</name>
         <label>Assign Bypass Value</label>
@@ -17,6 +18,26 @@
             <targetReference>Updated_ByPass_Flow</targetReference>
         </connector>
     </assignments>
+    <customErrors>
+        <name>Error_Message</name>
+        <label>Error Message</label>
+        <locationX>842</locationX>
+        <locationY>1571</locationY>
+        <customErrorMessages>
+            <errorMessage>{!$Flow.FaultMessage}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>Error_Message_1</name>
+        <label>Error Message 1</label>
+        <locationX>314</locationX>
+        <locationY>1571</locationY>
+        <customErrorMessages>
+            <errorMessage>{!$Flow.FaultMessage}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_for_Custom_Setting</name>
         <label>Check for Custom Setting</label>

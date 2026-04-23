@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>55.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <name>Legal_Entity_Check</name>
         <label>Legal Entity Check?</label>
-        <locationX>314</locationX>
-        <locationY>287</locationY>
+        <locationX>446</locationX>
+        <locationY>323</locationY>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
         <rules>
             <name>Ocean_Technologies_Group</name>
@@ -65,8 +66,28 @@
             </connector>
             <label>OneOcean</label>
         </rules>
+        <rules>
+            <name>CFM</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Legal_Entity__r.Legal_Entity__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>CFM</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_CFM_Owner</targetReference>
+            </connector>
+            <label>CFM</label>
+        </rules>
     </decisions>
     <environments>Default</environments>
+    <formulas>
+        <name>CFMUserID</name>
+        <dataType>String</dataType>
+        <expression>IF({!$Record.Account.Sales_Region__c} = &apos;APAC&apos;, {!$Setup.CFM_Owner_Settings__c.CFM_Sales_APAC__c}, {!$Setup.CFM_Owner_Settings__c.CFM_Sales_EMEAA__c})</expression>
+    </formulas>
     <interviewLabel>Contract Before Insert {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Contract Before Insert</label>
     <processMetadataValues>
@@ -89,10 +110,35 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordUpdates>
+        <name>Set_CFM_Owner</name>
+        <label>Set CFM Owner</label>
+        <locationX>578</locationX>
+        <locationY>431</locationY>
+        <inputAssignments>
+            <field>Contract_Number__c</field>
+            <value>
+                <elementReference>$Record.ContractNumber</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerExpirationNotice</field>
+            <value>
+                <stringValue>90</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>CFMUserID</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
         <name>Set_OO_Product_Owner</name>
         <label>Set OO Product Owner</label>
         <locationX>314</locationX>
-        <locationY>395</locationY>
+        <locationY>431</locationY>
         <inputAssignments>
             <field>Contract_Number__c</field>
             <value>
@@ -117,7 +163,7 @@
         <name>Set_OTG_Product_Owner</name>
         <label>Set OTG Product Owner</label>
         <locationX>50</locationX>
-        <locationY>395</locationY>
+        <locationY>431</locationY>
         <inputAssignments>
             <field>Contract_Number__c</field>
             <value>
@@ -139,14 +185,22 @@
         <inputReference>$Record</inputReference>
     </recordUpdates>
     <start>
-        <locationX>188</locationX>
+        <locationX>320</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Legal_Entity_Check</targetReference>
         </connector>
         <object>Contract</object>
-        <recordTriggerType>Create</recordTriggerType>
-        <triggerType>RecordBeforeSave</triggerType>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
+    <variables>
+        <name>currentItem_Filter_CFM_Users</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>User</objectType>
+    </variables>
 </Flow>

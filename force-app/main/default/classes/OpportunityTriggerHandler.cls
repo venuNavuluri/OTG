@@ -1,7 +1,7 @@
 public with sharing class OpportunityTriggerHandler {
     // Re-entrancy guard
     private static Boolean isExecuting = false;
-
+    
     // Entry points per context
     public static void beforeInsert(List<Opportunity> newList) {
         if (start()) {
@@ -13,7 +13,7 @@ public with sharing class OpportunityTriggerHandler {
             } finally { stop(); }
         }
     }
-
+    
     public static void beforeUpdate(List<Opportunity> newList, Map<Id, Opportunity> oldMap) {
         if (start()) {
             try {
@@ -23,7 +23,7 @@ public with sharing class OpportunityTriggerHandler {
             } finally { stop(); }
         }
     }
-
+    
     public static void beforeDelete(List<Opportunity> oldList) {
         if (start()) {
             try {
@@ -31,7 +31,7 @@ public with sharing class OpportunityTriggerHandler {
             } finally { stop(); }
         }
     }
-
+    
     public static void afterInsert(List<Opportunity> newList) {
         if (start()) {
             try {
@@ -40,19 +40,20 @@ public with sharing class OpportunityTriggerHandler {
             } finally { stop(); }
         }
     }
-
+    
     public static void afterUpdate(List<Opportunity> newList, Map<Id, Opportunity> oldMap) {
         if (start()) {
             try {
                 // Update Account_Subscription_Annual_Order_Value__c on related Account
                 // when SBQQ__AmendedContract__c changes and the amended contract Name is the target value.
                 updateOpportunityAnnualValueFromContract(newList, oldMap);
+                updateAmendedContractIfTerminated(newList, oldMap);
                 // Keep placeholder for other after update logic
                 // handleStageChanges(newList, oldMap);
             } finally { stop(); }
         }
     }
-
+    
     public static void afterDelete(List<Opportunity> oldList) {
         if (start()) {
             try {
@@ -60,7 +61,7 @@ public with sharing class OpportunityTriggerHandler {
             } finally { stop(); }
         }
     }
-
+    
     public static void afterUndelete(List<Opportunity> newList) {
         if (start()) {
             try {
@@ -68,7 +69,7 @@ public with sharing class OpportunityTriggerHandler {
             } finally { stop(); }
         }
     }
-
+    
     // Common guard helpers
     private static Boolean start() {
         if (isExecuting) return false;
@@ -78,95 +79,95 @@ public with sharing class OpportunityTriggerHandler {
     private static void stop() {
         isExecuting = false;
     }
-
+    
     // ===== Main implementation for updating Opportunity annual value from amended contract =====
     @TestVisible
     private static void updateOpportunityAnnualValueFromContract(List<Opportunity> newOpportunities, Map<Id, Opportunity> oldOpportunityMap) {
         if (newOpportunities == null || newOpportunities.isEmpty()) {
             return;
         }
-
+        
         Map<Id, Opportunity> newOpportunityMap = new Map<Id, Opportunity>(newOpportunities);
         Map<Id, Opportunity> oldOpportunityMapSafe = (oldOpportunityMap == null)
             ? new Map<Id, Opportunity>()
             : oldOpportunityMap;
-
+        
         Set<Id> targetContractIds = new Set<Id>();
         Map<Id, Id> oppIdToContractId = new Map<Id, Id>();
-
+        
         for (Opportunity newOpp : newOpportunities) {
             Opportunity oldOpp = oldOpportunityMapSafe.get(newOpp.Id);
-
+            
             if (newOpp.Business_Unit__c != 'HCM Learning, Assessment and Competency') {
                 continue;
             }
-
+            
             if (!String.isBlank(newOpp.StageName) && newOpp.StageName.equalsIgnoreCase('Closed Won')) {
                 continue;
             }
-
+            
             Id targetContractId = newOpp.SBQQ__AmendedContract__c;
-
+            
             if (targetContractId == null && 'Renewal'.equalsIgnoreCase(newOpp.Existing_Opportunity_Type__c)) {
                 targetContractId = newOpp.SBQQ__RenewedContract__c;
             }
-
+            
             if (targetContractId == null) {
                 continue;
             }
-
+            
             targetContractIds.add(targetContractId);
             oppIdToContractId.put(newOpp.Id, targetContractId);
         }
-
+        
         if (targetContractIds.isEmpty()) {
             return;
         }
-
+        
         Map<Id, Contract> contractsById = new Map<Id, Contract>([
             SELECT Id, Subscription_Value__c
             FROM Contract
             WHERE Id IN :targetContractIds
         ]);
-
+        
         if (contractsById.isEmpty()) {
             return;
         }
-
+        
         List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
         for (Id oppId : oppIdToContractId.keySet()) {
             Opportunity newOpp = newOpportunityMap.get(oppId);
             Id contractId = oppIdToContractId.get(oppId);
-
+            
             if (!contractsById.containsKey(contractId)) {
                 continue;
             }
-
+            
             Contract relatedContract = contractsById.get(contractId);
-
+            
             if (relatedContract == null) {
                 continue;
             }
-
+            
             Decimal newContractValue = relatedContract.Subscription_Value__c;
-
+            
             if (newContractValue == null) {
                 continue;
             }
-
+            
             Decimal currentValue = newOpp.Account_Subscription_Annual_Order_Value__c;
-
+            
             if (currentValue == newContractValue) {
                 continue;
             }
-
+            
             Opportunity recordToUpdate = new Opportunity(
                 Id = oppId,
                 Account_Subscription_Annual_Order_Value__c = newContractValue
             );
             opportunitiesToUpdate.add(recordToUpdate);
         }
-
+        
         if (!opportunitiesToUpdate.isEmpty()) {
             update opportunitiesToUpdate;
         }
@@ -188,4 +189,84 @@ public with sharing class OpportunityTriggerHandler {
             }
         }
     }
+    
+    // ===== implementation for updating Opportunity Amended Contract and Renew Contract value from contract - Next Contract =====
+    @TestVisible
+    private static void updateAmendedContractIfTerminated(
+        List<Opportunity> newOpportunities,
+        Map<Id, Opportunity> oldOpportunityMap
+    ) {
+        try {
+            
+            if (newOpportunities == null || newOpportunities.isEmpty()) {
+                return;
+            }
+            
+            Set<Id> contractIds = new Set<Id>();
+            
+            Map<Id, Id> oppToAmendedContract = new Map<Id, Id>();
+            Map<Id, Id> oppToRenewedContract = new Map<Id, Id>();
+            
+            for (Opportunity newOpp : newOpportunities) {
+                
+                // Skip closed opportunities
+                if (
+                    newOpp.StageName == 'Closed Won' ||
+                    newOpp.StageName == 'Closed Lost' ||
+                    newOpp.StageName == 'Completed'
+                ) {
+                    continue;
+                }
+                
+                // Amended Contract
+                if (newOpp.SBQQ__AmendedContract__c != null) {
+                    contractIds.add(newOpp.SBQQ__AmendedContract__c);
+                    oppToAmendedContract.put(newOpp.Id, newOpp.SBQQ__AmendedContract__c);
+                }
+                
+                // Renewed Contract
+                if (newOpp.SBQQ__RenewedContract__c != null) {
+                    contractIds.add(newOpp.SBQQ__RenewedContract__c);
+                    oppToRenewedContract.put(newOpp.Id, newOpp.SBQQ__RenewedContract__c);
+                }
+            }
+            
+            if (contractIds.isEmpty()) {
+                return;
+            }
+            
+            Map<Id, Contract> contractMap = new Map<Id, Contract>([
+                SELECT Id, Status, Next_Contract__c
+                FROM Contract
+                WHERE Id IN :contractIds
+            ]);
+            
+            List<Opportunity> oppsToUpdate = new List<Opportunity>();
+            
+            // Amended Contract logic
+            for (Id oppId : oppToAmendedContract.keySet()) {
+                Contract cont = contractMap.get(oppToAmendedContract.get(oppId));
+                if (cont != null && cont.Status == 'Terminated' && cont.Next_Contract__c != null) {oppsToUpdate.add(new Opportunity(Id = oppId, SBQQ__AmendedContract__c = cont.Next_Contract__c));
+                }
+            }
+            
+            // Renewed Contract logic
+            for (Id oppId : oppToRenewedContract.keySet()) {
+                Contract cont = contractMap.get(oppToRenewedContract.get(oppId));
+                if (cont != null && cont.Status == 'Terminated' && cont.Next_Contract__c != null) {oppsToUpdate.add(new Opportunity(Id = oppId,SBQQ__RenewedContract__c = cont.Next_Contract__c));
+                }
+            }
+            
+            if (!oppsToUpdate.isEmpty()) { update oppsToUpdate;
+            }
+            
+        } catch (Exception e) {
+            System.debug('Message: ' + e.getMessage());
+            System.debug('Line: ' + e.getLineNumber());
+            System.debug('StackTrace: ' + e.getStackTraceString());
+            
+            // Re-throw so transaction behaves correctly (important for triggers)
+            throw e;
+        }
+    }    
 }

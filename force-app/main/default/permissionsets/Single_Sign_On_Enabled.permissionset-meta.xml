@@ -3,4 +3,8 @@
     <description>Single Sign-On is enabled for these assigned users</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Single Sign-On Enabled</label>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>IsSsoEnabled</name>
+    </userPermissions>
 </PermissionSet>

@@ -45,6 +45,7 @@
         <nameSegment>Account.Account_In_Debt</nameSegment>
     </actionCalls>
     <apiVersion>50.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <name>isChangedDecision12_myRule_11_Account_Status_c</name>
         <label>isChangedDecision12_myRule_11_Account_Status_c</label>

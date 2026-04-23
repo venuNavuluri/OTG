@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Convert_Picklist_to_Number</name>
         <label>Convert Picklist to Number</label>
@@ -17,6 +18,16 @@
             <targetReference>Loop_Through_Quotes</targetReference>
         </connector>
     </assignments>
+    <customErrors>
+        <name>Error</name>
+        <label>Error</label>
+        <locationX>440</locationX>
+        <locationY>1031</locationY>
+        <customErrorMessages>
+            <errorMessage>Can&apos;t Update the Subscription Term on Approved Quotes</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_for_Approved_Quotes</name>
         <label>Check for Approved Quotes</label>

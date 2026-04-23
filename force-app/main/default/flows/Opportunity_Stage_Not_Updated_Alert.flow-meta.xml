@@ -15,8 +15,10 @@
             </value>
         </inputParameters>
         <nameSegment>Opportunity.OpportunityStageNotUpdated</nameSegment>
+        <offset>0</offset>
     </actionCalls>
     <apiVersion>64.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <name>Check_for_Opportunity_Owner_IsActive</name>
         <label>Check for Opportunity Owner IsActive</label>

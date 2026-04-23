@@ -1,10 +1,163 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>60.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <name>Check_for_Sales_User_Sales_Team_and_Group</name>
+        <label>Check for Sales User Sales Team and Group</label>
+        <locationX>314</locationX>
+        <locationY>431</locationY>
+        <defaultConnector>
+            <targetReference>Update_Account_Owner</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>OTG_Sales_Team</name>
+            <conditionLogic>(1 OR 2 OR 3 OR 4 OR 5 OR 6 OR 7 OR 8) AND 9</conditionLogic>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Agent / Partners Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Americas Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>APAC Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>CFM Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>DanDocs Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>EMEA Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>VPO Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>ISF Watchkeeper Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team_Group__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>OTG</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_OTG_Sales_Account_Owner</targetReference>
+            </connector>
+            <label>OTG Sales Team</label>
+        </rules>
+        <rules>
+            <name>LROO_Sales_Team</name>
+            <conditionLogic>(1 OR 2 OR 3 OR 4 OR 5 OR 6 OR 7 OR 8) AND 9</conditionLogic>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Agent / Partners Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Americas Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>APAC Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>CFM Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>DanDocs Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>EMEA Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>VPO Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>ISF Watchkeeper Sales Team</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$User.Sales_Team_Group__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>OO</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_OO_Sales_Account_Owner</targetReference>
+            </connector>
+            <label>LROO Sales Team</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>Checking_Country_Mapping_has_Default_Account_Owner_Id</name>
         <label>Checking Country Mapping has Default Account Owner Id</label>
-        <locationX>182</locationX>
+        <locationX>578</locationX>
         <locationY>323</locationY>
         <defaultConnector>
             <targetReference>Copy_1_of_Update_Account_Owner</targetReference>
@@ -18,7 +171,7 @@
                 <operator>NotEqualTo</operator>
             </conditions>
             <connector>
-                <targetReference>Update_Account_Owner</targetReference>
+                <targetReference>Check_for_Sales_User_Sales_Team_and_Group</targetReference>
             </connector>
             <label>Country Mapping Has Default Account Owner</label>
         </rules>
@@ -66,7 +219,7 @@
         <description>Update Account Owner Based on Country Mapping</description>
         <name>Copy_1_of_Update_Account_Owner</name>
         <label>Copy 1 of Update Account Owner</label>
-        <locationX>314</locationX>
+        <locationX>842</locationX>
         <locationY>431</locationY>
         <inputAssignments>
             <field>Customer_Engagement_Manager__c</field>
@@ -98,8 +251,8 @@
         <description>Update Account Owner Based on Country Mapping</description>
         <name>Update_Account_Owner</name>
         <label>Update Account Owner</label>
-        <locationX>50</locationX>
-        <locationY>431</locationY>
+        <locationX>578</locationX>
+        <locationY>539</locationY>
         <inputAssignments>
             <field>Customer_Engagement_Manager__c</field>
             <value>
@@ -126,8 +279,60 @@
         </inputAssignments>
         <inputReference>$Record</inputReference>
     </recordUpdates>
+    <recordUpdates>
+        <description>Update Account Owner Based on Country Mapping</description>
+        <name>Update_OO_Sales_Account_Owner</name>
+        <label>Update OO Sales Account Owner</label>
+        <locationX>314</locationX>
+        <locationY>539</locationY>
+        <inputAssignments>
+            <field>Customer_Engagement_Manager__c</field>
+            <value>
+                <elementReference>$Record.Country__r.Default_Customer_Engagement_Manager__r.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>LROO_Product_Acc_Owner__c</field>
+            <value>
+                <elementReference>$User.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OTG_Product_Acc_owner__c</field>
+            <value>
+                <elementReference>OTGProductAccOwner</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Account Owner Based on Country Mapping</description>
+        <name>Update_OTG_Sales_Account_Owner</name>
+        <label>Update OTG Sales Account Owner</label>
+        <locationX>50</locationX>
+        <locationY>539</locationY>
+        <inputAssignments>
+            <field>Customer_Engagement_Manager__c</field>
+            <value>
+                <elementReference>$Record.Country__r.Default_Customer_Engagement_Manager__r.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>LROO_Product_Acc_Owner__c</field>
+            <value>
+                <elementReference>LROOProductAccOwner</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OTG_Product_Acc_owner__c</field>
+            <value>
+                <elementReference>$User.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
     <start>
-        <locationX>56</locationX>
+        <locationX>452</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Checking_Country_Mapping_has_Default_Account_Owner_Id</targetReference>

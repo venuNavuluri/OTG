@@ -1,6 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <customErrors>
+        <name>Crew_Opportunity_Error_Message</name>
+        <label>Crew Opportunity Error Message</label>
+        <locationX>842</locationX>
+        <locationY>539</locationY>
+        <customErrorMessages>
+            <errorMessage>Can&apos;t Update the Agreement Type for {!$Record.Name}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>Fleet_Opportunity_Error_Message</name>
+        <label>Fleet Opportunity Error Message</label>
+        <locationX>314</locationX>
+        <locationY>539</locationY>
+        <customErrorMessages>
+            <errorMessage>Can&apos;t Update the Agreement Type for {!$Record.Name}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>L_A_Opportunity_Error_Message</name>
+        <label>L&amp;A Opportunity Error Message</label>
+        <locationX>1898</locationX>
+        <locationY>539</locationY>
+        <customErrorMessages>
+            <errorMessage>Can&apos;t Update the Agreement Type for {!$Record.Name}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>Marine_Opportunity_Error_Message</name>
+        <label>Marine Opportunity Error Message</label>
+        <locationX>1370</locationX>
+        <locationY>539</locationY>
+        <customErrorMessages>
+            <errorMessage>Can&apos;t Update the Agreement Type for {!$Record.Name}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_for_Business_Unit</name>
         <label>Check for Business Unit</label>

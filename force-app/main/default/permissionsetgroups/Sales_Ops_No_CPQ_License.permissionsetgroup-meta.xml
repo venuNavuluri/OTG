@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Sales Ops - No CPQ License</label>
+    <permissionSets>Contact_User_Reparenting_Target_Account</permissionSets>
+    <permissionSets>Contract_Edit_Modify_all_contracts</permissionSets>
+    <permissionSets>Contract_Summary_Document_Permission</permissionSets>
+    <permissionSets>External_System_Integration_Edit_Access</permissionSets>
+    <permissionSets>Installation_Create_and_Edit_access</permissionSets>
+    <permissionSets>Manage_and_Convert_Leads</permissionSets>
+    <permissionSets>Opportunity_Amend_Contract</permissionSets>
+    <permissionSets>Order_and_Order_Products_Create_Edit_Access</permissionSets>
+    <permissionSets>Order_and_Order_Products_Delete_Access</permissionSets>
+    <permissionSets>Packages_Create_Edit_Access</permissionSets>
+    <permissionSets>Product_Management_Read_Only_Access</permissionSets>
+    <permissionSets>Product_Solutions_Read_Access</permissionSets>
+    <permissionSets>Vessel_Create_and_Edit_records</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

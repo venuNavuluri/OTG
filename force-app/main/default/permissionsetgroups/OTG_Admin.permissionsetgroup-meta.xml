@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>OTG Admin</label>
+    <permissionSets>Can_Edit_Opportunity_Owner</permissionSets>
+    <permissionSets>Contract_Edit_Modify_all_contracts</permissionSets>
+    <permissionSets>Contract_Management_Edit_Access</permissionSets>
+    <permissionSets>Contract_Management_Read_Only_Access</permissionSets>
+    <permissionSets>Create_Competitor_Accounts</permissionSets>
+    <permissionSets>Dataloader_User</permissionSets>
+    <permissionSets>Installation_Create_and_Edit_access</permissionSets>
+    <permissionSets>Installation_Delete_access</permissionSets>
+    <permissionSets>LoggerAdmin</permissionSets>
+    <permissionSets>LoggerEndUser</permissionSets>
+    <permissionSets>LoggerLogCreator</permissionSets>
+    <permissionSets>LoggerLogViewer</permissionSets>
+    <permissionSets>MFA_Requirement</permissionSets>
+    <permissionSets>Manage_Leads</permissionSets>
+    <permissionSets>Manage_and_Convert_Leads</permissionSets>
+    <permissionSets>Order_and_Order_Products_Create_Edit_Access</permissionSets>
+    <permissionSets>Order_and_Order_Products_Delete_Access</permissionSets>
+    <permissionSets>Packages_Create_Edit_Access</permissionSets>
+    <permissionSets>Product_Management_Edit_Access</permissionSets>
+    <permissionSets>Product_Management_Read_Only_Access</permissionSets>
+    <permissionSets>Product_Solutions_Edit_Access</permissionSets>
+    <permissionSets>Quote_Management_Edit_Access</permissionSets>
+    <permissionSets>Quote_Management_Read_Only_Access</permissionSets>
+    <permissionSets>Reports_Dashboards</permissionSets>
+    <permissionSets>SBQQ__SteelBrickCPQAdmin</permissionSets>
+    <permissionSets>Sales_Order_and_Sales_Order_Items_Create_and_Edit_Access</permissionSets>
+    <permissionSets>Sales_Order_and_Sales_Order_Items_Delete_Access</permissionSets>
+    <permissionSets>Sales_User</permissionSets>
+    <permissionSets>Salesforce_CPQ_OTG_Admin</permissionSets>
+    <permissionSets>Salesforce_CPQ_OTG_Sales</permissionSets>
+    <permissionSets>sfdcInternalInt__sfdc_cpq</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

@@ -41,6 +41,7 @@
         <nameSegment>chatterPost</nameSegment>
     </actionCalls>
     <apiVersion>51.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <processMetadataValues>
             <name>index</name>

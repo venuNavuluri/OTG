@@ -23,6 +23,7 @@
         <nameSegment>bg_MergeVessels</nameSegment>
     </actionCalls>
     <apiVersion>58.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Calculate_Number_of_Matches</name>
         <label>Calculate Number of Matches</label>
@@ -225,6 +226,14 @@
             <name>Merge_Confirmation_Text</name>
             <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(255, 0, 0);&quot;&gt;WARNING:&lt;/strong&gt;&lt;span style=&quot;color: rgb(255, 0, 0);&quot;&gt; Merging of vessels is irreversible and will delete the duplicate vessel. This process handles the merging of Company Relationship, notes and files. Please ensure any other field changes have been completed.&lt;/span&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -241,6 +250,14 @@
             <name>No_Vessels_Found_Text</name>
             <fieldText>&lt;p&gt;No  vessels were found with a matching IMO/MMSI number.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -260,6 +277,14 @@
             <name>VesselInfoText</name>
             <fieldText>&lt;p&gt;Please select the Vessel you wish to merge into this Vessel. Please ensure you are selecting the Vessel with the correct ID.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <fields>
             <name>Vessel_to_Merge</name>
@@ -268,6 +293,14 @@
             <fieldText>Vessel to Merge</fieldText>
             <fieldType>RadioButtons</fieldType>
             <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>

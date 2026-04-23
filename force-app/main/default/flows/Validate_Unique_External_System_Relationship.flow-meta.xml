@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Assigned_Primary</name>
         <label>Assigned Primary</label>
@@ -33,6 +34,42 @@
             <targetReference>Loop_Through_Relationships</targetReference>
         </connector>
     </assignments>
+    <customErrors>
+        <name>Duplicate_External_System_Account</name>
+        <label>Duplicate External System Account</label>
+        <locationX>182</locationX>
+        <locationY>1511</locationY>
+        <customErrorMessages>
+            <errorMessage>Duplicate External System Account ID - {!$Record.External_System_Account_ID__c} for External System ID - {!$Record.External_System_ID__c}.</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>Error_Primary</name>
+        <label>Error Primary</label>
+        <locationX>50</locationX>
+        <locationY>1103</locationY>
+        <connector>
+            <targetReference>Get_Existing_System_Accounts</targetReference>
+        </connector>
+        <customErrorMessages>
+            <errorMessage>Only one Primary relationship is allowed per Account. A Primary relationship already exists for Account: {!$Record.Account_ID__r.Name}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>Error_Secondary</name>
+        <label>Error Secondary</label>
+        <locationX>314</locationX>
+        <locationY>1103</locationY>
+        <connector>
+            <targetReference>Get_Existing_System_Accounts</targetReference>
+        </connector>
+        <customErrorMessages>
+            <errorMessage>Cannot create a Secondary relationship without an existing Primary relationship for Account: {!$Record.Account_ID__r.Name}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_for_Duplicate_Account_ID</name>
         <label>Check for Duplicate Account ID</label>

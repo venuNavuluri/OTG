@@ -21,6 +21,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <apiVersion>60.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
     <interviewLabel>Post Chatter From Lead to Opportunity {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Post Chatter From Lead to Opportunity</label>

@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <customErrors>
+        <name>Approved_Quote_Exists</name>
+        <label>Approved Quote Exists</label>
+        <locationX>50</locationX>
+        <locationY>503</locationY>
+        <customErrorMessages>
+            <errorMessage>&quot;You can’t create another quote since the primary quote is already approved for the Opportunity. Change status of Approved Quote for the Opportunity if you want to create another quote.&quot;</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_If_Approved_Quote_Exists</name>
         <label>Check If Approved Quote Exists</label>

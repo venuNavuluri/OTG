@@ -360,6 +360,16 @@
                 <identifier>RecordFleet_Subscription_Type_cField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Managed_By_Agents__c</fieldItem>
+                <identifier>RecordManaged_By_Agents_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-986c60a5-e6aa-45af-9e54-d1229a7215ae</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1984,7 +1994,7 @@
                             <value>Installation_Order_Status__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>InstallationPrice__c</value>
+                            <value>Subscription_Annual_Order_Value__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Installation_Start_date__c</value>
@@ -2284,6 +2294,10 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>label</name>
+                    <value>Tabs</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
                     <name>tabs</name>
                     <value>maintabs</value>
                 </componentInstanceProperties>
@@ -2361,6 +2375,10 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>Tabs</value>
+                </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>tabs</name>
                     <value>sidebartabs</value>
@@ -2494,6 +2512,78 @@
                 </componentInstanceProperties>
                 <componentName>lst:dynamicRelatedList</componentName>
                 <identifier>lst_dynamicRelatedList5</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>actionNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>New</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>adminFilters</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecordsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>Contract.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>Orders</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListDisplayType</name>
+                    <value>ADVGRID</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListFieldAliases</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>ORDERS.ORDER_NUMBER</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ORDERS.STATUS</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ORDERS.EFFECTIVE_DATE</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>CONTRACT.CONTRACT_NUMBER</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>SBQQ__Quote__c</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ORDERS.TOTAL_AMOUNT</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListLabel</name>
+                    <value>Orders</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldAlias</name>
+                    <value>__DEFAULT__</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldOrder</name>
+                    <value>Default</value>
+                </componentInstanceProperties>
+                <componentName>lst:dynamicRelatedList</componentName>
+                <identifier>lst_dynamicRelatedList9</identifier>
             </componentInstance>
         </itemInstances>
         <mode>Replace</mode>

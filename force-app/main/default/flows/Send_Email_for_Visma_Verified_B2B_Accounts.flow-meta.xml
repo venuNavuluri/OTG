@@ -17,6 +17,7 @@
         <nameSegment>Account.Visma_Verified_B2B</nameSegment>
     </actionCalls>
     <apiVersion>53.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <interviewLabel>Send Email for Visma Verified B2B Accounts {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Send Email for Visma Verified B2B Accounts</label>
     <processMetadataValues>

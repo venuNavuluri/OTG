@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Professional Services user Permissions</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Professional Services Persona</label>
+    <permissionSets>Contract_Edit_Modify_all_contracts</permissionSets>
+    <permissionSets>Contract_Management_Edit_Access</permissionSets>
+    <permissionSets>Installation_Create_and_Edit_access</permissionSets>
+    <permissionSets>Order_and_Order_Products_Create_Edit_Access</permissionSets>
+    <permissionSets>Packages_Create_Edit_Access</permissionSets>
+    <permissionSets>Product_Management_Edit_Access</permissionSets>
+    <permissionSets>Product_Management_Read_Only_Access</permissionSets>
+    <permissionSets>Quote_Management_Edit_Access</permissionSets>
+    <permissionSets>Sales_Order_and_Sales_Order_Items_Create_and_Edit_Access</permissionSets>
+    <permissionSets>Salesforce_CPQ_OTG_Sales</permissionSets>
+    <permissionSets>Vessel_Create_and_Edit_records</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

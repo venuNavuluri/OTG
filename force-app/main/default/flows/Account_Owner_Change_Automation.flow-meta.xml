@@ -50,6 +50,7 @@
         <nameSegment>submit</nameSegment>
     </actionCalls>
     <apiVersion>50.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <name>isChangedDecision6_myRule_5_Approval_Status_c</name>
         <label>isChangedDecision6_myRule_5_Approval_Status_c</label>

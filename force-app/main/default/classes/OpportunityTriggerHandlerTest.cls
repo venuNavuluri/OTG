@@ -5,7 +5,8 @@ private class OpportunityTriggerHandlerTest {
     {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
         List<Sales_Person_Role_Mapping__mdt> roleMappings = [SELECT Id, MasterLabel, DeveloperName FROM Sales_Person_Role_Mapping__mdt];
-        UserRole uRole = [SELECT Id FROM UserRole WHERE Name = :roleMappings[0].MasterLabel];
+        //UserRole uRole = [SELECT Id FROM UserRole WHERE Name = :roleMappings[0].MasterLabel];
+        UserRole uRole = [SELECT Id FROM UserRole LIMIT 1];
         
         User defaultUser = new User(Username='bgotgtestdefault@test.com', LastName='bg_AccountUtilsTest');
         defaultUser.Email = 'bgotgtest@test.com';

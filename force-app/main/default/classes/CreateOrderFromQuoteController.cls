@@ -3,16 +3,12 @@ public with sharing class CreateOrderFromQuoteController
     @AuraEnabled
     public static string updateQuoteToOrdered(String qtId)
     {
-        Automation_Bypass_Settings__c userBypassSettings = Automation_Bypass_Settings__c.getInstance(UserInfo.getUserId());
-        if (userBypassSettings == null) {
-            userBypassSettings = new Automation_Bypass_Settings__c(SetupOwnerId = UserInfo.getUserId());
-        }
-        Boolean previousBypassValidations = userBypassSettings.Bypass_Validations__c;
-
         try
         {
-            userBypassSettings.Bypass_Validations__c = true;
-            upsert userBypassSettings;
+            VRConfiguration__c vrConfig = VRConfiguration__c.getOrgDefaults();
+            // Bypass validation by setting the custom setting field to true
+            vrConfig.Quote_Ordered_Validation__c = true;
+            upsert vrConfig; 
             
             System.debug('qtid --> ' + qtId);
             SBQQ__Quote__c qt = new SBQQ__Quote__c(
@@ -22,6 +18,9 @@ public with sharing class CreateOrderFromQuoteController
             );
             update qt;
             System.debug('qt --> ' + qt);
+
+            vrConfig.Quote_Ordered_Validation__c = false;
+            upsert vrConfig; 
             //PDF generation logic
             
             //QuotePDFGenerator.PDFGenerate(new set<id>{qt.Id},'SBQQ__Quote__c');
@@ -31,9 +30,6 @@ public with sharing class CreateOrderFromQuoteController
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
             Logger.saveLog();
             throw new AuraHandledException(ex.getMessage());
-        } finally {
-            userBypassSettings.Bypass_Validations__c = previousBypassValidations;
-            upsert userBypassSettings;
         }
     }
     

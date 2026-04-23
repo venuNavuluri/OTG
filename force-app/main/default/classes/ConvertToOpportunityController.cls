@@ -53,11 +53,11 @@ public class ConvertToOpportunityController {
                     {
                         oppOwner = [select Id from User where UserRole.Name = 'VPO Sales' limit 1];
                     }
-                    else if (ldList[0].Products__c.contains('Regs4ships') || ldList[0].Products__c.contains('Docmap') || ldList[0].Business_Units__c.contains('Voyage Management'))
+                    else if (ldList[0].Products__c.contains('Regs4ships') || ldList[0].Products__c.contains('Docmap') || ldList[0].Products__c.contains('APIs (Ports & Nav)') || ldList[0].Products__c.contains('Charts & Publications') || ldList[0].Products__c.contains('CMAP') || ldList[0].Products__c.contains('Enviromanager (+)') || ldList[0].Products__c.contains('FleetManager') || ldList[0].Products__c.contains('FPNS/Fixed fee AVCS') || ldList[0].Products__c.contains('PassageManager') || ldList[0].Products__c.contains('FindAPort') || ldList[0].Business_Units__c.contains('Voyage Management'))
                     {
                         oppOwner = [select Id from User where Id = :ldList[0].Account__r.LROO_Product_Acc_Owner__c];
                     }
-                    else if (ldList[0].Products__c.contains('MarineRegulations') || ldList[0].Products__c.contains('Marine Regulations') || ldList[0].Products__c.contains('TM Master') || ldList[0].Business_Units__c.contains('HCM Crew') || ldList[0].Business_Units__c.contains('HCM Learning, Assessment and Competency'))
+                    else if (ldList[0].Products__c.contains('MarineRegulations') || ldList[0].Products__c.contains('Marine Regulations') || ldList[0].Products__c.contains('TM Master') || ldList[0].Products__c.contains('COMPAS') || ldList[0].Products__c.contains('Ocean Learning Platform (OLP)') || ldList[0].Products__c.contains('STCW Certification') || ldList[0].Business_Units__c.contains('HCM Crew') || ldList[0].Business_Units__c.contains('HCM Learning, Assessment and Competency'))
                     {
                         oppOwner = [select Id from User where Id = :ldList[0].Account__r.OTG_Product_Acc_Owner__c];
                     }
@@ -83,41 +83,151 @@ public class ConvertToOpportunityController {
                 // Determine product group based on business unit
                 if (businessUnit != null) {
                     System.debug('Determining Product Group based on Business Unit');
-                    if (ldList[0].Products__c.contains('TM Master'))//(businessUnit == 'Technical Ship Management') 
-                    {
-                        productGroup = 'TM Master';
-                    } 
-                    else if (ldList[0].Products__c.contains('COMPAS'))//if (businessUnit == 'HCM Crew') 
+                    if (ldList[0].Products__c.contains('COMPAS'))//if (businessUnit == 'HCM Crew') 
                     {
                         productGroup = 'Compas Core';
-                    } 
-                    else if (ldList[0].Products__c.contains('ISF Watchkeeper'))
+                    }
+                    else if (ldList[0].Products__c.contains('ISF Watchkeeper'))//(businessUnit == 'HCM Crew') 
                     {
                         productGroup = 'ISF Watchkeeper';
                     }
-                    else if (ldList[0].Products__c.contains('Cloud Fleet Manager'))
+                    else if (ldList[0].Products__c.contains('Ocean Learning Platform (OLP)'))//(businessUnit == 'HCM Learning, Assessment and Competency') 
                     {
-                        productGroup = 'Cloud Fleet Manager';
+                        productGroup = 'OLP';
                     }
-                    else if (ldList[0].Products__c.contains('Risk Manager'))
+                    else if (ldList[0].Products__c.contains('Marlins'))//(businessUnit == 'HCM Learning, Assessment and Competency') 
                     {
-                        productGroup = 'Risk Manager';
-                    }
-                    else if (ldList[0].Products__c.contains('Regs4ships'))
-                    {
-                        productGroup = 'Regs4Ships';
-                    }
-                    else if (ldList[0].Products__c.contains('Docmap'))
-                    {
-                        productGroup = 'Docmap';
+                        productGroup = 'Marlins';
                     }
                     else if (ldList[0].Products__c.contains('Marine Regulations') || ldList[0].Products__c.contains('MarineRegulations'))//(businessUnit == 'Governance, Risk & Compliance') 
                     {
                         productGroup = 'Marine Regulations';
                     }
+                    else if (ldList[0].Products__c.contains('Regs4Ships'))//(businessUnit == 'Governance, Risk & Compliance') 
+                    {
+                        productGroup = 'Regs4Ships';
+                    }
+                    else if (ldList[0].Products__c.contains('TM Master'))//(businessUnit == 'Technical Ship Management') 
+                    {
+                        productGroup = 'TM Master';
+                    }
+                    else if (ldList[0].Products__c.contains('Docmap'))//(businessUnit == 'Technical Ship Management') 
+                    {
+                        productGroup = 'Docmap';
+                    }
+                    else if (ldList[0].Products__c.contains('Risk Manager'))//(businessUnit == 'Voyage Performance & Optimization') 
+                    {
+                        productGroup = 'Risk Manager';
+                    }
+                    else if (ldList[0].Products__c.contains('Shore Side Routing'))//(businessUnit == 'Voyage Performance & Optimization') 
+                    {
+                        productGroup = 'Shore Side Routing';
+                    }
+                    else if (ldList[0].Products__c.contains('Cloud Fleet Manager'))//(businessUnit == 'Cloud Fleet Manager') 
+                    {
+                        productGroup = 'Cloud Fleet Manager';
+                    }
+                    else if (ldList[0].Products__c.contains('PassageManager'))//(businessUnit == 'Voyage Management') 
+                    {
+                        productGroup = 'PassageManager';
+                    }
+                    else if (ldList[0].Products__c.contains('FleetManager'))//(businessUnit == 'Voyage Management') 
+                    {
+                        productGroup = 'FleetManager';
+                    }
+                    else if (ldList[0].Products__c.contains('APIs (Ports & Nav)'))//(businessUnit == 'Voyage Management') 
+                    {
+                        productGroup = 'APIs (Ports & Nav)';
+                    }
+                    else if (ldList[0].Products__c.contains('Enviromanager (+)'))//(businessUnit == 'Voyage Management') 
+                    {
+                        productGroup = 'Enviromanager (+)';
+                    }
+                    else 
+                    {
+                        productGroup = ldList[0].Products__c;
+                    }
+                    
                     System.debug('Determined Product Group: ' + productGroup);
                 } else {
                     System.debug('Business Unit is null, Product Group will remain empty');
+                }
+                // Map Product Group → Agreement Type
+                Map<String,String> productAgreementMap = new Map<String,String>{
+                    
+                    'TM Master' => 'TM Master Agreement',
+                        'Compas Core' => 'Compas Agreement',
+                        'ISF Watchkeeper' => 'ISF Watchkeeper Agreement',
+                        'OLP' => 'OLP Agreement',
+                        'Marlins' => 'OLP Agreement',
+                        'Marine Regulations' => 'Marine Regulations Agreement',
+                        'Cloud Fleet Manager' => 'CFM Agreement',
+                        'Docmap' => 'DocMap Agreement',
+                        'Risk Manager' => 'OneOcean Agreement',
+                        'Regs4Ships' => 'OneOcean Agreement',
+                        'PassageManager' => 'OneOcean Agreement',
+                        'Shore Side Routing' => 'OneOcean Agreement',
+                        'APIs (Ports & Nav)' => 'OneOcean Agreement',
+                        'FleetManager' => 'OneOcean Agreement',
+                        'Enviromanager (+)' => 'OneOcean Agreement',
+                        'FindAPort' => 'OneOcean Agreement'
+                        };
+                            
+                            String agreementType;
+                
+                if(productAgreementMap.containsKey(productGroup)){
+                    agreementType = productAgreementMap.get(productGroup);
+                }
+                else{
+                    agreementType = 'OneOcean Agreement';
+                }
+                
+                Map<String, Id> legalEntityMap = new Map<String, Id>();
+                
+                for(Legal_Entity__c le : [
+                    SELECT Id, Name
+                    FROM Legal_Entity__c
+                    WHERE Name IN (
+                        'Ocean TG Norway AS.',
+                        'Ocean TG Singapore Pte Ltd.',
+                        'IT Energy Systems and Consulting Limited',
+                        'Ocean TG UK Ltd.',
+                        'DanDocs ApS',
+                        'Hanseaticsoft GmbH',
+                        'OneOcean Group Limited'
+                    )
+                ]){
+                    legalEntityMap.put(le.Name, le.Id);
+                }
+                
+                // Map Product Group → Legal Entity Name
+                Map<String,String> productLegalEntityMap = new Map<String,String>{
+                    
+                    'TM Master' => 'Ocean TG Norway AS.',
+                        'Compas Core' => 'Ocean TG Singapore Pte Ltd.',
+                        'ISF Watchkeeper' => 'IT Energy Systems and Consulting Limited',
+                        'OLP' => 'Ocean TG UK Ltd.',
+                        'Marlins' => 'Ocean TG UK Ltd.',
+                        'Marine Regulations' => 'DanDocs ApS',
+                        'Cloud Fleet Manager' => 'Hanseaticsoft GmbH',
+                        'Docmap' => 'OneOcean Group Limited',
+                        'Risk Manager' => 'OneOcean Group Limited',
+                        'Regs4Ships' => 'OneOcean Group Limited',
+                        'PassageManager' => 'OneOcean Group Limited',
+                        'Shore Side Routing' => 'OneOcean Group Limited',
+                        'APIs (Ports & Nav)' => 'OneOcean Group Limited',
+                        'FleetManager' => 'OneOcean Group Limited',
+                        'Enviromanager (+)' => 'OneOcean Group Limited',
+                        'FindAPort' => 'OneOcean Group Limited'
+                        };
+                            
+                            String legalEntityName;
+                
+                if(productLegalEntityMap.containsKey(productGroup)){
+                    legalEntityName = productLegalEntityMap.get(productGroup);
+                }
+                else{
+                    legalEntityName = 'OneOcean Group Limited';
                 }
                 
                 System.debug('Attempting lead conversion');
@@ -136,7 +246,9 @@ public class ConvertToOpportunityController {
                     Business_Unit__c = businessUnit,
                     Contract_Type__c = 'New Contract',
                     Sales_Type__c = 'Subscription',
-                    NextStep = 'Please reach out'
+                    NextStep = 'Please reach out',
+                    Legal_Entity__c = legalEntityMap.get(legalEntityName),
+                    AgreementType__c = agreementType
                 );
                 if (oppOwner != null)
                 {
@@ -152,7 +264,6 @@ public class ConvertToOpportunityController {
                 
                 System.debug('Preparing Opportunity update with values: ' + opp);
                 System.debug('Opportunity successfully updated: ' + opp);
-                
                 
                 return lcr.getOpportunityId();
             }

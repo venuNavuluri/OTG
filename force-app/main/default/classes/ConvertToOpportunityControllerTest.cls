@@ -7,7 +7,7 @@ public class ConvertToOpportunityControllerTest {
         UserRole cfmSalesEmeaa = [select Id, Name from UserRole where Name = 'CFM Sales EMEAA'];
         UserRole vpoSales = [select Id, Name from UserRole where Name = 'VPO Sales'];
         UserRole isfwkSales = [select Id, Name from UserRole where Name = 'Watchkeeper Sales Director'];
-        UserRole apacSales = [select Id, Name from UserRole where Name = 'OTG APAC Sales'];
+        UserRole apacSales = [select Id, Name from UserRole where Name = 'OTG APAC Sales Lead'];
         UserRole emeaSales = [select Id, Name from UserRole where Name = 'OO EMEA Sales 1'];
         Profile prof = [select Id, Name from Profile where Name = 'Identity User'];
         

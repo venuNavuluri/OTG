@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Sales Persona</label>
+    <permissionSets>Contact_User_Reparenting_Target_Account</permissionSets>
+    <permissionSets>Contract_Summary_Document_Permission</permissionSets>
+    <permissionSets>External_System_Integration_Read_Access</permissionSets>
+    <permissionSets>Manage_Leads</permissionSets>
+    <permissionSets>Product_Solutions_Read_Access</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

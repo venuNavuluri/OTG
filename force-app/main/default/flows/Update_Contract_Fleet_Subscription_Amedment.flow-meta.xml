@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Assigned_LSMA</name>
         <label>Assigned LSMA</label>
@@ -113,6 +114,16 @@
             <targetReference>Update_Fleet_Subscription_Type</targetReference>
         </connector>
     </assignments>
+    <customErrors>
+        <name>Error_Message</name>
+        <label>Error Message</label>
+        <locationX>1106</locationX>
+        <locationY>1739</locationY>
+        <customErrorMessages>
+            <errorMessage>Can&apos;t Update the Fleet Subscription type</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_for_Business_Unit</name>
         <label>Check for Business Unit</label>

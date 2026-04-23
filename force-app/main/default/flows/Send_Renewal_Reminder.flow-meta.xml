@@ -15,8 +15,10 @@
             </value>
         </inputParameters>
         <nameSegment>Contract.Send_Renewal_Reminder</nameSegment>
+        <offset>0</offset>
     </actionCalls>
     <apiVersion>55.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Migrated from the: Send Renewal Reminder workflow rule
 Workflow rule description: Send Renewal Reminder&quot;</description>
     <environments>Default</environments>

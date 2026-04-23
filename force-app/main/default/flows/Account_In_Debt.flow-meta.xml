@@ -18,6 +18,7 @@
         <nameSegment>Account.Account_In_Debt</nameSegment>
     </actionCalls>
     <apiVersion>58.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <description>Create a task and send an email notification if the Account is in Debt over 120 days.</description>
         <name>Account_in_Debt</name>

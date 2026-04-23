@@ -17,6 +17,7 @@
         <nameSegment>bg_ClearDuplicateBypass</nameSegment>
     </actionCalls>
     <apiVersion>57.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Add_Account_to_Collection</name>
         <label>Add Account to Collection</label>

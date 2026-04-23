@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Finance Users Permission</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Sales Opps Persona - Ready Only</label>
+    <permissionSets>Contact_User_Reparenting_Target_Account</permissionSets>
+    <permissionSets>Contract_Read_all_contracts</permissionSets>
+    <permissionSets>Contract_Summary_Document_Permission</permissionSets>
+    <permissionSets>Installation_Invoice_Account_Edit_Access</permissionSets>
+    <permissionSets>Installation_Read_access</permissionSets>
+    <permissionSets>Order_and_Order_Products_Read_Access</permissionSets>
+    <permissionSets>Packages_Read_Access</permissionSets>
+    <permissionSets>Product_Management_Read_Only_Access</permissionSets>
+    <permissionSets>Renewal_Document_Access</permissionSets>
+    <permissionSets>Sales_Order_and_Sales_Order_Items_Read_Access</permissionSets>
+    <permissionSets>Vessel_Read_records</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

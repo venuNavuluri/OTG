@@ -191,6 +191,7 @@ public class InstallationChangeService {
                 update recordsToUpdate;
             }
         }
+
     }
 
     private static Installation_Change__c findLatestPackageChange(ChangePayload payload) {
