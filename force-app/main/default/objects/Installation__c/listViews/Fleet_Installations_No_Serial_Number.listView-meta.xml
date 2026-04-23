@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Fleet_Installations_No_Serial_Number</fullName>
+    <columns>Contract_Customer__c</columns>
+    <columns>NAME</columns>
+    <columns>Customer_Installation_Name__c</columns>
+    <columns>Installation_Start_date__c</columns>
+    <columns>Installation_End_date__c</columns>
+    <columns>Vessel_Name__c</columns>
+    <columns>Installation_Profile__c</columns>
+    <columns>Installation_Type__c</columns>
+    <columns>Invoice_Account__c</columns>
+    <columns>OLP_Database_Name_s__c</columns>
+    <columns>OLP_Serial_Number__c</columns>
+    <columns>Subscription_Annual_Order_Value__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>UNA_Serial_Number__c</field>
+        <operation>equals</operation>
+    </filters>
+    <filters>
+        <field>Installation_Order_Status__c</field>
+        <operation>equals</operation>
+        <value>Draft,Pending Implementation,Active</value>
+    </filters>
+    <filters>
+        <field>Installation_Profile__c</field>
+        <operation>contains</operation>
+        <value>Tero Marine</value>
+    </filters>
+    <label>Fleet Installations - No Serial Number</label>
+</ListView>

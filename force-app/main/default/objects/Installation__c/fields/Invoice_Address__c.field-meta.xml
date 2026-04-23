@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Invoice_Address__c</fullName>
+    <externalId>false</externalId>
+    <formula>IF(LEN(Invoice_Account__r.Address1__c) &gt;0, Invoice_Account__r.Address1__c &amp; &quot;, &quot; , &quot;&quot; )&amp;
+
+IF(LEN(Invoice_Account__r.Address2__c) &gt;0, Invoice_Account__r.Address2__c&amp; &quot; &quot; , &quot;&quot;  )&amp;
+
+IF(LEN(Invoice_Account__r.Address3__c)&gt;0, Invoice_Account__r.Address3__c,&quot;&quot;) &amp; BR() &amp;
+
+IF(LEN(Invoice_Account__r.Town_City__c)&gt;0, Invoice_Account__r.Town_City__c,&quot;&quot;) &amp; BR()&amp;
+
+IF(LEN(Invoice_Account__r.County_State__c)&gt;0, Invoice_Account__r.County_State__c,&quot;&quot;) &amp; BR()&amp;
+
+IF(LEN(Invoice_Account__r.Postcode_Zipcode__c)&gt;0, Invoice_Account__r.Postcode_Zipcode__c,&quot;&quot;)&amp; BR()&amp;
+
+IF(LEN(Invoice_Account__r.Country__r.Name)&gt;0, Invoice_Account__r.Country__r.Name ,&quot;&quot;)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Invoice Address</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>
