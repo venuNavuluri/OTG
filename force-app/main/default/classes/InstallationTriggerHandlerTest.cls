@@ -103,6 +103,22 @@ private class InstallationTriggerHandlerTest {
             Status__c = 'Pending Approval',
             CurrencyIsoCode = contractRec.CurrencyIsoCode
         );
+        Sales_Order__c futurePendingSO = new Sales_Order__c(
+            Installation__c = inst.Id,
+            Contract__c = contractRec.Id,
+            Start_Date__c = Date.today().addDays(10),
+            End_Date__c = Date.today().addDays(40),
+            Status__c = 'Pending Approval',
+            CurrencyIsoCode = contractRec.CurrencyIsoCode
+        );
+        Sales_Order__c pastPendingSO = new Sales_Order__c(
+            Installation__c = inst.Id,
+            Contract__c = contractRec.Id,
+            Start_Date__c = Date.today().addDays(-30),
+            End_Date__c = Date.today().addDays(-1),
+            Status__c = 'Pending Approval',
+            CurrencyIsoCode = contractRec.CurrencyIsoCode
+        );
 
         Sales_Order__c billedSO = new Sales_Order__c(
             Installation__c = inst.Id,
@@ -112,7 +128,7 @@ private class InstallationTriggerHandlerTest {
             Status__c = 'Billed',
             CurrencyIsoCode = contractRec.CurrencyIsoCode
         );
-        insert new List<Sales_Order__c>{ unbilledSO, billedSO };
+        insert new List<Sales_Order__c>{ unbilledSO, futurePendingSO, pastPendingSO, billedSO };
 
         insert new Sales_Order_Item__c(
             Sales_Order__c = billedSO.Id,
@@ -138,6 +154,15 @@ private class InstallationTriggerHandlerTest {
         ];
         System.assertEquals('Cancelled', refreshedUnbilled.Status__c,
             'Unbilled sales order should be cancelled on termination.');
+        Map<Id, Sales_Order__c> refreshedOpenOrders = new Map<Id, Sales_Order__c>([
+            SELECT Status__c
+            FROM Sales_Order__c
+            WHERE Id IN :new Set<Id>{ futurePendingSO.Id, pastPendingSO.Id }
+        ]);
+        System.assertEquals('Cancelled', refreshedOpenOrders.get(futurePendingSO.Id).Status__c,
+            'Future pending-approval sales order should be cancelled without replacement.');
+        System.assertEquals('Cancelled', refreshedOpenOrders.get(pastPendingSO.Id).Status__c,
+            'Past pending-approval sales order should be cancelled without replacement.');
 
         List<Sales_Order__c> replacementOrders = [
             SELECT Id, Credit_Note__c, Start_Date__c, End_Date__c, Status__c, Original_Sales_Order__c
@@ -167,6 +192,16 @@ private class InstallationTriggerHandlerTest {
         ).setScale(2);
         System.assertEquals(expectedReplacementAmount, replacementItems[0].Amount__c,
             'Replacement order item should include the termination date when prorating.');
+
+        Integer nonOverlappingReplacementCount = [
+            SELECT Count()
+            FROM Sales_Order__c
+            WHERE Installation__c = :inst.Id
+                AND Credit_Note__c = false
+                AND Original_Sales_Order__c IN :new Set<Id>{ futurePendingSO.Id, pastPendingSO.Id }
+        ];
+        System.assertEquals(0, nonOverlappingReplacementCount,
+            'Sales orders outside the termination period must not get replacement orders.');
 
         List<Sales_Order__c> creditOrders = [
             SELECT Id, Credit_Note__c, Start_Date__c, End_Date__c, Status__c

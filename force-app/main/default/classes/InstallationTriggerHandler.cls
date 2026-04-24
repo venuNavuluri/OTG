@@ -173,15 +173,16 @@ public class InstallationTriggerHandler {
                         continue;
                     }
 
-                    if (terminationDate < so.Start_Date__c) {
-                        Logger.info('Cancelling open SO after termination date: ' + so.Id);
-                        so.Status__c = 'Cancelled';
-                        soListToUpdate.add(so);
-                    } else if (terminationDate <= so.End_Date__c) {
-                        Logger.info('Replacing open SO for terminated period: ' + so.Id);
-                        so.Status__c = 'Cancelled';
-                        soListToUpdate.add(so);
+                    Boolean terminationWithinSalesOrder =
+                        terminationDate >= so.Start_Date__c &&
+                        terminationDate <= so.End_Date__c;
 
+                    Logger.info('Cancelling open SO for termination processing: ' + so.Id);
+                    so.Status__c = 'Cancelled';
+                    soListToUpdate.add(so);
+
+                    if (terminationWithinSalesOrder) {
+                        Logger.info('Replacing open SO for terminated period: ' + so.Id);
                         replacementIndexToSourceOrderId.put(newReplacementSalesOrders.size(), so.Id);
                         newReplacementSalesOrders.add(new Sales_Order__c(
                             Status__c = 'Pending Approval',
@@ -196,7 +197,7 @@ public class InstallationTriggerHandler {
                             Original_Sales_Order__c = so.Id
                         ));
                     } else {
-                        Logger.info('Open SO is fully before termination date. Skipping: ' + so.Id);
+                        Logger.info('Open SO does not span termination date. Cancelled without replacement: ' + so.Id);
                     }
                 } 
                 else if (so.Status__c == 'Billed') {
