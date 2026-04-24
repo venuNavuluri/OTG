@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contract</fullName>
+    <fields>AccountId</fields>
+    <fields>Status</fields>
+    <fields>Agreement_Type__c</fields>
+    <fields>ContractTerm</fields>
+    <fields>Next_Renewal_Date__c</fields>
+    <fields>Renewal_Month__c</fields>
+    <fields>EndDate</fields>
+    <fields>Subscription_Value__c</fields>
+    <label>Contract</label>
+</CompactLayout>

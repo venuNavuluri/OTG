@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Agreement_Type__c</fullName>
+    <label>Agreement Type</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>VT/SG Agreement</fullName>
+                <default>false</default>
+                <label>VT/SG Agreement</label>
+            </value>
+            <value>
+                <fullName>OLP Agreement</fullName>
+                <default>false</default>
+                <label>OLP Agreement</label>
+            </value>
+            <value>
+                <fullName>Free Trial Agreement</fullName>
+                <default>false</default>
+                <label>Free Trial Agreement</label>
+            </value>
+            <value>
+                <fullName>OEM Partnership Agreement</fullName>
+                <default>false</default>
+                <label>OEM Partnership Agreement</label>
+            </value>
+            <value>
+                <fullName>Price Discount Agreement</fullName>
+                <default>false</default>
+                <label>Price Discount Agreement</label>
+            </value>
+            <value>
+                <fullName>Volume Discount Agreement</fullName>
+                <default>false</default>
+                <label>Volume Discount Agreement</label>
+            </value>
+            <value>
+                <fullName>ln-house Agreement</fullName>
+                <default>false</default>
+                <label>ln-house Agreement</label>
+            </value>
+            <value>
+                <fullName>Distribution Agreement</fullName>
+                <default>false</default>
+                <label>Distribution Agreement</label>
+            </value>
+            <value>
+                <fullName>V Group OLP</fullName>
+                <default>false</default>
+                <label>V Group OLP</label>
+            </value>
+            <value>
+                <fullName>MTS Agreement</fullName>
+                <default>false</default>
+                <label>MTS Agreement</label>
+            </value>
+            <value>
+                <fullName>Wartsila OLP Agreement</fullName>
+                <default>false</default>
+                <label>Wartsila OLP Agreement</label>
+            </value>
+            <value>
+                <fullName>End of Life DVD Agreement</fullName>
+                <default>false</default>
+                <label>End of Life DVD Agreement</label>
+            </value>
+            <value>
+                <fullName>TM Master Agreement</fullName>
+                <default>false</default>
+                <label>TM Master Agreement</label>
+            </value>
+            <value>
+                <fullName>Compas Agreement</fullName>
+                <default>false</default>
+                <label>Compas Agreement</label>
+            </value>
+            <value>
+                <fullName>L&amp;A Content Only Agreement</fullName>
+                <default>false</default>
+                <label>L&amp;A Content Only Agreement</label>
+            </value>
+            <value>
+                <fullName>Content Only Agreement</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Content Only Agreement</label>
+            </value>
+            <value>
+                <fullName>MACN OLP</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>MACN OLP</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

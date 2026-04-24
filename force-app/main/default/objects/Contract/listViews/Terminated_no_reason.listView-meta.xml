@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Terminated_no_reason</fullName>
+    <columns>CONTRACT.CONTRACT_NUMBER</columns>
+    <columns>Contract_Legal_Entity__c</columns>
+    <columns>SALES.ACCOUNT.NAME</columns>
+    <columns>Agreement_ID__c</columns>
+    <columns>Agreement_Type__c</columns>
+    <columns>CONTRACT.STATUS</columns>
+    <columns>Terminated_Date__c</columns>
+    <columns>Lost_Reason__c</columns>
+    <columns>Lost_Reason_Comments__c</columns>
+    <columns>Lost_to_Competitor__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>CONTRACT.STATUS</field>
+        <operation>equals</operation>
+        <value>Terminated</value>
+    </filters>
+    <filters>
+        <field>Lost_Reason__c</field>
+        <operation>equals</operation>
+    </filters>
+    <label>.Terminated no reason</label>
+    <sharedTo>
+        <group>Sales_Ops_Edit_All_Opps</group>
+    </sharedTo>
+</ListView>

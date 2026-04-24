@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Missing_Unit_of_Measure</fullName>
+    <columns>CONTRACT.CONTRACT_NUMBER</columns>
+    <columns>Unit_of_Measure__c</columns>
+    <columns>Agreement_ID__c</columns>
+    <columns>CONTRACT.STATUS</columns>
+    <columns>Terminated_Date__c</columns>
+    <columns>Agreement_Type__c</columns>
+    <columns>Contract_Legal_Entity__c</columns>
+    <columns>SALES.ACCOUNT.NAME</columns>
+    <columns>Renewal_Month__c</columns>
+    <columns>CORE.USERS.ALIAS</columns>
+    <columns>No_of_Installations__c</columns>
+    <columns>Subscription_Value__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Unit_of_Measure__c</field>
+        <operation>equals</operation>
+    </filters>
+    <filters>
+        <field>CONTRACT.STATUS</field>
+        <operation>equals</operation>
+        <value>Activated</value>
+    </filters>
+    <filters>
+        <field>Agreement_Type__c</field>
+        <operation>notContain</operation>
+        <value>Compas Agreement</value>
+    </filters>
+    <label>.Missing Unit of Measure</label>
+    <sharedTo>
+        <group>Sales_Ops</group>
+        <group>Sales_Ops_Edit_All_Opps</group>
+        <role>Sales_Ops</role>
+    </sharedTo>
+</ListView>

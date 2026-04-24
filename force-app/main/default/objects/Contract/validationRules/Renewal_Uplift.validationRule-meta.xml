@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Renewal_Uplift</fullName>
+    <active>false</active>
+    <errorConditionFormula>AND(
+    SBQQ__RenewalForecast__c = TRUE,
+    ISBLANK( SBQQ__RenewalUpliftRate__c )
+)</errorConditionFormula>
+    <errorMessage>Contract has no renewal uplift yet, please populate it before initiating the renewal process.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_with_Active_Next_Contract</fullName>
+    <columns>CONTRACT.CONTRACT_NUMBER</columns>
+    <columns>Agreement_ID__c</columns>
+    <columns>Business_Unit__c</columns>
+    <columns>SALES.ACCOUNT.NAME</columns>
+    <columns>CONTRACT.START_DATE</columns>
+    <columns>CONTRACT.END_DATE</columns>
+    <columns>CONTRACT.STATUS</columns>
+    <columns>CORE.USERS.ALIAS</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>CONTRACT.STATUS</field>
+        <operation>equals</operation>
+        <value>Activated</value>
+    </filters>
+    <filters>
+        <field>Next_Agreement_Status__c</field>
+        <operation>equals</operation>
+        <value>Activated</value>
+    </filters>
+    <label>Active with Active Next Contract</label>
+    <sharedTo>
+        <group>Sales_Ops</group>
+    </sharedTo>
+</ListView>

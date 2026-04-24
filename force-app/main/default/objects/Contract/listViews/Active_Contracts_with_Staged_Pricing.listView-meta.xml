@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Contracts_with_Staged_Pricing</fullName>
+    <columns>CONTRACT.CONTRACT_NUMBER</columns>
+    <columns>Contract_Number__c</columns>
+    <columns>Contract_Legal_Entity__c</columns>
+    <columns>Agreement_Type__c</columns>
+    <columns>Renewal_Month__c</columns>
+    <columns>Agreement_ID__c</columns>
+    <columns>SALES.ACCOUNT.NAME</columns>
+    <columns>Subscription_Value__c</columns>
+    <columns>CONTRACT.STATUS</columns>
+    <columns>Account_Owner__c</columns>
+    <columns>Staged_Pricing_End_Date__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Staged_Pricing__c</field>
+        <operation>equals</operation>
+        <value>1</value>
+    </filters>
+    <filters>
+        <field>Staged_Pricing_End_Date__c</field>
+        <operation>greaterThan</operation>
+        <value>TODAY</value>
+    </filters>
+    <filters>
+        <field>CONTRACT.STATUS</field>
+        <operation>equals</operation>
+        <value>Activated</value>
+    </filters>
+    <label>Active Contracts with Staged Pricing</label>
+</ListView>

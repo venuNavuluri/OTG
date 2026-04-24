@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Business_Unit__c</fullName>
+    <label>Business Unit</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>HCM Crew</fullName>
+                <default>false</default>
+                <label>HCM Crew</label>
+            </value>
+            <value>
+                <fullName>HCM Learning, Assessment and Competency</fullName>
+                <default>false</default>
+                <label>HCM Learning, Assessment and Competency</label>
+            </value>
+            <value>
+                <fullName>Technical Ship Management</fullName>
+                <default>false</default>
+                <label>Technical Ship Management</label>
+            </value>
+            <value>
+                <fullName>Governance, Risk &amp; Compliance</fullName>
+                <default>false</default>
+                <label>Governance, Risk &amp; Compliance</label>
+            </value>
+            <value>
+                <fullName>Cloud Fleet Manager</fullName>
+                <default>false</default>
+                <label>Cloud Fleet Manager</label>
+            </value>
+            <value>
+                <fullName>Voyage Performance &amp; Optimization</fullName>
+                <default>false</default>
+                <label>Voyage Performance &amp; Optimization</label>
+            </value>
+            <value>
+                <fullName>Voyage Management</fullName>
+                <default>false</default>
+                <label>Voyage Management</label>
+            </value>
+            <value>
+                <fullName>API</fullName>
+                <default>false</default>
+                <label>API</label>
+            </value>
+            <value>
+                <fullName>Crew</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Crew</label>
+            </value>
+            <value>
+                <fullName>Fleet</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Fleet</label>
+            </value>
+            <value>
+                <fullName>Learning &amp; Assessment</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Learning &amp; Assessment</label>
+            </value>
+            <value>
+                <fullName>Marine Regulations</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Marine Regulations</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

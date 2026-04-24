@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Subscription_System__c</fullName>
+    <label>Subscription System</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>true</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Sportal</fullName>
+                <default>false</default>
+                <label>Sportal</label>
+            </value>
+            <value>
+                <fullName>UNA</fullName>
+                <default>false</default>
+                <label>UNA</label>
+            </value>
+            <value>
+                <fullName>Compas</fullName>
+                <default>false</default>
+                <label>Compas</label>
+            </value>
+            <value>
+                <fullName>Salesforce CPQ</fullName>
+                <default>false</default>
+                <label>Salesforce CPQ</label>
+            </value>
+            <value>
+                <fullName>Marine Regulations</fullName>
+                <default>false</default>
+                <label>Marine Regulations</label>
+            </value>
+            <value>
+                <fullName>Coast</fullName>
+                <default>false</default>
+                <label>Coast</label>
+            </value>
+            <value>
+                <fullName>CFM</fullName>
+                <default>false</default>
+                <label>CFM</label>
+            </value>
+            <value>
+                <fullName>Watchkeeper Legend</fullName>
+                <default>false</default>
+                <label>Watchkeeper Legend</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

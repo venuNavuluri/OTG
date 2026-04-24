@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lost_fields_populated_Terminated</fullName>
+    <active>true</active>
+    <description>The Lost Reason fields must be populated if the Contract has been terminated, if the contract is not terminated then the record cannot be saved with the fields populated.</description>
+    <errorConditionFormula>AND
+(
+    NOT(ISCHANGED(OwnerId)),
+    OR(
+        AND
+        (
+            ISPICKVAL(Status, &quot;Terminated&quot;),
+            OR(
+            ISPICKVAL(Lost_Reason__c, &quot;&quot;),
+            ISBLANK(Lost_Reason_Comments__c)
+            )
+        ),
+        AND
+        (
+            NOT(ISPICKVAL(Status, &quot;Terminated&quot;)),
+            OR(
+            NOT(ISPICKVAL(Lost_Reason__c, &quot;&quot;)),
+            NOT(ISBLANK(Lost_Reason_Comments__c)),
+            NOT(ISBLANK(Lost_to_Competitor__c))
+            )
+        )
+    ),
+	$User.Email &lt;&gt; &quot;dataloader@oceantg.com&quot;
+)</errorConditionFormula>
+    <errorMessage>Lost Reason fields cannot be empty if Contract is Terminated or cannot be populated if Contract is not Terminated</errorMessage>
+</ValidationRule>

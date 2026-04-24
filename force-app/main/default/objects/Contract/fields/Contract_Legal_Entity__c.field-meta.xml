@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contract_Legal_Entity__c</fullName>
+    <label>Contract Legal Entity</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Marlin-Vgroup</fullName>
+                <default>false</default>
+                <label>Marlin-Vgroup</label>
+            </value>
+            <value>
+                <fullName>MTS</fullName>
+                <default>false</default>
+                <label>MTS</label>
+            </value>
+            <value>
+                <fullName>OLP</fullName>
+                <default>false</default>
+                <label>OLP</label>
+            </value>
+            <value>
+                <fullName>Seagull</fullName>
+                <default>false</default>
+                <label>Seagull</label>
+            </value>
+            <value>
+                <fullName>Videotel</fullName>
+                <default>false</default>
+                <label>Videotel</label>
+            </value>
+            <value>
+                <fullName>Maritime Training Services Pte Ltd</fullName>
+                <default>false</default>
+                <label>Maritime Training Services Pte Ltd</label>
+            </value>
+            <value>
+                <fullName>Ocean Tech Asia Pte Ltd</fullName>
+                <default>false</default>
+                <label>Ocean Tech Asia Pte Ltd</label>
+            </value>
+            <value>
+                <fullName>Ocean Technologies Group Crew AS</fullName>
+                <default>false</default>
+                <label>Ocean Technologies Group Crew AS</label>
+            </value>
+            <value>
+                <fullName>Ocean Technologies Group Norway AS</fullName>
+                <default>false</default>
+                <label>Ocean Technologies Group Norway AS</label>
+            </value>
+            <value>
+                <fullName>Ocean Technologies Group Romania SRL</fullName>
+                <default>false</default>
+                <label>Ocean Technologies Group Romania SRL</label>
+            </value>
+            <value>
+                <fullName>Ocean Technologies Group USA Inc</fullName>
+                <default>false</default>
+                <label>Ocean Technologies Group USA Inc</label>
+            </value>
+            <value>
+                <fullName>Ocean TG Norway AS</fullName>
+                <default>false</default>
+                <label>Ocean TG Norway AS</label>
+            </value>
+            <value>
+                <fullName>Ocean TG Singapore Pte Ltd</fullName>
+                <default>false</default>
+                <label>Ocean TG Singapore Pte Ltd</label>
+            </value>
+            <value>
+                <fullName>Ocean TG UK Ltd</fullName>
+                <default>false</default>
+                <label>Ocean TG UK Ltd</label>
+            </value>
+            <value>
+                <fullName>Tero Marine UK Limited</fullName>
+                <default>false</default>
+                <label>Tero Marine UK Limited</label>
+            </value>
+            <value>
+                <fullName>Videotel Marine Asia Ltd</fullName>
+                <default>false</default>
+                <label>Videotel Marine Asia Ltd</label>
+            </value>
+            <value>
+                <fullName>DanDocs ApS</fullName>
+                <default>false</default>
+                <label>DanDocs ApS</label>
+            </value>
+            <value>
+                <fullName>Docmap</fullName>
+                <default>false</default>
+                <label>Docmap</label>
+            </value>
+            <value>
+                <fullName>Hanseaticsoft GmbH</fullName>
+                <default>false</default>
+                <label>Hanseaticsoft GmbH</label>
+            </value>
+            <value>
+                <fullName>OneOcean (Canada) Inc</fullName>
+                <default>false</default>
+                <label>OneOcean (Canada) Inc</label>
+            </value>
+            <value>
+                <fullName>OneOcean (Nederland) BV</fullName>
+                <default>false</default>
+                <label>OneOcean (Nederland) BV</label>
+            </value>
+            <value>
+                <fullName>OneOcean Group Limited</fullName>
+                <default>false</default>
+                <label>OneOcean Group Limited</label>
+            </value>
+            <value>
+                <fullName>OneOcean Maritime Solutions Pte Limited</fullName>
+                <default>false</default>
+                <label>OneOcean Maritime Solutions Pte Limited</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
