@@ -185,6 +185,54 @@ private class OrderTriggerHandlerTest {
         System.assertEquals(oc.qctx.quote.Id, changes[0].Quote__c, 'Expected quote set');
         System.assertEquals(oc.orderRec.Id, changes[0].Order__c, 'Expected order set');
     }
+
+    @IsTest
+    static void test_onAfterUpdateFinalizesTerminationInstallation() {
+        TestDataFactory_OTG.OrderContext oc =
+            TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, true);
+
+        update new Installation__c(
+            Id = oc.installation.Id,
+            Installation_Order_Status__c = 'Termination Pending'
+        );
+
+        update new SBQQ__Quote__c(
+            Id = oc.qctx.quote.Id,
+            Auto_Termination__c = true,
+            Installation__c = oc.installation.Id
+        );
+
+        Test.startTest();
+        update new Order(
+            Id = oc.orderRec.Id,
+            Status = 'Activated',
+            Is_Activated__c = true
+        );
+        Test.stopTest();
+
+        Installation__c refreshed = [
+            SELECT Installation_Order_Status__c, Order__c, Quote__c, Auto_Installation_Termination_Error__c,
+                   Termination_Order__c, Termination_Quote__c, Termination_Process_Status__c, Termination_Process_Error__c
+            FROM Installation__c
+            WHERE Id = :oc.installation.Id
+        ];
+        System.assertEquals('Terminated', refreshed.Installation_Order_Status__c,
+            'Activated termination amendment order should finalize the installation.');
+        System.assertEquals(oc.orderRec.Id, refreshed.Order__c,
+            'Termination order should be copied back to the installation.');
+        System.assertEquals(oc.qctx.quote.Id, refreshed.Quote__c,
+            'Termination quote should remain linked to the installation.');
+        System.assertEquals(oc.orderRec.Id, refreshed.Termination_Order__c,
+            'Dedicated termination order field should be populated on finalization.');
+        System.assertEquals(oc.qctx.quote.Id, refreshed.Termination_Quote__c,
+            'Dedicated termination quote field should remain linked on finalization.');
+        System.assertEquals('Completed', refreshed.Termination_Process_Status__c,
+            'Order activation is the authoritative completion signal for the termination flow.');
+        System.assertEquals(null, refreshed.Termination_Process_Error__c,
+            'Successful finalization should clear the dedicated termination process error.');
+        System.assertEquals(null, refreshed.Auto_Installation_Termination_Error__c,
+            'Successful finalization should clear any residual termination error.');
+    }
     
      /**
      * If the Quote has Auto flags (Auto_Installation__c or Auto_Termination__c),

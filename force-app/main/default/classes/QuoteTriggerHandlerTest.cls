@@ -293,4 +293,191 @@ private class QuoteTriggerHandlerTest {
             'Renewal_Type__c should be set when QLG products differ from package');
     }
 
+    @IsTest
+    static void test_quoteTriggerHelper_setsCheckboxes_andCreatesDummyGroup() {
+        TestDataFactory_OTG.enableOrgVRConfig();
+        TestDataFactory_OTG.primeDefaultOwnerAllRegions(UserInfo.getUserId());
+
+        TestDataFactory_OTG.QuoteContext ctx =
+            TestDataFactory_OTG.buildDraftQuoteContext('Americas', false, false);
+
+        SBQQ__Quote__c quoteRec = new SBQQ__Quote__c(
+            Id = ctx.quote.Id,
+            SBQQ__Type__c = 'Quote'
+        );
+        List<SBQQ__Quote__c> quotes = new List<SBQQ__Quote__c>{ quoteRec };
+
+        Integer beforeCount = [
+            SELECT Count()
+            FROM SBQQ__QuoteLineGroup__c
+            WHERE SBQQ__Quote__c = :ctx.quote.Id
+              AND Name = 'Package 1'
+        ];
+
+        Test.startTest();
+        QuoteTriggerHelper.updateQlgCheckbox(quotes);
+        QuoteTriggerHelper.createDummyQLG(new Map<Id, SBQQ__Quote__c>{ ctx.quote.Id => quoteRec });
+        Test.stopTest();
+
+        System.assertEquals(true, quoteRec.SBQQ__LineItemsGrouped__c,
+            'Quotes should be marked as grouped.');
+        System.assertEquals(false, quoteRec.Renewal_Calculate__c,
+            'Non-renewal quotes should not enable renewal calculation.');
+
+        List<SBQQ__QuoteLineGroup__c> dummyGroups = [
+            SELECT Id, Name, SBQQ__Quote__c
+            FROM SBQQ__QuoteLineGroup__c
+            WHERE SBQQ__Quote__c = :ctx.quote.Id
+              AND Name = 'Package 1'
+        ];
+        System.assertEquals(beforeCount + 1, dummyGroups.size(), 'Expected one additional dummy package group.');
+    }
+
+    @IsTest
+    static void test_quoteTriggerHelper_validateInstallationCount_ignoresTerminationStatuses() {
+        TestDataFactory_OTG.enableOrgVRConfig();
+        TestDataFactory_OTG.primeDefaultOwnerAllRegions(UserInfo.getUserId());
+
+        TestDataFactory_OTG.QuoteContext ctx =
+            TestDataFactory_OTG.buildDraftQuoteContext('Americas', false, false);
+        Contract ctr = TestDataFactory_OTG.createContractBasic(
+            ctx.b2bAccount.Id, 'USD', Date.today(), 12, null
+        );
+        SBQQ__QuoteLineGroup__c qlg =
+            TestDataFactory_OTG.createQuoteLineGroup(ctx.quote.Id, 'Validation QLG', false, 1);
+        Package__c pkg = TestDataFactory_OTG.createPackageLinkedToQLG(ctr.Id, ctx.quote.Id, qlg, 1);
+        update new SBQQ__QuoteLineGroup__c(Id = qlg.Id, Package__c = pkg.Id);
+
+        List<Vessel__c> vessels = TestDataFactory_OTG.createVessels(3);
+        insert new List<Installation__c>{
+            new Installation__c(
+                Contract_Customer__c = ctx.b2bAccount.Id,
+                Package__c = pkg.Id,
+                Quote__c = ctx.quote.Id,
+                Quote_Line_Group__c = qlg.Id,
+                Installation_Order_Status__c = 'Terminated',
+                Installation_Type__c = 'Vessel',
+                Vessel_Name__c = vessels[0].Id
+            ),
+            new Installation__c(
+                Contract_Customer__c = ctx.b2bAccount.Id,
+                Package__c = pkg.Id,
+                Quote__c = ctx.quote.Id,
+                Quote_Line_Group__c = qlg.Id,
+                Installation_Order_Status__c = 'Future Terminated',
+                Installation_Type__c = 'Vessel',
+                Vessel_Name__c = vessels[1].Id
+            ),
+            new Installation__c(
+                Contract_Customer__c = ctx.b2bAccount.Id,
+                Package__c = pkg.Id,
+                Quote__c = ctx.quote.Id,
+                Quote_Line_Group__c = qlg.Id,
+                Installation_Order_Status__c = 'Termination Pending',
+                Installation_Type__c = 'Vessel',
+                Vessel_Name__c = vessels[2].Id
+            )
+        };
+
+        SBQQ__Quote__c orderedQuote = [
+            SELECT Id, SBQQ__Ordered__c, Auto_Installation__c, Auto_Termination__c, Total_Installations__c
+            FROM SBQQ__Quote__c
+            WHERE Id = :ctx.quote.Id
+            LIMIT 1
+        ];
+        orderedQuote.SBQQ__Ordered__c = true;
+        orderedQuote.Auto_Installation__c = false;
+        orderedQuote.Auto_Termination__c = false;
+        SBQQ__Quote__c oldQuote = new SBQQ__Quote__c(
+            Id = ctx.quote.Id,
+            SBQQ__Ordered__c = false
+        );
+
+        Test.startTest();
+        QuoteTriggerHelper.validateInstallationCount(
+            new Map<Id, SBQQ__Quote__c>{ ctx.quote.Id => orderedQuote },
+            new Map<Id, SBQQ__Quote__c>{ ctx.quote.Id => oldQuote }
+        );
+        Test.stopTest();
+
+        System.assertEquals(1, orderedQuote.getErrors().size(),
+            'Termination statuses should not count toward active installation totals.');
+        System.assert(
+            orderedQuote.getErrors()[0].getMessage().contains('Please add all the installations'),
+            'Expected the standard installation count validation message.'
+        );
+    }
+
+    @IsTest
+    static void test_quoteTriggerHelper_validateInstallationCount_allowsMatchedActiveInstallations() {
+        TestDataFactory_OTG.enableOrgVRConfig();
+        TestDataFactory_OTG.primeDefaultOwnerAllRegions(UserInfo.getUserId());
+
+        TestDataFactory_OTG.QuoteContext ctx =
+            TestDataFactory_OTG.buildDraftQuoteContext('Americas', false, false);
+        Contract ctr = TestDataFactory_OTG.createContractBasic(
+            ctx.b2bAccount.Id, 'USD', Date.today(), 12, null
+        );
+        SBQQ__QuoteLineGroup__c qlg =
+            TestDataFactory_OTG.createQuoteLineGroup(ctx.quote.Id, 'Active Validation QLG', false, 1);
+        Package__c pkg = TestDataFactory_OTG.createPackageLinkedToQLG(ctr.Id, ctx.quote.Id, qlg, 1);
+        update new SBQQ__QuoteLineGroup__c(Id = qlg.Id, Package__c = pkg.Id);
+
+        List<Vessel__c> vessels = TestDataFactory_OTG.createVessels(3);
+        insert new List<Installation__c>{
+            new Installation__c(
+                Contract_Customer__c = ctx.b2bAccount.Id,
+                Package__c = pkg.Id,
+                Quote__c = ctx.quote.Id,
+                Quote_Line_Group__c = qlg.Id,
+                Installation_Order_Status__c = 'Draft',
+                Installation_Type__c = 'Vessel',
+                Vessel_Name__c = vessels[0].Id
+            ),
+            new Installation__c(
+                Contract_Customer__c = ctx.b2bAccount.Id,
+                Package__c = pkg.Id,
+                Quote__c = ctx.quote.Id,
+                Quote_Line_Group__c = qlg.Id,
+                Installation_Order_Status__c = 'Draft',
+                Installation_Type__c = 'Vessel',
+                Vessel_Name__c = vessels[1].Id
+            ),
+            new Installation__c(
+                Contract_Customer__c = ctx.b2bAccount.Id,
+                Package__c = pkg.Id,
+                Quote__c = ctx.quote.Id,
+                Quote_Line_Group__c = qlg.Id,
+                Installation_Order_Status__c = 'Draft',
+                Installation_Type__c = 'Vessel',
+                Vessel_Name__c = vessels[2].Id
+            )
+        };
+
+        SBQQ__Quote__c orderedQuote = [
+            SELECT Id, SBQQ__Ordered__c, Auto_Installation__c, Auto_Termination__c, Total_Installations__c
+            FROM SBQQ__Quote__c
+            WHERE Id = :ctx.quote.Id
+            LIMIT 1
+        ];
+        orderedQuote.SBQQ__Ordered__c = true;
+        orderedQuote.Auto_Installation__c = false;
+        orderedQuote.Auto_Termination__c = false;
+
+        SBQQ__Quote__c oldQuote = new SBQQ__Quote__c(
+            Id = ctx.quote.Id,
+            SBQQ__Ordered__c = false
+        );
+
+        Test.startTest();
+        QuoteTriggerHelper.validateInstallationCount(
+            new Map<Id, SBQQ__Quote__c>{ ctx.quote.Id => orderedQuote },
+            new Map<Id, SBQQ__Quote__c>{ ctx.quote.Id => oldQuote }
+        );
+        Test.stopTest();
+
+        System.assertEquals(0, orderedQuote.getErrors().size(),
+            'Matching active installation totals should not block ordering.');
+    }
+
 }

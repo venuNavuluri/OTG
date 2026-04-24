@@ -186,9 +186,9 @@ public class QuoteInstallationController {
     public static string fetchQuoteLineGroups(String quoteId){
         try {
             List<SBQQ__Quote__c> qtList = [SELECT Id, Name, SBQQ__Type__c, SBQQ__MasterContract__c, SBQQ__MasterContract__r.SBQQ__Quote__c FROM SBQQ__Quote__c WHERE Id = :quoteId];
-            String instFilter = 'Installation_Order_Status__c != \'Terminated\'';
+            String instFilter = 'Installation_Order_Status__c != \'Terminated\' AND Installation_Order_Status__c != \'Termination Pending\'';
             if (qtList[0].SBQQ__Type__c == 'Renewal') {
-                instFilter = 'Installation_Order_Status__c != \'Terminated\' AND Installation_Order_Status__c != \'Future Terminated\'';
+                instFilter = 'Installation_Order_Status__c != \'Terminated\' AND Installation_Order_Status__c != \'Future Terminated\' AND Installation_Order_Status__c != \'Termination Pending\'';
             }
             String qlgQuery =
                 'Select Id, Name, Installation_Quantity__c, Package__c, SBQQ__Quote__r.SBQQ__Type__c, SBQQ__Quote__c, Installation_Price__c,' +
@@ -337,6 +337,8 @@ public class QuoteInstallationController {
                     FROM Installation__c
                     WHERE Package__c = :targetQLG.Package__c
                     AND Installation_Order_Status__c != 'Terminated'
+                    AND Installation_Order_Status__c != 'Future Terminated'
+                    AND Installation_Order_Status__c != 'Termination Pending'
                 ];
 
                 // Only enforce when cap > 0 (cap==0 treated as unlimited — preserves prior semantics)

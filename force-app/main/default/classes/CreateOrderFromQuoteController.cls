@@ -48,7 +48,7 @@ public with sharing class CreateOrderFromQuoteController
         if (isRenewal) {
             packList = [
                 SELECT Id, Name, Quote__c, Temp_Quote_Line_Group__r.Installation_Quantity__c, Installation_Quantity__c,
-                    (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated')
+                    (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated' AND Installation_Order_Status__c != 'Termination Pending')
                 FROM Package__c
                 WHERE Temp_Quote__c = :qtId AND Temp_Quote_Line_Group__c != null
                 ORDER BY CreatedDate DESC
@@ -56,7 +56,7 @@ public with sharing class CreateOrderFromQuoteController
         } else {
             packList = [
                 SELECT Id, Name, Quote__c, Temp_Quote_Line_Group__r.Installation_Quantity__c, Installation_Quantity__c,
-                    (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated')
+                    (SELECT Id, Name FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Termination Pending')
                 FROM Package__c
                 WHERE Temp_Quote__c = :qtId AND Temp_Quote_Line_Group__c != null
                 ORDER BY CreatedDate DESC

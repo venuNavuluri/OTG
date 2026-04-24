@@ -5,7 +5,7 @@ public with sharing class UpdatePackageController
     {
         try
         {
-            List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c, (SELECT Id, Name, Installation_Order_Status__c, Vessel_IMO__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated') FROM Package__c WHERE Quote__c = :qtId];
+            List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c, (SELECT Id, Name, Installation_Order_Status__c, Vessel_IMO__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated' AND Installation_Order_Status__c != 'Termination Pending') FROM Package__c WHERE Quote__c = :qtId];
             System.debug('packList --> ' + packList);
             return packList;
         }
@@ -19,7 +19,7 @@ public with sharing class UpdatePackageController
     {
         try
         {
-            List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c, (SELECT Id, Name, Vessel_IMO__c, Installation_Order_Status__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated') FROM Package__c WHERE Id = :packId];
+            List<Package__c> packList = [SELECT Id, Name, Installation_Quantity__c, (SELECT Id, Name, Vessel_IMO__c, Installation_Order_Status__c FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated' AND Installation_Order_Status__c != 'Future Terminated' AND Installation_Order_Status__c != 'Termination Pending') FROM Package__c WHERE Id = :packId];
             return packList;
         }
         catch (Exception e)

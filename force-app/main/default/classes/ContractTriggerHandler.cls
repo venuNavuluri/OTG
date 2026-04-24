@@ -267,7 +267,10 @@ public class ContractTriggerHandler {
                 SELECT Id, Contract__c, Contract__r.SBQQ__Quote__r.SBQQ__Type__c, Package__c, Package__r.Contract__c, CurrencyIsoCode, Subscription_Annual_Order_Value__c,
                 Installation_Start_date__c, Installation_End_date__c, Package__r.Quote_Line_Group__c, Contract__r.CurrencyIsoCode, Package__r.InstallationCost__c
                 FROM Installation__c 
-                WHERE Package__c IN :packageList AND Installation_Order_Status__c != 'Terminated'
+                WHERE Package__c IN :packageList
+                  AND Installation_Order_Status__c != 'Terminated'
+                  AND Installation_Order_Status__c != 'Future Terminated'
+                  AND Installation_Order_Status__c != 'Termination Pending'
             ];
             for (Installation__c installationRecord : installationList) {
                 installationRecord.Contract__c = installationRecord.Package__r.Contract__c;

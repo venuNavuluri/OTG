@@ -59,7 +59,15 @@ public class QuoteTriggerHelper
             {
                 packIdQtIdMap.put(qlg.Package__c, qlg.SBQQ__Quote__c);
             }
-            List<AggregateResult> arList = [SELECT Package__c Package, COUNT(ID) TotalCount FROM Installation__c WHERE Package__c IN :packIdQtIdMap.keySet() AND Installation_Order_Status__c != 'Terminated' GROUP BY Package__c];
+            List<AggregateResult> arList = [
+                SELECT Package__c Package, COUNT(ID) TotalCount
+                FROM Installation__c
+                WHERE Package__c IN :packIdQtIdMap.keySet()
+                  AND Installation_Order_Status__c != 'Terminated'
+                  AND Installation_Order_Status__c != 'Future Terminated'
+                  AND Installation_Order_Status__c != 'Termination Pending'
+                GROUP BY Package__c
+            ];
             System.debug('arList --> ' + arList);
             Map<Id, Integer> qtIdInstCountMap = new Map<Id, Integer>();
             if(!arList.isEmpty())

@@ -102,7 +102,15 @@ public class InstallationTriggerHandler {
                 Installation__c oldInst = oldInstMap.get(inst.Id);
     
                 if (currentUserAlias != 'duser') {
-                    if (inst.Installation_Order_Status__c == 'Terminated' && oldInst.Installation_Order_Status__c != 'Terminated') {
+                    Boolean isImmediateTerminationRequested =
+                        inst.Installation_Order_Status__c == 'Termination Pending' &&
+                        oldInst.Installation_Order_Status__c != 'Termination Pending';
+                    Boolean isLegacyDirectTermination =
+                        inst.Installation_Order_Status__c == 'Terminated' &&
+                        oldInst.Installation_Order_Status__c != 'Terminated' &&
+                        oldInst.Installation_Order_Status__c != 'Termination Pending';
+
+                    if (isImmediateTerminationRequested || isLegacyDirectTermination) {
                         instIdList.add(inst.Id);
                         terminationDates.put(inst.Id, inst.Termination_End_Date__c); // Assuming this field exists
                     } 
@@ -267,6 +275,17 @@ public class InstallationTriggerHandler {
     
             createSalesOrderItems(oldToNewSalesOrderMap, terminationDate);
             createReplacementSalesOrderItems(oldToReplacementSalesOrderMap);
+
+            List<Installation__c> installationsToUpdate = new List<Installation__c>();
+            for (Id installationId : instIdList) {
+                installationsToUpdate.add(new Installation__c(
+                    Id = installationId,
+                    Termination_Process_Status__c = 'SO Updated'
+                ));
+            }
+            if (!installationsToUpdate.isEmpty()) {
+                update installationsToUpdate;
+            }
     
         } catch (Exception ex) {
             Logger.error('handleTerminatedInstallations - Exception: ' + ex.getMessage() + '\n' + ex.getStackTraceString());

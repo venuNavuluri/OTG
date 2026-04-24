@@ -1,5 +1,9 @@
 public class OrderTriggerHandler
 {
+    private static final String INSTALLATION_STATUS_TERMINATED = 'Terminated';
+    private static final String INSTALLATION_STATUS_FUTURE_TERMINATED = 'Future Terminated';
+    private static final String INSTALLATION_STATUS_TERMINATION_PENDING = 'Termination Pending';
+
     public static void onBeforeInsert(List<Order> orderList)
     {
         validateInstallationCount(orderList);
@@ -72,7 +76,49 @@ public class OrderTriggerHandler
             updateOpportunityStageForActivatedAmendment(activatedAmendmentOrders);
         }
         if (!terminationOrderIds.isEmpty()) {
+            finalizeTerminationInstallations(terminationOrderIds);
             createTerminationInstallationChangesAsync(terminationOrderIds);
+        }
+    }
+
+    private static void finalizeTerminationInstallations(Set<Id> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) return;
+
+        try {
+            List<Order> terminationOrders = [
+                SELECT Id, SBQQ__Quote__c, SBQQ__Quote__r.Installation__c
+                FROM Order
+                WHERE Id IN :orderIds
+                  AND SBQQ__Quote__r.Auto_Termination__c = true
+            ];
+
+            List<Installation__c> installationsToUpdate = new List<Installation__c>();
+            for (Order ord : terminationOrders) {
+                Id installationId = ord.SBQQ__Quote__r != null ? ord.SBQQ__Quote__r.Installation__c : null;
+                if (installationId == null) {
+                    continue;
+                }
+
+                installationsToUpdate.add(new Installation__c(
+                    Id = installationId,
+                    Installation_Order_Status__c = INSTALLATION_STATUS_TERMINATED,
+                    Order__c = ord.Id,
+                    Quote__c = ord.SBQQ__Quote__c,
+                    Termination_Order__c = ord.Id,
+                    Termination_Quote__c = ord.SBQQ__Quote__c,
+                    Termination_Process_Status__c = 'Completed',
+                    Termination_Process_Error__c = null,
+                    Auto_Installation_Termination_Error__c = null
+                ));
+            }
+
+            if (!installationsToUpdate.isEmpty()) {
+                update installationsToUpdate;
+            }
+        } catch (Exception ex) {
+            Logger.error('Error in finalizeTerminationInstallations: ' + ex.getMessage()
+                + ' | line: ' + ex.getLineNumber() + ' | stack: ' + ex.getStackTraceString());
+            Logger.saveLog();
         }
     }
 
@@ -223,7 +269,10 @@ public class OrderTriggerHandler
                 Quote__r.Auto_Termination__c, 
                 Quote_Line_Group__r.Installation_Quantity__c,
                 Installation_Quantity__c, 
-                (SELECT Id FROM Installations__r WHERE Installation_Order_Status__c != 'Terminated') 
+                (SELECT Id FROM Installations__r
+                 WHERE Installation_Order_Status__c != 'Terminated'
+                   AND Installation_Order_Status__c != 'Future Terminated'
+                   AND Installation_Order_Status__c != 'Termination Pending')
                 FROM Package__c 
                 WHERE 
                 Quote__c IN :qtIdOrderMap.keySet() 
@@ -356,7 +405,9 @@ public class OrderTriggerHandler
                                    Order__c, Installation_Order_Status__c
                             FROM Installation__c
                             WHERE Package__c IN :pkgById.keySet() 
-                            AND Installation_Order_Status__c != 'Terminated' and Installation_Order_Status__c != 'Future Terminated'
+                            AND Installation_Order_Status__c != :INSTALLATION_STATUS_TERMINATED
+                            AND Installation_Order_Status__c != :INSTALLATION_STATUS_FUTURE_TERMINATED
+                            AND Installation_Order_Status__c != :INSTALLATION_STATUS_TERMINATION_PENDING
                         ];
         
                         // 3) Update installations that currently belong to the temp quote

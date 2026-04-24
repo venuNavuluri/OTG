@@ -307,11 +307,16 @@ public class CreateInstallationsControllerTest {
         System.assertEquals('SUCCESS', response, 'Termination should succeed');
 
         Installation__c refreshed = [
-            SELECT Quote__c, Auto_Installation_Termination_Error__c
+            SELECT Quote__c, Installation_Order_Status__c, Auto_Installation_Termination_Error__c,
+                   Termination_Process_Status__c, Termination_Process_Error__c,
+                   Termination_Quote__c, Termination_Order__c
             FROM Installation__c
             WHERE Id = :ctx.installation.Id
         ];
         System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should remain linked');
+        System.assertEquals('Termination Pending', refreshed.Installation_Order_Status__c,
+            'Immediate termination should move the installation to Termination Pending until amendment order activation.');
+        System.assertEquals(null, refreshed.Termination_Order__c, 'Termination order should not be set before amendment activation.');
         String err = refreshed.Auto_Installation_Termination_Error__c;
         System.assert(
             err == null
@@ -320,6 +325,55 @@ public class CreateInstallationsControllerTest {
             || err.startsWith('Awaiting amendment quote line group'),
             'Unexpected error value: ' + err
         );
+        if (err == null) {
+            System.assertEquals('Waiting For Order Activation', refreshed.Termination_Process_Status__c,
+                'Successful amendment sync should wait for order activation.');
+            System.assertEquals(ctx.qctx.quote.Id, refreshed.Termination_Quote__c,
+                'Termination quote should be tracked once amendment sync succeeds.');
+            System.assertEquals(null, refreshed.Termination_Process_Error__c,
+                'Successful amendment sync should clear the dedicated process error.');
+        } else {
+            System.assert(
+                refreshed.Termination_Process_Status__c == 'Retry Pending'
+                || refreshed.Termination_Process_Status__c == 'Failed',
+                'Async CPQ delays should leave the process in a retry/failure state.'
+            );
+            System.assertEquals(err, refreshed.Termination_Process_Error__c,
+                'Dedicated process error should mirror the legacy termination error.');
+        }
+    }
+
+    @IsTest
+    static void testTerminateSingleRecordMissingPackageMarksInstallationFailed() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new Installation__c(
+            Id = ctx.installation.Id,
+            Package__c = null
+        );
+
+        Test.startTest();
+        String response = CreateInstallationsController.terminateSingleRecord(
+            ctx.installation.Id,
+            Date.today(),
+            'Missing Package'
+        );
+        Test.stopTest();
+
+        System.assertEquals('SUCCESS', response, 'Termination request should still be accepted.');
+
+        Installation__c refreshed = [
+            SELECT Installation_Order_Status__c, Termination_Process_Status__c, Termination_Process_Error__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+        System.assertEquals('Termination Pending', refreshed.Installation_Order_Status__c,
+            'Immediate termination request should still move the installation into pending state.');
+        System.assertEquals('Failed', refreshed.Termination_Process_Status__c,
+            'Installations that cannot start CPQ processing should be marked failed individually.');
+        System.assertEquals('Termination cannot proceed because the installation has no related package.',
+            refreshed.Termination_Process_Error__c,
+            'Each failed installation should carry its own termination error.');
     }
 
     @IsTest
@@ -375,11 +429,15 @@ public class CreateInstallationsControllerTest {
         Test.stopTest();
 
         Installation__c refreshed = [
-            SELECT Quote__c
+            SELECT Quote__c, Termination_Process_Status__c, Termination_Process_Error__c
             FROM Installation__c
             WHERE Id = :ctx.installation.Id
         ];
         System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should stay linked');
+        System.assertEquals(null, refreshed.Termination_Process_Status__c,
+            'Non-termination amendment processing should not stamp termination process state.');
+        System.assertEquals(null, refreshed.Termination_Process_Error__c,
+            'Non-termination amendment processing should not stamp termination process error.');
     }
 
     @IsTest
@@ -413,14 +471,17 @@ public class CreateInstallationsControllerTest {
     static void testQueueableTerminatePath() {
         TestDataFactory_OTG.OrderContext ctx = buildContext();
 
-            update new Installation__c(
-                Id = ctx.installation.Id,
-                Termination_End_Date__c = Date.today()
-            );
+        update new Installation__c(
+            Id = ctx.installation.Id,
+            Termination_End_Date__c = Date.today(),
+            Auto_Termination__c = true,
+            Termination_Process_Status__c = 'CPQ Submitted'
+        );
 
         update new SBQQ__QuoteLineGroup__c(
             Id = ctx.qlg.Id,
-            Installation_Quantity__c = 1
+            Installation_Quantity__c = 2,
+            Package__c = ctx.packageRec.Id
         );
 
         System.runAs(getBypassUser()) {
@@ -437,20 +498,36 @@ public class CreateInstallationsControllerTest {
             Test.stopTest();
 
             Installation__c refreshed = [
-                SELECT Quote_Line_Group__c
+                SELECT Quote_Line_Group__c, Termination_Process_Status__c, Termination_Quote__c, Termination_Process_Error__c,
+                       Auto_Installation_Termination_Error__c
                 FROM Installation__c
                 WHERE Id = :ctx.installation.Id
             ];
             System.assertEquals(ctx.qlg.Id, refreshed.Quote_Line_Group__c,
                 'Quote line group should still be set for terminate path');
+            System.assert(
+                refreshed.Termination_Process_Status__c == 'Waiting For Order Activation'
+                || refreshed.Termination_Process_Status__c == 'Retry Pending'
+                || refreshed.Termination_Process_Status__c == 'Failed',
+                'Termination queueable should either advance the process or record a retry/failure state.'
+            );
+            if (refreshed.Termination_Process_Status__c == 'Waiting For Order Activation') {
+                System.assertEquals(ctx.qctx.quote.Id, refreshed.Termination_Quote__c,
+                    'Termination quote should be persisted on the installation.');
+                System.assertEquals(null, refreshed.Termination_Process_Error__c,
+                    'Successful termination quote sync should clear dedicated process errors.');
+            } else {
+                System.assertNotEquals(null, refreshed.Auto_Installation_Termination_Error__c,
+                    'Failed termination processing should record the legacy error field.');
+            }
 
             SBQQ__QuoteLineGroup__c qlgRef = [
                 SELECT Installation_Quantity__c
                 FROM SBQQ__QuoteLineGroup__c
                 WHERE Id = :ctx.qlg.Id
             ];
-            System.assertNotEquals(null, qlgRef.Installation_Quantity__c,
-                'Terminate path should update QLG installation quantity');
+            System.assert(qlgRef.Installation_Quantity__c == 2 || qlgRef.Installation_Quantity__c == 1,
+                'Terminate path should either preserve the original quantity on failure or decrement it by one on success.');
         }
     }
 
@@ -458,13 +535,18 @@ public class CreateInstallationsControllerTest {
     static void testQueueableFailurePath() {
         TestDataFactory_OTG.OrderContext ctx = buildContext();
 
-        delete [SELECT Id FROM SBQQ__QuoteLineGroup__c WHERE Id = :ctx.qlg.Id];
+        Package__c noQlgPackage = new Package__c(
+            Name = 'No QLG Package',
+            Contract__c = ctx.packageRec.Contract__c,
+            Quote__c = ctx.qctx.quote.Id
+        );
+        insert noQlgPackage;
 
         Test.startTest();
         System.enqueueJob(new CreateInstallationsController.AmendmentPostProcessorQueueable(
             ctx.installation.Id,
             ctx.packageRec.Contract__c,
-            ctx.packageRec.Id,
+            noQlgPackage.Id,
             null,
             Date.today(),
             false,
@@ -473,23 +555,32 @@ public class CreateInstallationsControllerTest {
         Test.stopTest();
 
         Installation__c refreshed = [
-            SELECT Auto_Installation_Termination_Error__c
+            SELECT Auto_Installation_Termination_Error__c, Termination_Process_Status__c, Termination_Process_Error__c
             FROM Installation__c
             WHERE Id = :ctx.installation.Id
         ];
         System.assert(refreshed.Auto_Installation_Termination_Error__c != null,
             'Expected error message recorded');
+        System.assertEquals(null, refreshed.Termination_Process_Error__c,
+            'Non-termination failures should not stamp the dedicated termination process error.');
+        System.assertEquals(null, refreshed.Termination_Process_Status__c,
+            'Non-termination failures should not stamp the dedicated termination process status.');
     }
 
     @IsTest
     static void testUpdateQuoteLineGroupReturnsNull() {
         TestDataFactory_OTG.OrderContext ctx = buildContext();
 
-        delete [SELECT Id FROM SBQQ__QuoteLineGroup__c WHERE Id = :ctx.qlg.Id];
+        Package__c noQlgPackage = new Package__c(
+            Name = 'No QLG Package For Lookup',
+            Contract__c = ctx.packageRec.Contract__c,
+            Quote__c = ctx.qctx.quote.Id
+        );
+        insert noQlgPackage;
 
         SBQQ__QuoteLineGroup__c result = CreateInstallationsController.updateQuoteLineGroup(
             ctx.qctx.quote,
-            ctx.packageRec.Id,
+            noQlgPackage.Id,
             false
         );
 
@@ -519,6 +610,32 @@ public class CreateInstallationsControllerTest {
         CreateInstallationsController.TEST_FORCE_FIND_QUOTE_MASTER_ERROR = false;
 
         System.assertEquals(q.Id, found.Id, 'Expected amended opportunity quote to be found');
+    }
+
+    @IsTest
+    static void testFindLatestQuotePrefersAmendmentQuoteOverGenericMasterQuote() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__Type__c = 'Amendment',
+            SBQQ__MasterContract__c = ctx.packageRec.Contract__c,
+            SBQQ__Opportunity2__c = ctx.qctx.opportunity.Id
+        );
+
+        SBQQ__Quote__c genericMasterQuote = new SBQQ__Quote__c(
+            SBQQ__MasterContract__c = ctx.packageRec.Contract__c,
+            SBQQ__Status__c = 'Draft'
+        );
+        insert genericMasterQuote;
+
+        SBQQ__Quote__c found = CreateInstallationsController.findLatestQuoteForContract(
+            ctx.packageRec.Contract__c,
+            'test_prefer_amendment'
+        );
+
+        System.assertEquals(ctx.qctx.quote.Id, found.Id,
+            'Amendment quote should be preferred over a generic master-contract quote.');
     }
 
     @IsTest
@@ -557,10 +674,88 @@ public class CreateInstallationsControllerTest {
             'test_forced_errors'
         );
 
-        System.assertEquals(null, found, 'Expected null when lookups error out');
+        System.assertEquals(ctx.qctx.quote.Id, found.Id,
+            'Expected fallback master-contract lookup to still return the latest quote.');
 
         CreateInstallationsController.TEST_FORCE_FIND_QUOTE_MASTER_ERROR = false;
         CreateInstallationsController.TEST_FORCE_FIND_QUOTE_AMENDED_ERROR = false;
+    }
+
+    @IsTest
+    static void testFindTerminationQuoteForRequestIgnoresOlderAmendmentQuote() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__Type__c = 'Amendment',
+            SBQQ__MasterContract__c = ctx.packageRec.Contract__c,
+            SBQQ__Opportunity2__c = ctx.qctx.opportunity.Id
+        );
+        Test.setCreatedDate(ctx.qctx.quote.Id, Datetime.now().addMinutes(-10));
+
+        String requestMarker = CreateInstallationsController.formatRequestMarker(System.now());
+        SBQQ__Quote__c found = CreateInstallationsController.findTerminationQuoteForRequest(
+            ctx.packageRec.Contract__c,
+            ctx.installation.Id,
+            requestMarker,
+            'test_ignore_old_amendment'
+        );
+
+        System.assertEquals(null, found,
+            'Older amendment quotes must not be linked as the termination quote for a new request.');
+    }
+
+    @IsTest
+    static void testFindTerminationQuoteForRequestIgnoresOlderLinkedTerminationQuote() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__Type__c = 'Amendment',
+            SBQQ__MasterContract__c = ctx.packageRec.Contract__c,
+            SBQQ__Opportunity2__c = ctx.qctx.opportunity.Id,
+            Auto_Termination__c = true,
+            Installation__c = ctx.installation.Id
+        );
+        Test.setCreatedDate(ctx.qctx.quote.Id, Datetime.now().addMinutes(-10));
+
+        String requestMarker = CreateInstallationsController.formatRequestMarker(System.now());
+        SBQQ__Quote__c found = CreateInstallationsController.findTerminationQuoteForRequest(
+            ctx.packageRec.Contract__c,
+            ctx.installation.Id,
+            requestMarker,
+            'test_ignore_old_linked_termination_quote'
+        );
+
+        System.assertEquals(null, found,
+            'Older linked termination quotes must not satisfy a new termination request.');
+    }
+
+    @IsTest
+    static void testFindTerminationQuoteForRequestReturnsFreshLinkedTerminationQuote() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        update new SBQQ__Quote__c(
+            Id = ctx.qctx.quote.Id,
+            SBQQ__Type__c = 'Amendment',
+            SBQQ__MasterContract__c = ctx.packageRec.Contract__c,
+            SBQQ__Opportunity2__c = ctx.qctx.opportunity.Id,
+            Auto_Termination__c = true,
+            Installation__c = ctx.installation.Id
+        );
+
+        String requestMarker = CreateInstallationsController.formatRequestMarker(System.now().addSeconds(-1));
+        SBQQ__Quote__c found = CreateInstallationsController.findTerminationQuoteForRequest(
+            ctx.packageRec.Contract__c,
+            ctx.installation.Id,
+            requestMarker,
+            'test_find_fresh_linked_termination_quote'
+        );
+
+        System.assertNotEquals(null, found,
+            'Fresh linked termination quote should be found for the current request.');
+        System.assertEquals(ctx.qctx.quote.Id, found.Id,
+            'Fresh linked termination quote should be reused for the current request.');
     }
 
     @IsTest
@@ -606,13 +801,15 @@ public class CreateInstallationsControllerTest {
         System.assertEquals(true, success, 'Expected update to succeed');
 
         Installation__c refreshed = [
-            SELECT Quote__c, Quote_Line_Group__c, Auto_Installation__c
+            SELECT Quote__c, Quote_Line_Group__c, Auto_Installation__c, Termination_Process_Status__c
             FROM Installation__c
             WHERE Id = :ctx.installation.Id
         ];
         System.assertEquals(ctx.qctx.quote.Id, refreshed.Quote__c, 'Quote should be set');
         System.assertEquals(ctx.qlg.Id, refreshed.Quote_Line_Group__c, 'Quote line group should be set');
         System.assertEquals(true, refreshed.Auto_Installation__c, 'Auto installation should be set');
+        System.assertEquals(null, refreshed.Termination_Process_Status__c,
+            'Non-termination quote updates should not stamp termination process state.');
     }
 
     @IsTest
@@ -634,12 +831,14 @@ public class CreateInstallationsControllerTest {
         System.runAs(getBypassUser()) {
             update new Installation__c(
                 Id = ctx.installation.Id,
-                Termination_End_Date__c = Date.today()
+                Termination_End_Date__c = Date.today(),
+                Auto_Termination__c = true,
+                Termination_Process_Status__c = 'CPQ Submitted'
             );
 
             update new SBQQ__QuoteLineGroup__c(
                 Id = ctx.qlg.Id,
-                Installation_Quantity__c = 1,
+                Installation_Quantity__c = 2,
                 Package__c = ctx.packageRec.Id
             );
 
@@ -661,25 +860,85 @@ public class CreateInstallationsControllerTest {
             Test.stopTest();
 
             Installation__c instErr = [
-                SELECT Auto_Installation_Termination_Error__c
+                SELECT Auto_Installation_Termination_Error__c, Termination_Process_Status__c, Termination_Quote__c
                 FROM Installation__c
                 WHERE Id = :ctx.installation.Id
             ];
             System.assert(success || instErr.Auto_Installation_Termination_Error__c != null,
                 'Terminate branch should either succeed or record an error');
+            if (success) {
+                System.assertEquals('Waiting For Order Activation', instErr.Termination_Process_Status__c,
+                    'Successful terminate branch should wait for amendment order activation.');
+                System.assertEquals(ctx.qctx.quote.Id, instErr.Termination_Quote__c,
+                    'Successful terminate branch should track the amendment quote.');
+            }
         }
+    }
+
+    @IsTest
+    static void testTryUpdateQuoteAndInstallationTerminateIsIdempotentForSameQuote() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        System.runAs(getBypassUser()) {
+            update new Installation__c(
+                Id = ctx.installation.Id,
+                Termination_End_Date__c = Date.today(),
+                Auto_Termination__c = true,
+                Termination_Process_Status__c = 'CPQ Submitted'
+            );
+
+            update new SBQQ__QuoteLineGroup__c(
+                Id = ctx.qlg.Id,
+                Installation_Quantity__c = 2,
+                Package__c = ctx.packageRec.Id
+            );
+
+            Test.startTest();
+            Boolean firstSuccess = CreateInstallationsController.tryUpdateQuoteAndInstallation(
+                ctx.qctx.quote,
+                ctx.installation.Id,
+                ctx.packageRec.Contract__c,
+                ctx.packageRec.Id,
+                Date.today(),
+                true
+            );
+            Boolean secondSuccess = CreateInstallationsController.tryUpdateQuoteAndInstallation(
+                ctx.qctx.quote,
+                ctx.installation.Id,
+                ctx.packageRec.Contract__c,
+                ctx.packageRec.Id,
+                Date.today(),
+                true
+            );
+            Test.stopTest();
+
+            System.assertEquals(true, firstSuccess, 'First termination sync should succeed.');
+            System.assertEquals(true, secondSuccess, 'Repeated sync for the same quote should be treated as idempotent.');
+        }
+
+        SBQQ__QuoteLineGroup__c refreshedQlg = [
+            SELECT Installation_Quantity__c
+            FROM SBQQ__QuoteLineGroup__c
+            WHERE Id = :ctx.qlg.Id
+        ];
+        System.assertEquals(1, refreshedQlg.Installation_Quantity__c,
+            'Termination should decrement amendment quote line group quantity by exactly one.');
     }
 
     @IsTest
     static void testTryUpdateQuoteAndInstallationMissingInstallation() {
         TestDataFactory_OTG.OrderContext ctx = buildContext();
 
-        Id installId = ctx.installation.Id;
+        Id installId = Id.valueOf(Installation__c.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
         Id contractId = ctx.packageRec.Contract__c;
         Id packageId = ctx.packageRec.Id;
         SBQQ__Quote__c qt = [SELECT Id FROM SBQQ__Quote__c WHERE Id = :ctx.qctx.quote.Id];
-
-        delete new Installation__c(Id = installId);
+        Decimal originalInstallationQuantity = [
+            SELECT Installation_Quantity__c
+            FROM SBQQ__QuoteLineGroup__c
+            WHERE Id = :ctx.qlg.Id
+            LIMIT 1
+        ].Installation_Quantity__c;
 
         System.runAs(getBypassUser()) {
             Test.startTest();
@@ -695,5 +954,14 @@ public class CreateInstallationsControllerTest {
 
             System.assert(!success, 'Expected terminate path to fail when installation missing');
         }
+
+        SBQQ__QuoteLineGroup__c qlgAfter = [
+            SELECT Installation_Quantity__c
+            FROM SBQQ__QuoteLineGroup__c
+            WHERE Id = :ctx.qlg.Id
+            LIMIT 1
+        ];
+        System.assertEquals(originalInstallationQuantity, qlgAfter.Installation_Quantity__c,
+            'QLG quantity should roll back when terminate update fails.');
     }
 }

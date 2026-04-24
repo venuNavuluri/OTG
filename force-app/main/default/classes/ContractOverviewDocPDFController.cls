@@ -97,7 +97,10 @@ public class ContractOverviewDocPDFController
             Invoice_Account__r.Town_City__c, Invoice_Account__r.County_State__c, Invoice_Account__r.Postcode_Zipcode__c,
             Invoice_Account__r.Country__r.Name, Package__r.Installation_Cost__c, Package__r.InstallationCost__c, CurrencyIsoCode
             FROM Installation__c
-            WHERE Package__c IN :packMap.keySet() AND Installation_Order_Status__c != 'Terminated'
+            WHERE Package__c IN :packMap.keySet()
+              AND Installation_Order_Status__c != 'Terminated'
+              AND Installation_Order_Status__c != 'Future Terminated'
+              AND Installation_Order_Status__c != 'Termination Pending'
         ];
         
         totalInstallationCost = 0; // Initialize total cost
