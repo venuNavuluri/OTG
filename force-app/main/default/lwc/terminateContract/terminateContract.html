@@ -1,0 +1,97 @@
+<template>
+    <lightning-quick-action-panel header="Contract Termination">
+        <template lwc:if={isLoading}>
+            <div class="slds-m-bottom_medium slds-align_absolute-center">
+                <lightning-spinner size="small" alternative-text="Loading contract"></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:elseif={isReady}>
+            <div class="slds-m-bottom_medium termination-choice">
+                <fieldset>
+                    <legend class="slds-form-element__legend slds-form-element__label">
+                        <abbr class="slds-required" title="required">*</abbr>
+                        Do you want to terminate this contract?
+                    </legend>
+                    <div class="termination-choice__options">
+                        <lightning-input
+                            type="radio"
+                            name="contractTerminationConfirmation"
+                            label="Yes"
+                            value="Yes"
+                            checked={isYesSelected}
+                            onchange={handleSelection}>
+                        </lightning-input>
+                        <lightning-input
+                            type="radio"
+                            name="contractTerminationConfirmation"
+                            label="No"
+                            value="No"
+                            checked={isNoSelected}
+                            onchange={handleSelection}>
+                        </lightning-input>
+                    </div>
+                </fieldset>
+            </div>
+
+            <template lwc:if={showDetails}>
+                <lightning-record-edit-form object-api-name="Contract">
+                    <lightning-messages></lightning-messages>
+                    <div class="slds-grid slds-wrap">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-right_small">
+                            <lightning-input
+                                type="date"
+                                label="Termination Date"
+                                value={terminationDate}
+                                required
+                                onchange={handleTerminationDateChange}>
+                            </lightning-input>
+                            <template lwc:if={hasDateError}>
+                                <span class="slds-text-color_error slds-m-top_x-small">
+                                    <b>{dateErrorMessage}</b>
+                                </span>
+                            </template>
+                        </div>
+
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-left_small">
+                            <lightning-input-field
+                                variant="label-stacked"
+                                field-name="Lost_Reason__c"
+                                required
+                                onchange={handleFieldChange}>
+                            </lightning-input-field>
+                        </div>
+
+                        <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+                            <lightning-input-field
+                                variant="label-stacked"
+                                field-name="Lost_Reason_Comments__c"
+                                required
+                                onchange={handleFieldChange}>
+                            </lightning-input-field>
+                        </div>
+                    </div>
+                </lightning-record-edit-form>
+            </template>
+        </template>
+
+        <div slot="footer" class="slds-align_absolute-center slds-m-top_medium">
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                title="Cancel"
+                onclick={cancel}
+                class="slds-m-right_small">
+            </lightning-button>
+            <template lwc:if={isReady}>
+                <lightning-button
+                    variant="brand"
+                    label="Save"
+                    title="Save"
+                    onclick={handleSave}
+                    disabled={isSaveDisabled}>
+                </lightning-button>
+            </template>
+        </div>
+    </lightning-quick-action-panel>
+</template>

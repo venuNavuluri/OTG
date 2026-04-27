@@ -3,9 +3,14 @@ public class InstallationTriggerHandler {
     public static Boolean byPassSOcreation = FALSE;
     // Test-only bypass to avoid costly duplicate checks in unit tests.
     @TestVisible private static Boolean bypassForTests = false;
+    @TestVisible private static Boolean suppressTerminationSalesOrderProcessing = false;
     @TestVisible
     public static void setBypassForTests(Boolean bypass) {
         bypassForTests = bypass;
+    }
+    @TestVisible
+    public static void setSuppressTerminationSalesOrderProcessing(Boolean suppress) {
+        suppressTerminationSalesOrderProcessing = suppress;
     }
     private static String currentUserAlias;
 
@@ -110,7 +115,8 @@ public class InstallationTriggerHandler {
                         oldInst.Installation_Order_Status__c != 'Terminated' &&
                         oldInst.Installation_Order_Status__c != 'Termination Pending';
 
-                    if (isImmediateTerminationRequested || isLegacyDirectTermination) {
+                    if ((isImmediateTerminationRequested || isLegacyDirectTermination) &&
+                        !suppressTerminationSalesOrderProcessing) {
                         instIdList.add(inst.Id);
                         terminationDates.put(inst.Id, inst.Termination_End_Date__c); // Assuming this field exists
                     } 

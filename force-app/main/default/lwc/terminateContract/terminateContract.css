@@ -1,0 +1,10 @@
+.termination-choice fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.termination-choice__options {
+    display: flex;
+    gap: 1rem;
+}

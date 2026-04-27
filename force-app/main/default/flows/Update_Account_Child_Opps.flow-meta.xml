@@ -1063,7 +1063,7 @@
         <recordTriggerType>Update</recordTriggerType>
         <triggerType>RecordAfterSave</triggerType>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>Local_Contracted_Fleet_Size</name>
         <dataType>Number</dataType>

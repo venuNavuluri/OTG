@@ -19,6 +19,7 @@ public class ContractTriggerHandler {
     public static void onAfterUpdate() {
         enqueueMetricsIfCpq((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
         activateContracts((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
+        enqueueTerminationProcessing((Map<Id, Contract>)Trigger.newMap, (Map<Id, Contract>)Trigger.oldMap);
     }
 
     // Enqueue metrics recalculation only for CPQ contracts with a quote and non-terminated status.
@@ -224,6 +225,32 @@ public class ContractTriggerHandler {
             }
         } catch (Exception ex) {
             Logger.error(ex.getMessage() + '\n\n' + ex.getLineNumber() + '\n\n' + ex.getStackTraceString());
+            Logger.saveLog();
+        }
+    }
+
+    public static void enqueueTerminationProcessing(Map<Id, Contract> newContrMap, Map<Id, Contract> oldContrMap) {
+        try {
+            Set<Id> terminatedContractIds = new Set<Id>();
+            for (Contract newContr : newContrMap.values()) {
+                if (newContr == null || newContr.Id == null) {
+                    continue;
+                }
+
+                Contract oldContr = oldContrMap != null ? oldContrMap.get(newContr.Id) : null;
+                Boolean isNowTerminated = newContr.Status != null && newContr.Status.equalsIgnoreCase('Terminated');
+                Boolean wasTerminated = oldContr != null && oldContr.Status != null && oldContr.Status.equalsIgnoreCase('Terminated');
+
+                if (isNowTerminated && !wasTerminated && newContr.Terminated_Date__c != null) {
+                    terminatedContractIds.add(newContr.Id);
+                }
+            }
+
+            if (!terminatedContractIds.isEmpty()) {
+                Database.executeBatch(new ContractTerminationBatch(terminatedContractIds), 50);
+            }
+        } catch (Exception ex) {
+            Logger.error('Error in enqueueTerminationProcessing: ' + ex.getMessage() + '\n' + ex.getLineNumber() + '\n' + ex.getStackTraceString());
             Logger.saveLog();
         }
     }
