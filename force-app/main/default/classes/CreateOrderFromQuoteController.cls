@@ -1,5 +1,12 @@
 public with sharing class CreateOrderFromQuoteController
 {
+    private static final String INSTALLATION_COUNT_MISMATCH_TEMPLATE =
+        '- <strong>{0}</strong>: {1} active installation(s), Installation Quantity {2}';
+    private static final String INSTALLATION_COUNT_MISMATCH_PREFIX =
+        'The following packages have installation quantity mismatches:\n';
+    private static final String INSTALLATION_COUNT_MISMATCH_SUFFIX =
+        '\n\nPlease update the package installations or package quantities before creating the order.';
+
     @AuraEnabled
     public static string updateQuoteToOrdered(String qtId)
     {
@@ -63,6 +70,7 @@ public with sharing class CreateOrderFromQuoteController
             ];
         }
 
+        List<String> mismatchMessages = new List<String>();
         for (Package__c pack : packList) {
             Integer activeInstallations = (pack.Installations__r == null) ? 0 : pack.Installations__r.size();
             Decimal expectedQty = pack.Temp_Quote_Line_Group__r == null ? null : pack.Temp_Quote_Line_Group__r.Installation_Quantity__c;
@@ -71,9 +79,25 @@ public with sharing class CreateOrderFromQuoteController
                 expectedQty != null &&
                 expectedQty != activeInstallations) {
                 System.debug('validateInstallationCount mismatch pack ' + pack.Id + ' expectedQty=' + expectedQty + ' activeInstallations=' + activeInstallations);
-                return 'No. of active installations on package must match with the Installation Quantity on package';
+                mismatchMessages.add(String.format(
+                    INSTALLATION_COUNT_MISMATCH_TEMPLATE,
+                    new List<String>{
+                        escapeHtml(pack.Name),
+                        String.valueOf(activeInstallations),
+                        String.valueOf(expectedQty)
+                    }
+                ));
             }
         }
+        if (!mismatchMessages.isEmpty()) {
+            return INSTALLATION_COUNT_MISMATCH_PREFIX +
+                String.join(mismatchMessages, '\n') +
+                INSTALLATION_COUNT_MISMATCH_SUFFIX;
+        }
         return 'SUCCESS';
+    }
+
+    private static String escapeHtml(String value) {
+        return String.isBlank(value) ? '' : value.escapeHtml4();
     }
 }
