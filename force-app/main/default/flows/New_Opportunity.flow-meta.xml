@@ -228,7 +228,7 @@
             <name>Account_Owner_Active</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_Account.Owner.IsActive</leftValueReference>
+                <leftValueReference>Get_Account_Owner.IsActive</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
@@ -278,7 +278,7 @@
             <name>Opportunity_Owner_Not_a_Account_Owner</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_Account.Owner.Id</leftValueReference>
+                <leftValueReference>Get_Account_Owner.Id</leftValueReference>
                 <operator>NotEqualTo</operator>
                 <rightValue>
                     <elementReference>currentUserId</elementReference>
@@ -679,7 +679,7 @@
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Check_Account_Owner_is_Active</targetReference>
+            <targetReference>Get_Account_Owner</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -691,6 +691,27 @@
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Account</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Account_Owner</name>
+        <label>Get Account Owner</label>
+        <locationX>770</locationX>
+        <locationY>188</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Account_Owner_is_Active</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Account.OwnerId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -811,14 +832,6 @@
             <fieldType>RadioButtons</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -844,14 +857,6 @@
             <fieldType>RadioButtons</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -875,14 +880,6 @@
             <fieldType>RadioButtons</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>false</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -908,14 +905,6 @@
             <fieldType>RadioButtons</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -939,14 +928,6 @@
             <fieldType>RadioButtons</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -964,16 +945,8 @@
         </connector>
         <fields>
             <name>ContractsNotPresentText</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 16px; color: rgb(0, 0, 255);&quot;&gt;Contracts are not present on the account&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px;&quot;&gt;No active contract found&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;There is no active contract for {!Get_Account.Name} and the selected Business Unit. The Opportunity has been created without an amended contract.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -990,14 +963,6 @@
             <name>InactiveAccountOwnerMessage</name>
             <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 14px; color: rgb(255, 0, 0);&quot;&gt;Unable to Create Opportunity&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;strong style=&quot;color: rgb(255, 0, 0);&quot;&gt;The Account Owner is currently inactive for the Account. Please contact Sales Ops or your Salesforce Administrator to request an Account Owner change before proceeding.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -1012,23 +977,15 @@
         <allowPause>true</allowPause>
         <fields>
             <name>ErrorMessage</name>
-            <fieldText>&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px; color: rgb(194, 57, 52);&quot;&gt;Opportunity was not created&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
     <screens>
         <name>Opportunity_Screen</name>
-        <label>Opportunity Screen</label>
+        <label>New Opportunity</label>
         <locationX>1491</locationX>
         <locationY>650</locationY>
         <allowBack>true</allowBack>
@@ -1038,96 +995,41 @@
             <targetReference>Create_Opportunity</targetReference>
         </connector>
         <fields>
+            <name>Opportunity_Account_Context</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 18px;&quot;&gt;New Opportunity&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Account:&lt;/strong&gt; {!Get_Account.Name}&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Account Status:&lt;/strong&gt; {!Get_Account.Customer_Status__c}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>Opportunity_Core_Details_Header</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Core details&lt;/strong&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
             <name>Opportunity_Screen_Section1</name>
             <fieldType>RegionContainer</fieldType>
             <fields>
                 <name>Opportunity_Screen_Section1_Column1</name>
                 <fieldType>Region</fieldType>
                 <fields>
-                    <name>Opportunity_Name</name>
-                    <dataType>String</dataType>
-                    <defaultValue>
-                        <stringValue>This will be updated on save</stringValue>
-                    </defaultValue>
-                    <fieldText>Opportunity Name</fieldText>
-                    <fieldType>InputField</fieldType>
-                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-                    <isRequired>true</isRequired>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
-                <fields>
                     <name>Lead_Source</name>
                     <choiceReferences>LeadSource</choiceReferences>
                     <dataType>String</dataType>
-                    <fieldText>Lead Source</fieldText>
+                    <fieldText>Source</fieldText>
                     <fieldType>DropdownBox</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <fieldType>ObjectProvided</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>false</isRequired>
                     <objectFieldReference>varOppRecord.Business_Unit__c</objectFieldReference>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <fieldType>ObjectProvided</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>false</isRequired>
                     <objectFieldReference>varOppRecord.Product_Group__c</objectFieldReference>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
-                <fields>
-                    <name>Account_Name</name>
-                    <dataType>String</dataType>
-                    <defaultValue>
-                        <elementReference>Get_Account.Name</elementReference>
-                    </defaultValue>
-                    <fieldText>Account Name</fieldText>
-                    <fieldType>InputField</fieldType>
-                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-                    <isReadOnly>
-                        <booleanValue>true</booleanValue>
-                    </isReadOnly>
-                    <isRequired>false</isRequired>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <inputParameters>
                     <name>width</name>
@@ -1153,7 +1055,7 @@
                     <inputParameters>
                         <name>label</name>
                         <value>
-                            <stringValue>Contact Name</stringValue>
+                            <stringValue>Primary Contact</stringValue>
                         </value>
                     </inputParameters>
                     <inputParameters>
@@ -1171,14 +1073,6 @@
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
                     <storeOutputAutomatically>true</storeOutputAutomatically>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <name>Close_Date</name>
@@ -1187,14 +1081,6 @@
                     <fieldType>InputField</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <name>StageName</name>
@@ -1207,49 +1093,25 @@
                     <fieldType>DropdownBox</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <name>Amount</name>
                     <dataType>Currency</dataType>
                     <fieldText>Amount</fieldText>
                     <fieldType>InputField</fieldType>
-                    <helpText>&lt;p&gt;Enter the total recurring amount of the opportunity over the initial fixed term (e.g. for a $3,000 three year contract enter $9,000). If the sales type is one-time enter the total “non recurring” one-time value.&lt;/p&gt;</helpText>
+                    <helpText>&lt;p&gt;Use total contract value for subscriptions, or total one-time value for one-time sales.&lt;/p&gt;</helpText>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
                     <scale>0</scale>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <name>Number_of_Installations</name>
                     <dataType>Number</dataType>
-                    <fieldText>Number of Installations</fieldText>
+                    <fieldText>Installations</fieldText>
                     <fieldType>InputField</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>false</isRequired>
                     <scale>0</scale>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <fields>
                     <name>Sales_Type</name>
@@ -1259,14 +1121,6 @@
                     <fieldType>DropdownBox</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
                 </fields>
                 <inputParameters>
                     <name>width</name>
@@ -1278,50 +1132,32 @@
             </fields>
             <isRequired>false</isRequired>
             <regionContainerType>SectionWithoutHeader</regionContainerType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
+        </fields>
+        <fields>
+            <name>Opportunity_Notes_Header</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Sales notes&lt;/strong&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
         </fields>
         <fields>
             <name>Next_Step</name>
             <dataType>String</dataType>
             <fieldText>Next Step</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;Add your next set of action for the set opportunity stage. To be updated at each opportunity stage. Provides clarity to opportunity owner and their manager.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Add the next action for the selected stage.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>false</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <fields>
             <name>Description</name>
             <fieldText>Description</fieldText>
             <fieldType>LargeTextArea</fieldType>
-            <helpText>&lt;p&gt;Clear overview of opportunity / offer in words. Provide an outline package / products you are providing the client. This is used to validate order / quote. Provide vessel details. To be a clear summary of events.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Summarize the offer, products, vessels, and key context for quote/order validation.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
+        <nextOrFinishButtonLabel>Create Opportunity</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
+        <showHeader>false</showHeader>
     </screens>
     <screens>
         <name>Selection_Message_Screen</name>
@@ -1336,16 +1172,8 @@
         </connector>
         <fields>
             <name>SelectionMessage</name>
-            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(255, 0, 0); font-size: 16px;&quot;&gt;Please Select the Valid option for the Business Unit and Contract Type. Go to the Previous step and select Valid Option.&lt;/strong&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(194, 57, 52); font-size: 16px;&quot;&gt;Selection needs review&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Go back and select a valid Business Unit contract option before continuing.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -1363,16 +1191,8 @@
         </connector>
         <fields>
             <name>SuccessMessage</name>
-            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(0, 128, 0); font-size: 14px;&quot;&gt;Opportunity Created Succesfully for the {!Get_Account.Name}&lt;/strong&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(46, 132, 74); font-size: 16px;&quot;&gt;Opportunity created successfully&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Account:&lt;/strong&gt; {!Get_Account.Name}&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Opportunity Type:&lt;/strong&gt; {!Get_Created_Opp.Existing_Opportunity_Type__c}&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Contract Type:&lt;/strong&gt; {!Get_Created_Opp.Contract_Type__c}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -1389,21 +1209,18 @@
             <targetReference>Check_for_Contract_Type</targetReference>
         </connector>
         <fields>
+            <name>Upsell_Contract_Context</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px;&quot;&gt;Existing-customer opportunity&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Confirm whether this should amend an active contract or continue as a new contract for the selected Business Unit.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
             <name>Upsell_Type</name>
             <choiceReferences>UpsellType</choiceReferences>
             <dataType>String</dataType>
-            <fieldText>Upsell Type?</fieldText>
+            <fieldText>Contract treatment</fieldText>
             <fieldType>RadioButtons</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
@@ -1421,16 +1238,8 @@
         </connector>
         <fields>
             <name>WarningMessage</name>
-            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 14px; color: rgb(255, 0, 0); background-color: rgb(255, 255, 255);&quot;&gt;You are not the owner of this Account. Are you sure want to proceed with Opportunity Creation for the Account?&lt;/strong&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px; color: rgb(194, 57, 52);&quot;&gt;You are not the Account Owner&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;The Account Owner is {!Get_Account_Owner.Name}. Continue only if you are creating this Opportunity on their behalf.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>

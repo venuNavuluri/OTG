@@ -10,6 +10,9 @@ public with sharing class OpportunityTriggerHandler {
                 // Example: defaulting fields or validation
                 // validateCloseDate(newList);
                 manageCreatedBySalesUser(newList);
+                setOpportunityTypes(newList, null);
+                applyAmendedContractSelection(newList, null);
+                updateOpportunityNames(newList, null);
             } finally { stop(); }
         }
     }
@@ -20,6 +23,9 @@ public with sharing class OpportunityTriggerHandler {
                 // Add your before update logic here
                 // Example: prevent stage regression, normalize data
                 // normalizeFields(newList);
+                setOpportunityTypes(newList, oldMap);
+                applyAmendedContractSelection(newList, oldMap);
+                updateOpportunityNames(newList, oldMap);
             } finally { stop(); }
         }
     }
@@ -37,6 +43,7 @@ public with sharing class OpportunityTriggerHandler {
             try {
                 // Add your after insert logic here
                 // Example: enqueue async jobs, create related records
+                syncOpportunityNames(newList);
             } finally { stop(); }
         }
     }
@@ -78,6 +85,195 @@ public with sharing class OpportunityTriggerHandler {
     }
     private static void stop() {
         isExecuting = false;
+    }
+
+    private static void updateOpportunityNames(List<Opportunity> opportunities, Map<Id, Opportunity> oldOpportunityMap) {
+        if (opportunities == null || opportunities.isEmpty()) {
+            return;
+        }
+
+        List<Opportunity> opportunitiesToName = new List<Opportunity>();
+        for (Opportunity opp : opportunities) {
+            Opportunity oldOpp = oldOpportunityMap == null ? null : oldOpportunityMap.get(opp.Id);
+            if (shouldCalculateOpportunityName(opp, oldOpp)) {
+                opportunitiesToName.add(opp);
+            }
+        }
+
+        if (!opportunitiesToName.isEmpty()) {
+            applyOpportunityNames(opportunitiesToName);
+        }
+    }
+
+    private static Boolean shouldCalculateOpportunityName(Opportunity newOpp, Opportunity oldOpp) {
+        if (newOpp == null || newOpp.AccountId == null) {
+            return false;
+        }
+        if (oldOpp == null) {
+            return true;
+        }
+
+        return newOpp.Name != oldOpp.Name ||
+            newOpp.Account_Name__c != oldOpp.Account_Name__c ||
+            newOpp.Customer_Status__c != oldOpp.Customer_Status__c ||
+            newOpp.Existing_Opportunity_Type__c != oldOpp.Existing_Opportunity_Type__c ||
+            newOpp.AccountId != oldOpp.AccountId ||
+            newOpp.Account_Customer_Status__c != oldOpp.Account_Customer_Status__c ||
+            newOpp.Business_Unit__c != oldOpp.Business_Unit__c;
+    }
+
+    private static void syncOpportunityNames(List<Opportunity> opportunities) {
+        if (opportunities == null || opportunities.isEmpty()) {
+            return;
+        }
+
+        Set<Id> opportunityIds = new Set<Id>();
+        for (Opportunity opp : opportunities) {
+            if (opp.Id != null) {
+                opportunityIds.add(opp.Id);
+            }
+        }
+        if (opportunityIds.isEmpty()) {
+            return;
+        }
+
+        List<Opportunity> opportunitiesForNames = [
+            SELECT Id, AccountId, Name, Account_Customer_Status__c,
+                Existing_Opportunity_Type__c, Business_Unit__c, CreatedDate
+            FROM Opportunity
+            WHERE Id IN :opportunityIds
+        ];
+
+        Map<Id, String> originalNamesById = new Map<Id, String>();
+        for (Opportunity opp : opportunitiesForNames) {
+            originalNamesById.put(opp.Id, opp.Name);
+        }
+
+        applyOpportunityNames(opportunitiesForNames);
+
+        List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
+        for (Opportunity opp : opportunitiesForNames) {
+            if (opp.Name != originalNamesById.get(opp.Id)) {
+                opportunitiesToUpdate.add(new Opportunity(
+                    Id = opp.Id,
+                    Name = opp.Name
+                ));
+            }
+        }
+
+        if (!opportunitiesToUpdate.isEmpty()) {
+            update opportunitiesToUpdate;
+        }
+    }
+
+    private static void applyOpportunityNames(List<Opportunity> opportunities) {
+        if (opportunities == null || opportunities.isEmpty()) {
+            return;
+        }
+
+        Set<Id> accountIds = new Set<Id>();
+        for (Opportunity opp : opportunities) {
+            if (opp.AccountId != null) {
+                accountIds.add(opp.AccountId);
+            }
+        }
+        if (accountIds.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Account> accountsById = new Map<Id, Account>([
+            SELECT Id, Name, Customer_Status__c
+            FROM Account
+            WHERE Id IN :accountIds
+        ]);
+
+        for (Opportunity opp : opportunities) {
+            Account accountRec = accountsById.get(opp.AccountId);
+            if (accountRec != null) {
+                opp.Name = buildOpportunityName(opp, accountRec);
+            }
+        }
+    }
+
+    private static String buildOpportunityName(Opportunity opp, Account accountRec) {
+        String customerStatus = opp.Account_Customer_Status__c != null
+            ? calculateAccountStatus(opp.Account_Customer_Status__c)
+            : calculateAccountStatus(accountRec.Customer_Status__c);
+        String existingOppType = opp.Existing_Opportunity_Type__c != null ? opp.Existing_Opportunity_Type__c : '';
+        Datetime opportunityDate = opp.CreatedDate != null ? opp.CreatedDate : Datetime.now();
+        String businessUnit = opp.Business_Unit__c != null ? getBusinessUnitShortName(opp.Business_Unit__c) : '';
+
+        return businessUnit + '/ ' + customerStatus + '/ ' + existingOppType + '/ ' +
+            accountRec.Name.left(50) + '/ ' + opportunityDate.format('yyyy-MM-dd');
+    }
+
+    private static String calculateAccountStatus(String customerStatus) {
+        if (customerStatus == 'Prospect' || customerStatus == 'Lost' || customerStatus == 'Lapsed') {
+            return 'New Customer';
+        }
+        if (customerStatus == 'Active') {
+            return 'Existing Customer';
+        }
+        return '';
+    }
+
+    private static String getBusinessUnitShortName(String businessUnit) {
+        if (businessUnit == null) {
+            return '';
+        }
+
+        switch on businessUnit {
+            when 'Voyage Performance & Optimization' { return 'VPO'; }
+            when 'Voyage Management' { return 'VMS'; }
+            when 'HCM Crew' { return 'HCM Crew'; }
+            when 'HCM Learning, Assessment and Competency' { return 'HCM LAC'; }
+            when 'Technical Ship Management' { return 'TSM'; }
+            when 'Governance, Risk & Compliance' { return 'GRC'; }
+            when 'Cloud Fleet Manager' { return 'CFM'; }
+            when 'API' { return 'API'; }
+            when else { return businessUnit; }
+        }
+    }
+
+    public static void applyAmendedContractSelection(List<Opportunity> opportunities, Map<Id, Opportunity> oldOpportunityMap) {
+        if (opportunities == null || opportunities.isEmpty()) {
+            return;
+        }
+
+        Set<Id> contractIds = new Set<Id>();
+        for (Opportunity opp : opportunities) {
+            Opportunity oldOpp = oldOpportunityMap == null ? null : oldOpportunityMap.get(opp.Id);
+            if (shouldApplyAmendedContractSelection(opp, oldOpp)) {
+                contractIds.add(opp.Amend_Contract_Sales__c);
+            }
+        }
+        if (contractIds.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Contract> contractsById = new Map<Id, Contract>([
+            SELECT Id, Subscription_Value__c, CurrencyIsoCode
+            FROM Contract
+            WHERE Id IN :contractIds
+        ]);
+
+        for (Opportunity opp : opportunities) {
+            Contract relatedContract = contractsById.get(opp.Amend_Contract_Sales__c);
+            if (relatedContract == null) {
+                continue;
+            }
+
+            opp.SBQQ__AmendedContract__c = relatedContract.Id;
+            opp.Account_Subscription_Annual_Order_Value__c = relatedContract.Subscription_Value__c;
+            opp.CurrencyIsoCode = relatedContract.CurrencyIsoCode;
+        }
+    }
+
+    private static Boolean shouldApplyAmendedContractSelection(Opportunity newOpp, Opportunity oldOpp) {
+        if (newOpp == null || newOpp.Amend_Contract_Sales__c == null) {
+            return false;
+        }
+        return oldOpp == null || newOpp.Amend_Contract_Sales__c != oldOpp.Amend_Contract_Sales__c;
     }
     
     // ===== Main implementation for updating Opportunity annual value from amended contract =====
@@ -187,6 +383,155 @@ public with sharing class OpportunityTriggerHandler {
                     opp.Created_By_Sales_User__c = 'Yes';
                 }
             }
+        }
+    }
+
+    private static List<Opportunity> setOpportunityTypes(List<Opportunity> opportunities, Map<Id, Opportunity> oldOpportunityMap) {
+        List<Opportunity> classifiedOpportunities = new List<Opportunity>();
+        if (opportunities == null || opportunities.isEmpty()) {
+            return classifiedOpportunities;
+        }
+
+        Set<Id> accountIds = new Set<Id>();
+        Set<Id> productSolutionIds = new Set<Id>();
+        Set<String> productSolutionKeys = new Set<String>();
+        for (Opportunity opp : opportunities) {
+            if (!shouldCalculateOpportunityType(opp, oldOpportunityMap == null ? null : oldOpportunityMap.get(opp.Id))) {
+                continue;
+            }
+            if (opp.AccountId != null) {
+                accountIds.add(opp.AccountId);
+            }
+            if (opp.Product_Solutions__c != null) {
+                productSolutionIds.add(opp.Product_Solutions__c);
+            } else if (opp.AccountId != null && !String.isBlank(opp.Business_Unit__c)) {
+                productSolutionKeys.add(buildProductSolutionKey(opp.AccountId, opp.Business_Unit__c));
+            }
+        }
+
+        if (accountIds.isEmpty()) {
+            return classifiedOpportunities;
+        }
+
+        Map<Id, Account> accountsById = new Map<Id, Account>([
+            SELECT Id, Customer_Status__c
+            FROM Account
+            WHERE Id IN :accountIds
+        ]);
+
+        Map<Id, Product_Solutions__c> productSolutionsById = new Map<Id, Product_Solutions__c>();
+        if (!productSolutionIds.isEmpty()) {
+            productSolutionsById = new Map<Id, Product_Solutions__c>([
+                SELECT Id, Account_ID__c, Product_Solution__c, Product_Area_Status__c
+                FROM Product_Solutions__c
+                WHERE Id IN :productSolutionIds
+            ]);
+        }
+
+        Map<String, Product_Solutions__c> productSolutionsByAccountAndBusinessUnit = new Map<String, Product_Solutions__c>();
+        if (!productSolutionKeys.isEmpty()) {
+            for (Product_Solutions__c productSolution : [
+                SELECT Id, Account_ID__c, Product_Solution__c, Product_Area_Status__c
+                FROM Product_Solutions__c
+                WHERE Account_ID__c IN :accountIds
+                  AND Product_Solution__c != null
+            ]) {
+                String key = buildProductSolutionKey(productSolution.Account_ID__c, productSolution.Product_Solution__c);
+                if (productSolutionKeys.contains(key)) {
+                    productSolutionsByAccountAndBusinessUnit.put(key, productSolution);
+                }
+            }
+        }
+
+        for (Opportunity opp : opportunities) {
+            Opportunity oldOpp = oldOpportunityMap == null ? null : oldOpportunityMap.get(opp.Id);
+            if (!shouldCalculateOpportunityType(opp, oldOpp)) {
+                continue;
+            }
+
+            Account accountRec = accountsById.get(opp.AccountId);
+            Product_Solutions__c productSolution = opp.Product_Solutions__c == null
+                ? productSolutionsByAccountAndBusinessUnit.get(buildProductSolutionKey(opp.AccountId, opp.Business_Unit__c))
+                : productSolutionsById.get(opp.Product_Solutions__c);
+
+            if (opp.Product_Solutions__c == null && productSolution != null) {
+                opp.Product_Solutions__c = productSolution.Id;
+            }
+            if (accountRec != null) {
+                opp.Customer_Status_List__c = accountRec.Customer_Status__c;
+            }
+            if (productSolution != null) {
+                opp.Account_Customer_Status__c = productSolution.Product_Area_Status__c;
+            }
+
+            OpportunityTypeResult result = calculateOpportunityType(opp, accountRec, productSolution);
+            if (result == null) {
+                continue;
+            }
+            opp.Existing_Opportunity_Type__c = result.opportunityType;
+            opp.Contract_Type__c = result.contractType;
+            classifiedOpportunities.add(opp);
+        }
+
+        return classifiedOpportunities;
+    }
+
+    private static Boolean shouldCalculateOpportunityType(Opportunity newOpp, Opportunity oldOpp) {
+        if (newOpp == null || newOpp.AccountId == null) {
+            return false;
+        }
+        if (newOpp.Existing_Opportunity_Type__c == 'Renewal' ||
+            newOpp.Existing_Opportunity_Type__c == 'Account Growth' ||
+            newOpp.Existing_Opportunity_Type__c == 'OLP Transition') {
+            return false;
+        }
+        if (oldOpp == null) {
+            return true;
+        }
+        return newOpp.Sales_Type__c != oldOpp.Sales_Type__c ||
+            newOpp.Business_Unit__c != oldOpp.Business_Unit__c ||
+            newOpp.Product_Group__c != oldOpp.Product_Group__c ||
+            newOpp.Product_Solutions__c != oldOpp.Product_Solutions__c ||
+            newOpp.Account_Customer_Status__c != oldOpp.Account_Customer_Status__c ||
+            newOpp.Existing_Opportunity_Type__c != oldOpp.Existing_Opportunity_Type__c;
+    }
+
+    private static OpportunityTypeResult calculateOpportunityType(
+        Opportunity opp,
+        Account accountRec,
+        Product_Solutions__c productSolution
+    ) {
+        if (opp.Sales_Type__c == 'One-Time' || opp.Sales_Type__c == 'Service') {
+            return new OpportunityTypeResult('One-Time', null);
+        }
+
+        if (opp.Sales_Type__c != 'Subscription' || accountRec == null) {
+            return null;
+        }
+
+        Boolean accountActive = accountRec.Customer_Status__c == 'Active';
+        Boolean productAreaActive = productSolution != null && productSolution.Product_Area_Status__c == 'Active';
+
+        if (accountActive && productAreaActive) {
+            return new OpportunityTypeResult('Up-sell', 'Existing Contract');
+        }
+        if (accountActive) {
+            return new OpportunityTypeResult('Cross-sell', 'New Contract');
+        }
+        return new OpportunityTypeResult('Whitespace', 'New Contract');
+    }
+
+    private static String buildProductSolutionKey(Id accountId, String businessUnit) {
+        return String.valueOf(accountId) + '|' + String.valueOf(businessUnit);
+    }
+
+    private class OpportunityTypeResult {
+        String opportunityType;
+        String contractType;
+
+        OpportunityTypeResult(String opportunityType, String contractType) {
+            this.opportunityType = opportunityType;
+            this.contractType = contractType;
         }
     }
     
