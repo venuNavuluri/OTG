@@ -92,24 +92,60 @@ public class OrderTriggerHandler
                   AND SBQQ__Quote__r.Auto_Termination__c = true
             ];
 
+            Set<Id> quoteIds = new Set<Id>();
+            for (Order ord : terminationOrders) {
+                if (ord.SBQQ__Quote__c != null) {
+                    quoteIds.add(ord.SBQQ__Quote__c);
+                }
+            }
+
+            Set<String> terminationStatusesToFinalize = new Set<String>{
+                INSTALLATION_STATUS_FUTURE_TERMINATED,
+                INSTALLATION_STATUS_TERMINATION_PENDING
+            };
+            Map<Id, List<Installation__c>> installationsByQuote = new Map<Id, List<Installation__c>>();
+            if (!quoteIds.isEmpty()) {
+                for (Installation__c inst : [
+                    SELECT Id, Termination_Quote__c
+                    FROM Installation__c
+                    WHERE Termination_Quote__c IN :quoteIds
+                      AND Installation_Order_Status__c IN :terminationStatusesToFinalize
+                ]) {
+                    if (!installationsByQuote.containsKey(inst.Termination_Quote__c)) {
+                        installationsByQuote.put(inst.Termination_Quote__c, new List<Installation__c>());
+                    }
+                    installationsByQuote.get(inst.Termination_Quote__c).add(inst);
+                }
+            }
+
             List<Installation__c> installationsToUpdate = new List<Installation__c>();
+            Set<Id> installationIdsToUpdate = new Set<Id>();
             for (Order ord : terminationOrders) {
                 Id installationId = ord.SBQQ__Quote__r != null ? ord.SBQQ__Quote__r.Installation__c : null;
-                if (installationId == null) {
-                    continue;
+                if (installationId != null) {
+                    installationIdsToUpdate.add(installationId);
                 }
 
-                installationsToUpdate.add(new Installation__c(
-                    Id = installationId,
-                    Installation_Order_Status__c = INSTALLATION_STATUS_TERMINATED,
-                    Order__c = ord.Id,
-                    Quote__c = ord.SBQQ__Quote__c,
-                    Termination_Order__c = ord.Id,
-                    Termination_Quote__c = ord.SBQQ__Quote__c,
-                    Termination_Process_Status__c = 'Completed',
-                    Termination_Process_Error__c = null,
-                    Auto_Installation_Termination_Error__c = null
-                ));
+                if (installationsByQuote.containsKey(ord.SBQQ__Quote__c)) {
+                    for (Installation__c groupedInstallation : installationsByQuote.get(ord.SBQQ__Quote__c)) {
+                        installationIdsToUpdate.add(groupedInstallation.Id);
+                    }
+                }
+
+                for (Id idToUpdate : installationIdsToUpdate) {
+                    installationsToUpdate.add(new Installation__c(
+                        Id = idToUpdate,
+                        Installation_Order_Status__c = INSTALLATION_STATUS_TERMINATED,
+                        Order__c = ord.Id,
+                        Quote__c = ord.SBQQ__Quote__c,
+                        Termination_Order__c = ord.Id,
+                        Termination_Quote__c = ord.SBQQ__Quote__c,
+                        Termination_Process_Status__c = 'Completed',
+                        Termination_Process_Error__c = null,
+                        Auto_Installation_Termination_Error__c = null
+                    ));
+                }
+                installationIdsToUpdate.clear();
             }
 
             if (!installationsToUpdate.isEmpty()) {
@@ -138,28 +174,60 @@ public class OrderTriggerHandler
             ];
             if (orders.isEmpty()) return;
 
-            Map<Id, Order> installationToOrder = new Map<Id, Order>();
-            Set<Id> installationIds = new Set<Id>();
+            Set<Id> quoteIds = new Set<Id>();
+            for (Order ord : orders) {
+                if (ord.SBQQ__Quote__c != null) {
+                    quoteIds.add(ord.SBQQ__Quote__c);
+                }
+            }
+
+            Map<Id, List<Installation__c>> groupedInstallationsByQuote = new Map<Id, List<Installation__c>>();
+            if (!quoteIds.isEmpty()) {
+                for (Installation__c inst : [
+                    SELECT Id, Contract__c, Package__c, Quote_Line_Group__c, Termination_Quote__c
+                    FROM Installation__c
+                    WHERE Termination_Quote__c IN :quoteIds
+                ]) {
+                    if (!groupedInstallationsByQuote.containsKey(inst.Termination_Quote__c)) {
+                        groupedInstallationsByQuote.put(inst.Termination_Quote__c, new List<Installation__c>());
+                    }
+                    groupedInstallationsByQuote.get(inst.Termination_Quote__c).add(inst);
+                }
+            }
+
+            Map<Id, Order> orderByInstallation = new Map<Id, Order>();
+            Map<Id, Installation__c> installationsById = new Map<Id, Installation__c>();
             for (Order ord : orders) {
                 Id instId = ord.SBQQ__Quote__r != null ? ord.SBQQ__Quote__r.Installation__c : null;
                 if (instId != null) {
-                    installationIds.add(instId);
-                    installationToOrder.put(instId, ord);
+                    orderByInstallation.put(instId, ord);
+                }
+                if (groupedInstallationsByQuote.containsKey(ord.SBQQ__Quote__c)) {
+                    for (Installation__c groupedInstallation : groupedInstallationsByQuote.get(ord.SBQQ__Quote__c)) {
+                        orderByInstallation.put(groupedInstallation.Id, ord);
+                        installationsById.put(groupedInstallation.Id, groupedInstallation);
+                    }
                 }
             }
-            if (installationIds.isEmpty()) return;
+            if (orderByInstallation.isEmpty()) return;
 
-            List<Installation__c> installations = [
-                SELECT Id, Contract__c, Package__c, Quote_Line_Group__c
-                FROM Installation__c
-                WHERE Id IN :installationIds
-            ];
-            if (installations.isEmpty()) return;
+            Set<Id> installationIdsToQuery = new Set<Id>(orderByInstallation.keySet());
+            installationIdsToQuery.removeAll(installationsById.keySet());
+            if (!installationIdsToQuery.isEmpty()) {
+                for (Installation__c inst : [
+                    SELECT Id, Contract__c, Package__c, Quote_Line_Group__c
+                    FROM Installation__c
+                    WHERE Id IN :installationIdsToQuery
+                ]) {
+                    installationsById.put(inst.Id, inst);
+                }
+            }
 
             List<Installation_Change__c> changes = new List<Installation_Change__c>();
-            for (Installation__c inst : installations) {
-                Order ord = installationToOrder.get(inst.Id);
-                if (ord == null) continue;
+            for (Id installationId : orderByInstallation.keySet()) {
+                Installation__c inst = installationsById.get(installationId);
+                Order ord = orderByInstallation.get(installationId);
+                if (inst == null || ord == null) continue;
                 Installation_Change__c changeRec = InstallationChangeService.buildChangeRecord(
                     'Termination',
                     inst.Id,
