@@ -327,6 +327,7 @@ public class TestDataFactory_OTG {
             EndDate        = endD,
             CurrencyIsoCode = String.isBlank(currencyIso) ? 'USD' : currencyIso
         );
+        ctr.put('Contract_Terms_Version__c', '2024 Perform General Terms');
         insert ctr;
         return ctr;
     }

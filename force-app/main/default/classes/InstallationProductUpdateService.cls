@@ -13,6 +13,7 @@ public with sharing class InstallationProductUpdateService {
         @AuraEnabled public String productChangeType;
         @AuraEnabled public String currencyIsoCode;
         @AuraEnabled public Id orderId;
+        @AuraEnabled public Boolean requiresServiceOrder;
 
         // Flat lists (kept for convenience)
         @AuraEnabled public List<OrderItem> orderItems = new List<OrderItem>();
@@ -34,6 +35,7 @@ public with sharing class InstallationProductUpdateService {
             productChangeType = p.Product_Change_Type__c;
             currencyIsoCode = p.CurrencyIsoCode;
             orderId = p.Order__c;
+            requiresServiceOrder = p.Quote__r != null && p.Quote__r.Requires_Service_Order__c == true;
         }
     }
 
@@ -253,6 +255,7 @@ public with sharing class InstallationProductUpdateService {
                     Quote__c,
                     Quote_Line_Group__c,
                     Product_Change_Type__c,
+                    Quote__r.Requires_Service_Order__c,
                     // additional fields referenced elsewhere in repo
                     Order__c,
                     Installation_Quantity__c,
@@ -305,6 +308,7 @@ public with sharing class InstallationProductUpdateService {
                 SBQQ__Subscription__r.Name,
                 SBQQ__Subscription__r.SBQQ__Product__c,
                 SBQQ__Subscription__r.SBQQ__Product__r.Name,
+                SBQQ__Subscription__r.SBQQ__Product__r.Addendum_Requires_SOW__c,
                 SBQQ__Subscription__r.SBQQ__NetPrice__c,
                 SBQQ__Subscription__r.SBQQ__Contract__c,
                 SBQQ__Subscription__r.Package__c,
@@ -445,7 +449,8 @@ public with sharing class InstallationProductUpdateService {
         Map<Id, SBQQ__Subscription__c> subMap = new Map<Id, SBQQ__Subscription__c>();
         if (!subIds.isEmpty()) {
             List<SBQQ__Subscription__c> subs = [
-                SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c,
+                SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name,
+                       SBQQ__Product__r.Addendum_Requires_SOW__c, SBQQ__NetPrice__c,
                        SBQQ__Contract__c, Package__c, SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c,
                        CurrencyIsoCode, SBQQ__StartDate__c, SBQQ__EndDate__c, SBQQ__OrderProduct__r.SBQQ__ContractAction__c,
                        SBQQ__QuoteLine__c, SBQQ__QuoteLine__r.Change_Type__c
@@ -602,85 +607,51 @@ public with sharing class InstallationProductUpdateService {
                     continue;
                 }
 
-                if (salesOrder.Status__c == 'Unbilled' || salesOrder.Status__c == 'Pending Approval') {
-                    Date overlapStart = resolvedOrderStart;
-                    if (line.Start_Date__c != null && line.Start_Date__c > overlapStart) {
-                        overlapStart = line.Start_Date__c;
-                    }
-                    if (activationDate != null && activationDate > overlapStart) {
-                        overlapStart = activationDate;
-                    }
+                Date overlapStart = resolvedOrderStart;
+                if (line.Start_Date__c != null && line.Start_Date__c > overlapStart) {
+                    overlapStart = line.Start_Date__c;
+                }
+                if (activationDate != null && activationDate > overlapStart) {
+                    overlapStart = activationDate;
+                }
 
-                    Date overlapEnd = resolvedOrderEnd;
-                    if (line.End_Date__c != null && line.End_Date__c < overlapEnd) {
-                        overlapEnd = line.End_Date__c;
-                    }
+                Date overlapEnd = resolvedOrderEnd;
+                if (line.End_Date__c != null && line.End_Date__c < overlapEnd) {
+                    overlapEnd = line.End_Date__c;
+                }
 
-                    if (overlapStart != null && overlapEnd != null && overlapStart <= overlapEnd) {
-                        Decimal proratedAmount = calculateProratedAmount(
-                            line.Net_Total__c,
-                            line.Start_Date__c,
-                            line.End_Date__c,
-                            overlapStart,
-                            overlapEnd
-                        );
+                if (overlapStart != null && overlapEnd != null && overlapStart <= overlapEnd) {
+                    Decimal proratedAmount = calculateProratedAmount(
+                        line.Net_Total__c,
+                        line.Start_Date__c,
+                        line.End_Date__c,
+                        overlapStart,
+                        overlapEnd
+                    );
 
-                        Sales_Order_Item__c item = new Sales_Order_Item__c(
-                            Name = line.Name,
-                            Sales_Order__c = salesOrder.Id,
-                            Installation_Line__c = line.Id,
-                            Subscription__c = line.Subscription__c,
-                            CurrencyIsoCode = line.CurrencyIsoCode,
-                            Amount__c = proratedAmount
-                        );
-                        salesOrderItemsToCreate.add(item);
-                    }
-                } else if (salesOrder.Status__c == 'Billed') {
-                    Date overlapStart = activationDate;
-                    if (overlapStart == null) {
-                        overlapStart = line.Start_Date__c;
-                    } else if (line.Start_Date__c != null && line.Start_Date__c > overlapStart) {
-                        overlapStart = line.Start_Date__c;
-                    }
+                    Boolean isCancelLine = (line.Net_Total__c != null && line.Net_Total__c < 0);
 
-                    Date overlapEnd = resolvedOrderEnd;
-                    if (line.End_Date__c != null && line.End_Date__c < overlapEnd) {
-                        overlapEnd = line.End_Date__c;
-                    }
+                    Sales_Order__c newSalesOrder = new Sales_Order__c(
+                        Contract__c = salesOrder.Contract__c,
+                        Invoice_Account__c = salesOrder.Invoice_Account__c,
+                        Installation__c = salesOrder.Installation__c,
+                        Start_Date__c = overlapStart,
+                        End_Date__c = overlapEnd,
+                        Status__c = 'Pending Approval',
+                        CurrencyIsoCode = salesOrder.CurrencyIsoCode,
+                        Credit_Note__c = isCancelLine
+                    );
+                    newSalesOrders.add(newSalesOrder);
 
-                    if (overlapStart != null && overlapEnd != null && overlapStart <= overlapEnd) {
-                        Decimal proratedAmount = calculateProratedAmount(
-                            line.Net_Total__c,
-                            line.Start_Date__c,
-                            line.End_Date__c,
-                            overlapStart,
-                            overlapEnd
-                        );
-
-                        Boolean isCancelLine = (line.Net_Total__c != null && line.Net_Total__c < 0);
-
-                        Sales_Order__c newSalesOrder = new Sales_Order__c(
-                            Contract__c = salesOrder.Contract__c,
-                            Invoice_Account__c = salesOrder.Invoice_Account__c,
-                            Installation__c = salesOrder.Installation__c,
-                            Start_Date__c = overlapStart,
-                            End_Date__c = overlapEnd,
-                            Status__c = 'Pending Approval',
-                            CurrencyIsoCode = salesOrder.CurrencyIsoCode,
-                            Credit_Note__c = isCancelLine
-                        );
-                        newSalesOrders.add(newSalesOrder);
-
-                        Sales_Order_Item__c pendingItem = new Sales_Order_Item__c(
-                            Name = line.Name,
-                            Installation_Line__c = line.Id,
-                            Subscription__c = line.Subscription__c,
-                            CurrencyIsoCode = line.CurrencyIsoCode,
-                            Amount__c = proratedAmount
-                        );
-                        pendingItemsForNewOrders.add(pendingItem);
-                        pendingParents.add(newSalesOrder);
-                    }
+                    Sales_Order_Item__c pendingItem = new Sales_Order_Item__c(
+                        Name = line.Name,
+                        Installation_Line__c = line.Id,
+                        Subscription__c = line.Subscription__c,
+                        CurrencyIsoCode = line.CurrencyIsoCode,
+                        Amount__c = proratedAmount
+                    );
+                    pendingItemsForNewOrders.add(pendingItem);
+                    pendingParents.add(newSalesOrder);
                 }
             }
         }
@@ -708,6 +679,7 @@ public with sharing class InstallationProductUpdateService {
     public static List<Installation_Line__c> createInstallationLinesFromSubscriptions(Map<Id, PackageGroup> packageGroups) {
         installationActivationContext.clear();
         List<Installation_Line__c> newInstLines = new List<Installation_Line__c>();
+        List<Installation_Line__c> completedLinesForSalesOrderProcessing = new List<Installation_Line__c>();
         
         for (PackageGroup pkgGroup : packageGroups.values()) {
             if (pkgGroup.subscriptions.isEmpty()) {
@@ -741,6 +713,11 @@ public with sharing class InstallationProductUpdateService {
 
                     Date lineStart = (instStart > subStart) ? instStart : subStart;
                     Date lineEnd = (instEnd < subEnd) ? instEnd : subEnd;
+                    Boolean requiresServiceImplementation = productRequiresServiceImplementation(sub);
+                    String contractAction = sub.SBQQ__OrderProduct__r != null
+                        ? sub.SBQQ__OrderProduct__r.SBQQ__ContractAction__c
+                        : null;
+                    String changeAction = contractAction == 'Cancel' ? 'Remove Product' : 'Add Product';
 
                     Installation_Line__c newLine = new Installation_Line__c(
                         Name = sub.SBQQ__Product__r != null ? sub.SBQQ__Product__r.Name : 'Unknown Product',
@@ -748,13 +725,21 @@ public with sharing class InstallationProductUpdateService {
                         Subscription__c = sub.Id,
                         Quote_Line__c = sub.SBQQ__QuoteLine__c,
                         Product__c = sub.SBQQ__Product__c,
-                        Start_Date__c = subStart,
-                        End_Date__c = subEnd,
+                        Start_Date__c = lineStart,
+                        End_Date__c = lineEnd,
                         CurrencyIsoCode = sub.CurrencyIsoCode,
-                        Net_Total__c = sub.SBQQ__OrderProduct__r.SBQQ__ContractAction__c == 'Cancel' ? -sub.SBQQ__NetPrice__c : sub.SBQQ__NetPrice__c
+                        Net_Total__c = contractAction == 'Cancel' ? -sub.SBQQ__NetPrice__c : sub.SBQQ__NetPrice__c,
+                        Implementation_Status__c = requiresServiceImplementation ? 'Pending Implementation' : 'Completed',
+                        Implementation_Completed_Date__c = requiresServiceImplementation ? null : Date.today(),
+                        Implemented_By__c = requiresServiceImplementation ? null : UserInfo.getUserId(),
+                        Change_Action__c = changeAction,
+                        Source_Subscription_Order__c = pkgGroup.orderId
                     );
 
                     newInstLines.add(newLine);
+                    if (!requiresServiceImplementation) {
+                        completedLinesForSalesOrderProcessing.add(newLine);
+                    }
 
                     if (activationDate != null) {
                         installationActivationContext.put(inst.Id, activationDate);
@@ -775,8 +760,56 @@ public with sharing class InstallationProductUpdateService {
             throw new AuraHandledException(LOGGER_NAME + ' - Error inserting installation lines: ' + e.getMessage());
         }
 
-        processSalesOrders(newInstLines);
+        processSalesOrders(completedLinesForSalesOrderProcessing);
         
         return newInstLines;
+    }
+
+    private static Boolean productRequiresServiceImplementation(SBQQ__Subscription__c sub) {
+        if (sub == null || sub.SBQQ__Product__r == null) {
+            return false;
+        }
+        Map<String, Object> productFields = sub.SBQQ__Product__r.getPopulatedFieldsAsMap();
+        return productFields.containsKey('Addendum_Requires_SOW__c') &&
+            String.valueOf(productFields.get('Addendum_Requires_SOW__c')) == 'Yes';
+    }
+
+    public static void completeImplementationLines(Set<Id> installationLineIds, Id serviceOrderId, Date completedDate) {
+        if (installationLineIds == null || installationLineIds.isEmpty()) {
+            return;
+        }
+        Date resolvedCompletedDate = completedDate == null ? Date.today() : completedDate;
+
+        List<Installation_Line__c> linesToComplete = [
+            SELECT Id, Installation__c, Implementation_Status__c
+            FROM Installation_Line__c
+            WHERE Id IN :installationLineIds
+              AND (Implementation_Status__c = 'Pending Implementation' OR Implementation_Status__c = null)
+        ];
+        if (linesToComplete.isEmpty()) {
+            return;
+        }
+
+        for (Installation_Line__c line : linesToComplete) {
+            line.Implementation_Status__c = 'Completed';
+            line.Implementation_Completed_Date__c = resolvedCompletedDate;
+            line.Implemented_By__c = UserInfo.getUserId();
+            if (serviceOrderId != null) {
+                line.Source_Service_Order__c = serviceOrderId;
+            }
+            if (line.Installation__c != null) {
+                installationActivationContext.put(line.Installation__c, resolvedCompletedDate);
+            }
+        }
+        update linesToComplete;
+
+        List<Installation_Line__c> refreshedLines = [
+            SELECT Id, Name, Installation__c, Subscription__c, Quote_Line__c,
+                   Product__c, CurrencyIsoCode, Net_Total__c, Start_Date__c, End_Date__c,
+                   Implementation_Status__c
+            FROM Installation_Line__c
+            WHERE Id IN :new Map<Id, Installation_Line__c>(linesToComplete).keySet()
+        ];
+        processSalesOrders(refreshedLines);
     }
 }

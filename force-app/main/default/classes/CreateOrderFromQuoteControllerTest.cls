@@ -14,6 +14,10 @@ private class CreateOrderFromQuoteControllerTest {
 
         Date s = Date.today(), e = s.addMonths(12);
         TestDataFactory_OTG.createQuoteLine(qc.quote.Id, userQlg.Id, qc.pbe.Id, 1, null, 100, s, e, null);
+        update new Product2(
+            Id = qc.product.Id,
+            Addendum_Requires_SOW__c = 'Yes'
+        );
 
         Contract ctr = TestDataFactory_OTG.createContractBasic(qc.b2bAccount.Id, 'USD', Date.today(), 12, null);
         Package__c pkg = TestDataFactory_OTG.createPackageLinkedToQLG(ctr.Id, qc.quote.Id, userQlg, 1);
@@ -35,19 +39,20 @@ private class CreateOrderFromQuoteControllerTest {
         // 1) Validate (should pass)
         String validation = CreateOrderFromQuoteController.validateInstallationCount(qlg.SBQQ__Quote__c);
         // 2) Order the quote (should succeed)
-        String result = CreateOrderFromQuoteController.updateQuoteToOrdered(qlg.SBQQ__Quote__c);
+        String result = CreateOrderFromQuoteController.updateQuoteToOrdered(qlg.SBQQ__Quote__c, false);
         Test.stopTest();
 
         System.assertEquals('SUCCESS', validation, 'Validation should pass with matching counts.');
         System.assertEquals('SUCCESS', result, 'Ordering should return SUCCESS');
 
         SBQQ__Quote__c refreshed = [
-            SELECT Id, SBQQ__Ordered__c
+            SELECT Id, SBQQ__Ordered__c, Requires_Service_Order__c
             FROM SBQQ__Quote__c
             WHERE Id = :qlg.SBQQ__Quote__c
             LIMIT 1
         ];
         System.assertEquals(true, refreshed.SBQQ__Ordered__c, 'Quote should be marked as Ordered.');
+        System.assertEquals(true, refreshed.Requires_Service_Order__c, 'Quote should require service order when any quote product requires SOW.');
     }
 
     @IsTest

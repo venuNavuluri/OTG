@@ -4,9 +4,18 @@
         <apexClass>ActivateInstallationController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>ServiceOrderImplementationController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <fieldPermissions>
         <editable>false</editable>
         <field>Installation_Line__c.Current_Installation_Line__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Installation_Line__c.Change_Action__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -17,6 +26,21 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Installation_Line__c.Net_Total__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Installation_Line__c.Implementation_Completed_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Installation_Line__c.Implementation_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Installation_Line__c.Implemented_By__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -37,6 +61,16 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Installation_Line__c.Subscription__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Installation_Line__c.Source_Service_Order__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Installation_Line__c.Source_Subscription_Order__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

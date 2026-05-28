@@ -17,6 +17,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Product2.Addendum_Requires_SOW__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Product2.Deferred_Revenue_Account__c</field>
         <readable>true</readable>
     </fieldPermissions>

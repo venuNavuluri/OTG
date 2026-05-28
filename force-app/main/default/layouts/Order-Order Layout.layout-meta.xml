@@ -45,6 +45,10 @@
                 <behavior>Edit</behavior>
                 <field>Service_Delivery_Progress__c</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Service_Implementation_Completed__c</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
@@ -236,6 +240,11 @@
             <actionName>BrowseCatalog</actionName>
             <actionType>StandardButton</actionType>
             <sortOrder>21</sortOrder>
+        </platformActionListItems>
+        <platformActionListItems>
+            <actionName>Order.Service_Order_Implementation_POC</actionName>
+            <actionType>QuickAction</actionType>
+            <sortOrder>22</sortOrder>
         </platformActionListItems>
     </platformActionList>
     <relatedLists>

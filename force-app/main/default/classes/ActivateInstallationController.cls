@@ -133,7 +133,12 @@ public with sharing class ActivateInstallationController {
                     Start_Date__c = lineStart,
                     End_Date__c = lineEnd,
                     CurrencyIsoCode = sub.CurrencyIsoCode,
-                    Net_Total__c = netTotal
+                    Net_Total__c = netTotal,
+                    Implementation_Status__c = 'Completed',
+                    Implementation_Completed_Date__c = installationStartDate,
+                    Implemented_By__c = UserInfo.getUserId(),
+                    Change_Action__c = 'Standard',
+                    Source_Subscription_Order__c = inst.Order__c
                 ));
     
                 isFirst = false;

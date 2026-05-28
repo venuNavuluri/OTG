@@ -402,10 +402,11 @@ public with sharing class OpportunityTriggerHandler {
             if (opp.AccountId != null) {
                 accountIds.add(opp.AccountId);
             }
+            if (opp.AccountId != null && !String.isBlank(opp.Business_Unit__c)) {
+                productSolutionKeys.add(buildProductSolutionKey(opp.AccountId, opp.Business_Unit__c));
+            }
             if (opp.Product_Solutions__c != null) {
                 productSolutionIds.add(opp.Product_Solutions__c);
-            } else if (opp.AccountId != null && !String.isBlank(opp.Business_Unit__c)) {
-                productSolutionKeys.add(buildProductSolutionKey(opp.AccountId, opp.Business_Unit__c));
             }
         }
 
@@ -438,7 +439,12 @@ public with sharing class OpportunityTriggerHandler {
             ]) {
                 String key = buildProductSolutionKey(productSolution.Account_ID__c, productSolution.Product_Solution__c);
                 if (productSolutionKeys.contains(key)) {
-                    productSolutionsByAccountAndBusinessUnit.put(key, productSolution);
+                    Product_Solutions__c existingProductSolution = productSolutionsByAccountAndBusinessUnit.get(key);
+                    if (existingProductSolution == null ||
+                        (existingProductSolution.Product_Area_Status__c != 'Active' &&
+                         productSolution.Product_Area_Status__c == 'Active')) {
+                        productSolutionsByAccountAndBusinessUnit.put(key, productSolution);
+                    }
                 }
             }
         }
@@ -450,11 +456,17 @@ public with sharing class OpportunityTriggerHandler {
             }
 
             Account accountRec = accountsById.get(opp.AccountId);
-            Product_Solutions__c productSolution = opp.Product_Solutions__c == null
-                ? productSolutionsByAccountAndBusinessUnit.get(buildProductSolutionKey(opp.AccountId, opp.Business_Unit__c))
+            Product_Solutions__c currentProductSolution = opp.Product_Solutions__c == null
+                ? null
                 : productSolutionsById.get(opp.Product_Solutions__c);
+            Product_Solutions__c matchedProductSolution = productSolutionsByAccountAndBusinessUnit.get(
+                buildProductSolutionKey(opp.AccountId, opp.Business_Unit__c)
+            );
+            Product_Solutions__c productSolution = shouldReplaceProductSolution(opp, currentProductSolution, matchedProductSolution)
+                ? matchedProductSolution
+                : currentProductSolution;
 
-            if (opp.Product_Solutions__c == null && productSolution != null) {
+            if (productSolution != null && opp.Product_Solutions__c != productSolution.Id) {
                 opp.Product_Solutions__c = productSolution.Id;
             }
             if (accountRec != null) {
@@ -476,6 +488,25 @@ public with sharing class OpportunityTriggerHandler {
         return classifiedOpportunities;
     }
 
+    private static Boolean shouldReplaceProductSolution(
+        Opportunity opp,
+        Product_Solutions__c currentProductSolution,
+        Product_Solutions__c matchedProductSolution
+    ) {
+        if (matchedProductSolution == null) {
+            return false;
+        }
+        if (currentProductSolution == null) {
+            return true;
+        }
+        if (currentProductSolution.Account_ID__c != opp.AccountId ||
+            currentProductSolution.Product_Solution__c != opp.Business_Unit__c) {
+            return true;
+        }
+        return currentProductSolution.Product_Area_Status__c != 'Active' &&
+            matchedProductSolution.Product_Area_Status__c == 'Active';
+    }
+
     private static Boolean shouldCalculateOpportunityType(Opportunity newOpp, Opportunity oldOpp) {
         if (newOpp == null || newOpp.AccountId == null) {
             return false;
@@ -489,6 +520,7 @@ public with sharing class OpportunityTriggerHandler {
             return true;
         }
         return newOpp.Sales_Type__c != oldOpp.Sales_Type__c ||
+            newOpp.AccountId != oldOpp.AccountId ||
             newOpp.Business_Unit__c != oldOpp.Business_Unit__c ||
             newOpp.Product_Group__c != oldOpp.Product_Group__c ||
             newOpp.Product_Solutions__c != oldOpp.Product_Solutions__c ||

@@ -241,4 +241,72 @@ private class ActivateInstallationControllerTest {
         ];
         System.assertEquals(0, newLineCount, 'No new installation lines expected without subscriptions');
     }
+
+    @IsTest
+    static void testBuildInstallationLinesSetsImplementationFields() {
+        TestDataFactory_OTG.OrderContext ctx =
+            TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, false);
+
+        Contract contractRec = [
+            SELECT Id, CurrencyIsoCode
+            FROM Contract
+            WHERE Id = :ctx.packageRec.Contract__c
+            LIMIT 1
+        ];
+        update new Installation__c(
+            Id = ctx.installation.Id,
+            Contract__c = contractRec.Id,
+            Order__c = ctx.orderRec.Id,
+            Installation_Start_Date__c = Date.today(),
+            Installation_End_Date__c = Date.today().addMonths(6)
+        );
+        Installation__c inst = [
+            SELECT Id, Order__c, Installation_End_Date__c
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+            LIMIT 1
+        ];
+
+        SBQQ__QuoteLine__c ql = TestDataFactory_OTG.createQuoteLine(
+            ctx.qctx.quote.Id,
+            ctx.qlg.Id,
+            ctx.qctx.pbe.Id,
+            1,
+            null,
+            120,
+            Date.today(),
+            Date.today().addMonths(6),
+            null
+        );
+        SBQQ__Subscription__c sub = new SBQQ__Subscription__c(
+            SBQQ__Product__c = ctx.qctx.product.Id,
+            SBQQ__Product__r = ctx.qctx.product,
+            SBQQ__SubscriptionStartDate__c = Date.today(),
+            SBQQ__SubscriptionEndDate__c = Date.today().addMonths(6),
+            SBQQ__NetPrice__c = 120,
+            SBQQ__Quantity__c = 1,
+            CurrencyIsoCode = contractRec.CurrencyIsoCode,
+            SBQQ__QuoteLine__c = ql.Id
+        );
+
+        Test.startTest();
+        List<Installation_Line__c> lines =
+            ActivateInstallationController.buildInstallationLines(inst, new List<SBQQ__Subscription__c>{ sub }, Date.today());
+        Test.stopTest();
+
+        System.assertEquals(1, lines.size(), 'One installation line should be built.');
+        System.assertEquals('Completed', lines[0].Implementation_Status__c);
+        System.assertEquals('Standard', lines[0].Change_Action__c);
+        System.assertEquals(ctx.orderRec.Id, lines[0].Source_Subscription_Order__c);
+    }
+
+    @IsTest
+    static void testActivateInstallationHandlesInvalidInstallation() {
+        try {
+            ActivateInstallationController.activateInstallation(null, Date.today());
+            System.assert(false, 'Expected activation to fail for a missing installation id.');
+        } catch (AuraHandledException ex) {
+            System.assert(true, 'Expected AuraHandledException for invalid input.');
+        }
+    }
 }

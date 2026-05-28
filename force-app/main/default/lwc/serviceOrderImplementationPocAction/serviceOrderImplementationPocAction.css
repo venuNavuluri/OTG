@@ -1,0 +1,28 @@
+:host {
+  --slds-c-modal-sizing-width: 80vw;
+  --slds-c-modal-sizing-max-width: 80vw;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.quick-action-shell {
+  width: 100%;
+  min-width: 0;
+  max-height: calc(100vh - 8rem);
+  overflow: hidden;
+}
+
+@media (max-width: 64rem) {
+  :host {
+    --slds-c-modal-sizing-width: 92vw;
+    --slds-c-modal-sizing-max-width: 92vw;
+  }
+}
+
+@media (max-width: 48rem) {
+  :host {
+    --slds-c-modal-sizing-width: 96vw;
+    --slds-c-modal-sizing-max-width: 96vw;
+  }
+}

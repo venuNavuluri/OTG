@@ -2,6 +2,10 @@
 public class ContractTriggerHandlerTest {
     private static Id baseContractId;
     private static List<Id> basePackageIds = new List<Id>();
+
+    private static void applyRequiredContractTerms(Contract contractRecord) {
+        contractRecord.put('Contract_Terms_Version__c', '2024 Perform General Terms');
+    }
     
     private static void ensureBaseContractData() {
         if (baseContractId == null) {
@@ -110,6 +114,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(newCon);
         
         // Insert to trigger onBeforeInsert
         insert newCon;
@@ -156,6 +161,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(newCon);
         
         // Insert to trigger onAfterInsert
         insert newCon;
@@ -203,6 +209,7 @@ public class ContractTriggerHandlerTest {
             ContractTerm = 12,
             Previous_Contract__c = con.Id
         );
+        applyRequiredContractTerms(newCon);
         
         // Insert to trigger onBeforeInsert and onAfterInsert
         insert newCon;
@@ -239,6 +246,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(renewalCon);
         
         // Insert renewal contract
         insert renewalCon;
@@ -268,6 +276,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(con);
         
         // Insert to trigger onBeforeInsert which calls updatePreviousContract
         insert con;
@@ -309,6 +318,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(con);
         
         // Insert to trigger onBeforeInsert which calls updatePreviousContract
         insert con;
@@ -337,6 +347,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(newCon);
         
         // Insert to trigger onAfterInsert which calls updateContractDetails
         insert newCon;
@@ -371,6 +382,7 @@ public class ContractTriggerHandlerTest {
             EndDate = Date.today().addDays(365),
             ContractTerm = 12
         );
+        applyRequiredContractTerms(renewalCon);
         
         // Insert renewal contract
         insert renewalCon;

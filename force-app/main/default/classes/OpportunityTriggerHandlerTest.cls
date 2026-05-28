@@ -346,6 +346,67 @@ private class OpportunityTriggerHandlerTest {
     }
 
     @IsTest
+    static void testAccountChangeRelinksProductSolutionAndRecalculatesType() {
+        Account originalAccount = new Account(
+            Name = 'Original Prospect Account',
+            Customer_Status__c = 'Active',
+            CurrencyIsoCode = 'USD'
+        );
+        Account targetAccount = new Account(
+            Name = 'Target Active Account',
+            Customer_Status__c = 'Active',
+            CurrencyIsoCode = 'USD'
+        );
+        insert new List<Account>{ originalAccount, targetAccount };
+
+        Product_Solutions__c originalProductSolution = getOrCreateProductSolution(
+            originalAccount.Id,
+            'Technical Ship Management',
+            'Prospect'
+        );
+        Product_Solutions__c targetProductSolution = getOrCreateProductSolution(
+            targetAccount.Id,
+            'Technical Ship Management',
+            'Active'
+        );
+
+        Opportunity opportunityRec = new Opportunity(
+            Name = 'TSM Account Change',
+            AccountId = originalAccount.Id,
+            CloseDate = Date.today().addDays(30),
+            StageName = 'Prospecting & Qualifying',
+            Business_Unit__c = 'Technical Ship Management',
+            Product_Group__c = 'TM Master',
+            LeadSource = 'Existing Customer Relationship',
+            Sales_Type__c = 'Subscription',
+            Existing_Opportunity_Type__c = 'Whitespace',
+            Product_Solutions__c = originalProductSolution.Id,
+            Amount = 1000,
+            CurrencyIsoCode = 'USD'
+        );
+        insert opportunityRec;
+
+        Test.startTest();
+        opportunityRec.AccountId = targetAccount.Id;
+        update opportunityRec;
+        Test.stopTest();
+
+        Opportunity refreshed = [
+            SELECT Existing_Opportunity_Type__c, Contract_Type__c, Product_Solutions__c,
+                Account_Customer_Status__c, Customer_Status_List__c, Name
+            FROM Opportunity
+            WHERE Id = :opportunityRec.Id
+        ];
+
+        System.assertEquals('Up-sell', refreshed.Existing_Opportunity_Type__c);
+        System.assertEquals('Existing Contract', refreshed.Contract_Type__c);
+        System.assertEquals(targetProductSolution.Id, refreshed.Product_Solutions__c);
+        System.assertEquals('Active', refreshed.Account_Customer_Status__c);
+        System.assertEquals('Active', refreshed.Customer_Status_List__c);
+        System.assert(refreshed.Name.contains('/ Up-sell/'), 'Opportunity name should use recalculated Up-sell type: ' + refreshed.Name);
+    }
+
+    @IsTest
     static void testOneTimeOpportunityNameUsesFinalType() {
         Account accountRec = new Account(
             Name = 'One Time Account',

@@ -34,7 +34,7 @@ public with sharing class FutureInstallationTerminationService {
             return;
         }
 
-        Id quoteId = createAmendmentQuote(contractId);
+        Id quoteId = createAmendmentQuote(contractId, terminationDate);
         if (quoteId == null) {
             setRetryState(validInstallations, null, 'Awaiting grouped amendment quote creation.');
             scheduleRetry(contractId, terminationDate, null, 1);
@@ -182,7 +182,7 @@ public with sharing class FutureInstallationTerminationService {
         return validInstallations;
     }
 
-    private static Id createAmendmentQuote(Id contractId) {
+    private static Id createAmendmentQuote(Id contractId, Date terminationDate) {
         if (Test.isRunningTest() && testQuoteIdsByContract.containsKey(contractId)) {
             return testQuoteIdsByContract.get(contractId);
         }
@@ -190,12 +190,27 @@ public with sharing class FutureInstallationTerminationService {
         try {
             ContractAmenderHelper helper = new ContractAmenderHelper();
             ContractAmenderHelper.QuoteModel quoteModel = helper.load(contractId, true);
-            return quoteModel != null ? quoteModel.Id : null;
+            Id quoteId = quoteModel != null ? quoteModel.Id : null;
+            return quoteId != null ? quoteId : findExistingAmendmentQuote(contractId, terminationDate);
         } catch (Exception ex) {
             Logger.error('FutureInstallationTerminationService.createAmendmentQuote failed: ' + ex.getMessage());
             Logger.saveLog();
-            return null;
+            return findExistingAmendmentQuote(contractId, terminationDate);
         }
+    }
+
+    private static Id findExistingAmendmentQuote(Id contractId, Date terminationDate) {
+        List<SBQQ__Quote__c> quotes = [
+            SELECT Id
+            FROM SBQQ__Quote__c
+            WHERE SBQQ__MasterContract__c = :contractId
+              AND SBQQ__Type__c = 'Amendment'
+              AND SBQQ__Ordered__c = false
+              AND SBQQ__StartDate__c = :terminationDate
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+        return quotes.isEmpty() ? null : quotes[0].Id;
     }
 
     private static void stampTerminationQuote(Id quoteId, Id primaryInstallationId, Date terminationDate, Contract contractRec) {
@@ -277,7 +292,7 @@ public with sharing class FutureInstallationTerminationService {
         public void execute(QueueableContext context) {
             Id localQuoteId = quoteId;
             if (localQuoteId == null) {
-                localQuoteId = createAmendmentQuote(contractId);
+                localQuoteId = createAmendmentQuote(contractId, terminationDate);
             }
             processAmendmentQuote(contractId, terminationDate, localQuoteId, attempt);
         }

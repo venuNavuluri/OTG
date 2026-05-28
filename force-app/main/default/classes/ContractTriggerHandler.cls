@@ -192,7 +192,8 @@ public class ContractTriggerHandler {
                     con.Original_Fixed_Term_Start_Date__c = opp.SBQQ__RenewedContract__r.Original_Fixed_Term_Start_Date__c;
                     con.Original_Fixed_Term_End_Date__c = opp.SBQQ__RenewedContract__r.Original_Fixed_Term_End_Date__c;
                     con.Original_Fixed_Term__c = opp.SBQQ__RenewedContract__r.Original_Fixed_Term__c;
-                    con.Subscription_Value__c = opp.SBQQ__RenewedContract__r.Subscription_Value__c;
+                    // Subscription_Value__c is recalculated by contract metrics logic; do not copy forward the renewed contract value.
+                    // con.Subscription_Value__c = opp.SBQQ__RenewedContract__r.Subscription_Value__c;
                     con.Payment_Terms__c = opp.SBQQ__RenewedContract__r.Payment_Terms__c;
                 }
             }

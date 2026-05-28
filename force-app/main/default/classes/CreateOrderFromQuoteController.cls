@@ -7,8 +7,13 @@ public with sharing class CreateOrderFromQuoteController
     private static final String INSTALLATION_COUNT_MISMATCH_SUFFIX =
         '\n\nPlease update the package installations or package quantities before creating the order.';
 
-    @AuraEnabled
     public static string updateQuoteToOrdered(String qtId)
+    {
+        return updateQuoteToOrdered(qtId, false);
+    }
+
+    @AuraEnabled
+    public static string updateQuoteToOrdered(String qtId, Boolean requiresServiceOrder)
     {
         try
         {
@@ -18,9 +23,11 @@ public with sharing class CreateOrderFromQuoteController
             upsert vrConfig; 
             
             System.debug('qtid --> ' + qtId);
+            Boolean hasSowProducts = quoteHasSowProducts(qtId);
             SBQQ__Quote__c qt = new SBQQ__Quote__c(
                 Id = qtId,
-                SBQQ__Ordered__c = TRUE
+                SBQQ__Ordered__c = TRUE,
+                Requires_Service_Order__c = requiresServiceOrder == true || hasSowProducts
  
             );
             update qt;
@@ -99,5 +106,17 @@ public with sharing class CreateOrderFromQuoteController
 
     private static String escapeHtml(String value) {
         return String.isBlank(value) ? '' : value.escapeHtml4();
+    }
+
+    private static Boolean quoteHasSowProducts(String qtId) {
+        if (String.isBlank(qtId)) {
+            return false;
+        }
+        return [
+            SELECT COUNT()
+            FROM SBQQ__QuoteLine__c
+            WHERE SBQQ__Quote__c = :qtId
+              AND SBQQ__Product__r.Addendum_Requires_SOW__c = 'Yes'
+        ] > 0;
     }
 }

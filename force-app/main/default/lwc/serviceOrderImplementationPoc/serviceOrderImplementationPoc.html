@@ -1,0 +1,311 @@
+<template>
+  <lightning-card>
+    <div slot="title" class="title">
+      <lightning-icon
+        icon-name="standard:service_appointment"
+        size="small"
+      ></lightning-icon>
+      <span>Service Order Implementation</span>
+    </div>
+
+    <div slot="actions" class="header-actions">
+      <lightning-button-icon
+        icon-name="utility:refresh"
+        alternative-text="Refresh"
+        title="Refresh"
+        onclick={handleRefresh}
+      >
+      </lightning-button-icon>
+    </div>
+
+    <div class="shell">
+      <section class="order-strip">
+        <div>
+          <span class="label">Service Order</span>
+          <strong>{orderSummary.serviceOrderNumber}</strong>
+        </div>
+        <div>
+          <span class="label">Subscription Order</span>
+          <strong>{orderSummary.subscriptionOrderNumber}</strong>
+        </div>
+        <div>
+          <span class="label">Contract</span>
+          <strong>{orderSummary.contractNumber}</strong>
+        </div>
+        <div>
+          <span class="label">Quote</span>
+          <strong>{orderSummary.quoteNumber}</strong>
+        </div>
+        <div class="final-action">
+          <lightning-button
+            variant="brand"
+            label={completeServiceOrderLabel}
+            icon-name="utility:check"
+            disabled={disableCompleteServiceOrder}
+            onclick={handleCompleteServiceOrder}
+          >
+          </lightning-button>
+        </div>
+      </section>
+
+      <section class="summary">
+        <div class="metric">
+          <span class="label">Packages</span>
+          <strong>{summary.packageCount}</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Installations</span>
+          <strong>{summary.installationCount}</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Pending Lines</span>
+          <strong>{summary.pendingCount}</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Completed Lines</span>
+          <strong>{summary.completedCount}</strong>
+        </div>
+        <div class="metric status-metric">
+          <span class="label">Service Order Status</span>
+          <strong class="status-value">{orderSummary.status}</strong>
+        </div>
+        <div class="progress">
+          <div class="progress-header">
+            <span>Completion</span>
+            <strong>{summary.completionPercent}%</strong>
+          </div>
+          <lightning-progress-bar
+            value={summary.completionPercent}
+            size="medium"
+          ></lightning-progress-bar>
+        </div>
+      </section>
+
+      <section class="toolbar">
+        <lightning-combobox
+          label="Package"
+          value={selectedPackageId}
+          options={packageOptions}
+          onchange={handlePackageChange}
+        >
+        </lightning-combobox>
+
+        <lightning-combobox
+          label="Status"
+          value={selectedStatus}
+          options={statusOptions}
+          onchange={handleStatusChange}
+        >
+        </lightning-combobox>
+
+        <lightning-input
+          type="search"
+          label="Search"
+          value={searchKey}
+          placeholder="Vessel, installation, IMO, product"
+          onchange={handleSearch}
+        >
+        </lightning-input>
+
+        <div class="toolbar-actions">
+          <lightning-button
+            label="Select Visible Pending"
+            icon-name="utility:multi_select_checkbox"
+            disabled={disableSelectVisible}
+            onclick={handleSelectVisiblePending}
+          >
+          </lightning-button>
+
+          <lightning-button
+            variant="brand"
+            label="Mark Selected Complete"
+            icon-name="utility:success"
+            disabled={disableCompleteSelected}
+            onclick={handleCompleteSelected}
+          >
+          </lightning-button>
+        </div>
+      </section>
+
+      <section class="content">
+        <aside class="package-list" aria-label="Packages">
+          <template for:each={packages} for:item="pkg">
+            <div key={pkg.id} class={pkg.className}>
+              <button
+                class="package-select"
+                data-id={pkg.id}
+                onclick={handlePackageTileClick}
+              >
+                <span class="package-name">{pkg.name}</span>
+                <span class="package-meta"
+                  >{pkg.completedLines}/{pkg.totalLines} complete</span
+                >
+              </button>
+              <lightning-button
+                class="package-complete-button"
+                label="Complete Package"
+                icon-name="utility:success"
+                disabled={pkg.disableCompletePackage}
+                data-package-id={pkg.id}
+                onclick={handleConfirmCompletePackage}
+              >
+              </lightning-button>
+            </div>
+          </template>
+        </aside>
+
+        <div class="work-area">
+          <template if:true={hasRows}>
+            <template for:each={pagedRows} for:item="row">
+              <article key={row.id} class="installation">
+                <header class="installation-header">
+                  <div>
+                    <a
+                      class="installation-title"
+                      href={row.recordUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {row.name}
+                    </a>
+                    <div class="installation-meta">
+                      {row.packageName} | {row.vessel} | IMO {row.imo}
+                    </div>
+                  </div>
+                  <div class="installation-actions">
+                    <div class={row.statusClass}>{row.statusLabel}</div>
+                    <lightning-button
+                      label="Complete Installation"
+                      icon-name="utility:success"
+                      disabled={row.disableCompleteInstallation}
+                      data-installation-id={row.id}
+                      onclick={handleCompleteInstallation}
+                    >
+                    </lightning-button>
+                  </div>
+                </header>
+
+                <div
+                  class="line-table"
+                  role="table"
+                  aria-label="Implementation lines"
+                >
+                  <div class="line-row line-heading" role="row">
+                    <span></span>
+                    <span>Product</span>
+                    <span>Action</span>
+                    <span>Status</span>
+                    <span>Completed Date</span>
+                  </div>
+
+                  <template for:each={row.lines} for:item="line">
+                    <div key={line.id} class="line-row" role="row">
+                      <lightning-input
+                        type="checkbox"
+                        variant="label-hidden"
+                        data-line-id={line.id}
+                        checked={line.selected}
+                        disabled={line.disableSelect}
+                        onchange={handleLineSelect}
+                      >
+                      </lightning-input>
+                      <span class="product">{line.product}</span>
+                      <span class={line.actionClass}>{line.action}</span>
+                      <span class={line.badgeClass}>{line.status}</span>
+                      <span>{line.completedDate}</span>
+                    </div>
+                  </template>
+                </div>
+              </article>
+            </template>
+          </template>
+
+          <template if:false={hasRows}>
+            <div class="empty">
+              <lightning-icon
+                icon-name="utility:search"
+                size="small"
+              ></lightning-icon>
+              <span>No implementation work matches the current filters.</span>
+            </div>
+          </template>
+
+          <footer class="pager">
+            <lightning-button
+              label="Previous"
+              disabled={disablePrevious}
+              onclick={handlePrevious}
+            >
+            </lightning-button>
+            <span>{pageLabel}</span>
+            <lightning-button
+              label="Next"
+              disabled={disableNext}
+              onclick={handleNext}
+            >
+            </lightning-button>
+          </footer>
+        </div>
+      </section>
+    </div>
+  </lightning-card>
+
+  <template if:true={showCompletionModal}>
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      aria-labelledby="completion-confirm-heading"
+      class="slds-modal slds-fade-in-open confirm-modal"
+    >
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <h2 id="completion-confirm-heading" class="slds-text-heading_medium">
+            {completionModalTitle}
+          </h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <p class="confirm-message">
+            Confirm completion for
+            <strong class="confirm-package-name">
+              {completionTargetName}
+            </strong>?
+          </p>
+          <p class="confirm-summary">
+            {completionPendingCount} pending line(s) will be marked Completed.
+          </p>
+          <lightning-input
+            class="completion-date-input"
+            type="date"
+            label="Completion Date"
+            value={completionDate}
+            min={orderSummary.contractStartDate}
+            max={orderSummary.contractEndDate}
+            message-when-range-underflow="Completion Date must be within the contract period."
+            message-when-range-overflow="Completion Date must be within the contract period."
+            required
+            onchange={handleCompletionDateChange}
+          >
+          </lightning-input>
+          <template if:true={completionDateMessage}>
+            <p class="completion-date-help">{completionDateMessage}</p>
+          </template>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button
+            label="Cancel"
+            onclick={handleCancelCompletePackage}
+          ></lightning-button>
+          <lightning-button
+            class="slds-m-left_small"
+            variant="brand"
+            label="Complete"
+            disabled={disableConfirmCompletion}
+            onclick={handleConfirmCompletion}
+          ></lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+</template>

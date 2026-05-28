@@ -1,0 +1,403 @@
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.shell {
+  padding: 0 1rem 1rem;
+  max-height: calc(100vh - 11rem);
+  overflow: auto;
+}
+
+.order-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8rem, 1fr)) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #d8dde6;
+  border-radius: 0.25rem;
+  background: #f7f9fb;
+}
+
+.order-strip strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: #181818;
+}
+
+.final-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(7rem, 1fr)) minmax(12rem, 1.15fr)
+    minmax(14rem, 1.45fr);
+  gap: 0.75rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+
+.metric,
+.progress {
+  border: 1px solid #d8dde6;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  background: #ffffff;
+}
+
+.label,
+.package-meta,
+.installation-meta {
+  color: #5c5c5c;
+  font-size: 0.75rem;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.35rem;
+  line-height: 1.4rem;
+}
+
+.metric strong,
+.progress strong {
+  overflow-wrap: anywhere;
+}
+
+.status-metric {
+  min-width: 0;
+}
+
+.status-value {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 0.25rem;
+  background: #fff7e6;
+  color: #8a5a00;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 0.9rem;
+  padding: 0.2rem 0.35rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns:
+    minmax(9rem, 1fr) minmax(9rem, 0.8fr) minmax(16rem, 1.2fr)
+    minmax(19rem, auto);
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-bottom: 0.05rem;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.package-list {
+  border: 1px solid #d8dde6;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  max-height: 34rem;
+  overflow: auto;
+}
+
+.package-tile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  padding: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.package-select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0.3rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.package-tile:hover,
+.package-tile.selected {
+  border-color: #1b96ff;
+  background: #f3f8ff;
+}
+
+.package-name,
+.package-meta {
+  display: block;
+}
+
+.package-name {
+  font-weight: 600;
+  color: #181818;
+}
+
+.package-complete-button {
+  width: 100%;
+}
+
+.confirm-modal .slds-modal__container {
+  max-width: 40rem;
+  width: 40rem;
+}
+
+.confirm-message {
+  font-size: 1rem;
+  color: #181818;
+}
+
+.confirm-package-name {
+  margin-left: 0.25rem;
+}
+
+.confirm-summary {
+  margin-top: 0.5rem;
+  color: #5c5c5c;
+}
+
+.completion-date-input {
+  margin-top: 1rem;
+  max-width: 14rem;
+}
+
+.completion-date-help {
+  margin-top: 0.35rem;
+  color: #5c5c5c;
+  font-size: 0.75rem;
+}
+
+.work-area {
+  min-width: 0;
+}
+
+.installation {
+  border: 1px solid #d8dde6;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.installation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.installation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.installation-title {
+  font-weight: 700;
+  color: #0b5cab;
+  text-decoration: none;
+}
+
+.installation-title:hover,
+.installation-title:focus {
+  text-decoration: underline;
+}
+
+.status,
+.badge,
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status.completed,
+.badge.completed {
+  background: #ecfdf3;
+  color: #05603a;
+}
+
+.status.pending,
+.badge.pending {
+  background: #fff7e6;
+  color: #8a5a00;
+}
+
+.status.partial {
+  background: #eef4ff;
+  color: #1949a3;
+}
+
+.action.add {
+  color: #05603a;
+}
+
+.action.remove {
+  color: #ba0517;
+}
+
+.line-table {
+  width: 100%;
+  min-width: 42rem;
+}
+
+.installation {
+  overflow-x: auto;
+}
+
+.line-row {
+  display: grid;
+  grid-template-columns:
+    2.25rem minmax(11rem, 16rem) minmax(7rem, 8rem) minmax(10rem, 12rem)
+    minmax(7rem, 8rem);
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.line-heading {
+  min-height: 2.25rem;
+  background: #f7f9fb;
+  color: #444444;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.product {
+  min-width: 0;
+  max-width: 16rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.25rem;
+}
+
+.empty {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #c9c9c9;
+  border-radius: 0.25rem;
+  min-height: 12rem;
+  color: #5c5c5c;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+@media (max-width: 64rem) {
+  .order-strip,
+  .summary,
+  .toolbar,
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .final-action,
+  .toolbar-actions {
+    justify-content: stretch;
+  }
+
+  .toolbar-actions,
+  .installation-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .package-list {
+    max-height: 14rem;
+  }
+
+  .line-row {
+    grid-template-columns: 2.25rem minmax(9rem, 1fr);
+    gap: 0.4rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .line-row > span:nth-child(n + 3) {
+    grid-column: 2;
+  }
+
+  .line-heading {
+    display: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .shell {
+    padding: 0 0.75rem 0.75rem;
+  }
+
+  .order-strip,
+  .metric,
+  .progress,
+  .installation {
+    border-radius: 0.25rem;
+  }
+
+  .installation-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .line-table {
+    min-width: 0;
+  }
+
+  .product {
+    max-width: none;
+  }
+}

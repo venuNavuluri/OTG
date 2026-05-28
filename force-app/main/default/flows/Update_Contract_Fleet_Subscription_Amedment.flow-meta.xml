@@ -63,7 +63,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Update_Fleet_Subscription_Type</targetReference>
+            <targetReference>Get_Master_Contract</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -79,7 +79,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Update_Fleet_Subscription_Type</targetReference>
+            <targetReference>Get_Master_Contract</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -95,7 +95,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Update_Fleet_Subscription_Type</targetReference>
+            <targetReference>Get_Master_Contract</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -111,7 +111,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Update_Fleet_Subscription_Type</targetReference>
+            <targetReference>Get_Master_Contract</targetReference>
         </connector>
     </assignments>
     <customErrors>
@@ -147,6 +147,28 @@
         </rules>
     </decisions>
     <decisions>
+        <name>Check_Quote_Lines_Found</name>
+        <label>Check Quote Lines Found</label>
+        <locationX>446</locationX>
+        <locationY>593</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Quote_Lines_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote_Lines</leftValueReference>
+                <operator>IsEmpty</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Through_Quote_Lines</targetReference>
+            </connector>
+            <label>Quote Lines Found</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Check_for_Change_Type</name>
         <label>Check for Change Type</label>
         <locationX>1062</locationX>
@@ -169,6 +191,42 @@
                 <targetReference>Check_Revenue_Type</targetReference>
             </connector>
             <label>Cancel?</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Should_Update_Contract</name>
+        <label>Check Should Update Contract</label>
+        <locationX>446</locationX>
+        <locationY>1547</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Contract_Update_Required</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>FleetSubscriptionType</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Master_Contract.Contract_Terms_Version__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Master_Contract.Fleet_Subscription_Type__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>FleetSubscriptionType</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Fleet_Subscription_Type</targetReference>
+            </connector>
+            <label>Contract Update Required</label>
         </rules>
     </decisions>
     <decisions>
@@ -366,13 +424,34 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <name>Get_Master_Contract</name>
+        <label>Get Master Contract</label>
+        <locationX>446</locationX>
+        <locationY>1487</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Should_Update_Contract</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.SBQQ__MasterContract__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Contract</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
         <name>Get_Quote_Lines</name>
         <label>Get Quote Lines</label>
         <locationX>446</locationX>
         <locationY>539</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Loop_Through_Quote_Lines</targetReference>
+            <targetReference>Check_Quote_Lines_Found</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -422,6 +501,13 @@
             <operator>EqualTo</operator>
             <value>
                 <stringValue>Amendment</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>SBQQ__MasterContract__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
             </value>
         </filters>
         <object>SBQQ__Quote__c</object>

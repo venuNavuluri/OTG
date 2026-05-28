@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Implemented_By__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Implemented By</label>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Implemented Installation Lines</relationshipLabel>
+    <relationshipName>Implemented_Installation_Lines</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

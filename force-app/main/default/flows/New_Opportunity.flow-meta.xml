@@ -553,7 +553,7 @@
     <formulas>
         <name>SubscriptionValue</name>
         <dataType>Currency</dataType>
-        <expression>CURRENCYRATE(TEXT({!Get_Contract.CurrencyIsoCode})) * CURRENCYRATE(TEXT({!Get_Created_Opp.CurrencyIsoCode})) * {!Get_Contract.Subscription_Value__c}</expression>
+        <expression>(CURRENCYRATE(TEXT({!Get_Created_Opp.CurrencyIsoCode})) * {!Get_Contract.Subscription_Value__c}) / CURRENCYRATE(TEXT({!Get_Contract.CurrencyIsoCode}))</expression>
         <scale>2</scale>
     </formulas>
     <interviewLabel>New Opportunity {!$Flow.CurrentDateTime}</interviewLabel>
