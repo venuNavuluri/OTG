@@ -60,9 +60,9 @@ public with sharing class ActivateInstallationController {
         for (OrderItem oi : orderItems) orderItemIds.add(oi.Id);
 
         return [
-            SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c,
-                   SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, CurrencyIsoCode,
-                   SBQQ__OrderProduct__c, SBQQ__QuoteLine__c,SBQQ__StartDate__c,SBQQ__EndDate__c
+	            SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c, Annual_Subscription_Value__c,
+	                   SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, CurrencyIsoCode,
+	                   SBQQ__OrderProduct__c, SBQQ__QuoteLine__c,SBQQ__StartDate__c,SBQQ__EndDate__c
             FROM SBQQ__Subscription__c
             WHERE SBQQ__OrderProduct__c IN :orderItemIds
         ];
@@ -120,9 +120,10 @@ public with sharing class ActivateInstallationController {
     
                 Boolean needsProration = (lineStart > subStart || lineEnd < subEnd || (isFirst && installationStartDate < subStart));
     
-                Decimal netTotal = needsProration
-                    ? calculateProratedAmount(sub.SBQQ__NetPrice__c, subStart, subEnd, lineStart, lineEnd)
-                    : sub.SBQQ__NetPrice__c;
+	                Decimal baseAmount = getSubscriptionBaseAmount(sub);
+	                Decimal netTotal = needsProration
+	                    ? calculateProratedAmount(baseAmount, subStart, subEnd, lineStart, lineEnd)
+	                    : baseAmount;
     
                 instLines.add(new Installation_Line__c(
                     Name = sub.SBQQ__Product__r.Name,
@@ -148,8 +149,8 @@ public with sharing class ActivateInstallationController {
         return instLines;
     }
 	
-    @TestVisible
-    private static Decimal calculateProratedAmount(Decimal netPrice, Date segStart, Date segEnd, Date lineStart, Date lineEnd) {
+	    @TestVisible
+	    private static Decimal calculateProratedAmount(Decimal netPrice, Date segStart, Date segEnd, Date lineStart, Date lineEnd) {
         try {
             Boolean isMonthlyAligned =
                 segStart.day() == 1 &&
@@ -166,10 +167,16 @@ public with sharing class ActivateInstallationController {
                 Decimal lineDays = lineStart.daysBetween(lineEnd) + 1;
                 return (lineDays / totalDays) * netPrice;
             }
-        } catch (Exception ex) {
-            Logger.error('Error in calculateProratedAmount: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
-            Logger.saveLog();
-            return 0;
-        }
-    }
-}
+	        } catch (Exception ex) {
+	            Logger.error('Error in calculateProratedAmount: ' + ex.getMessage() + '\n' + ex.getStackTraceString());
+	            Logger.saveLog();
+	            return 0;
+	        }
+	    }
+
+	    private static Decimal getSubscriptionBaseAmount(SBQQ__Subscription__c sub) {
+	        return sub.Annual_Subscription_Value__c != null
+	            ? sub.Annual_Subscription_Value__c
+	            : sub.SBQQ__NetPrice__c;
+	    }
+	}

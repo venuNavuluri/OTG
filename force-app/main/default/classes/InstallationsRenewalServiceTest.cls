@@ -174,6 +174,59 @@ private class InstallationsRenewalServiceTest {
     }
 
     @IsTest
+    static void testProcessRenewalInstallationsExcludesPriorOverlappingLines() {
+        TestDataFactory_OTG.OrderContext ctx = buildRenewalContext();
+
+        Installation__c inst = [
+            SELECT Id,
+                   Contract__c,
+                   Contract__r.StartDate,
+                   Contract__r.EndDate,
+                   Quote_Line_Group__c,
+                   Order__c,
+                   Installation_Start_Date__c,
+                   Installation_End_Date__c,
+                   Invoice_Account__c,
+                   CurrencyIsoCode
+            FROM Installation__c
+            WHERE Id = :ctx.installation.Id
+        ];
+
+        Installation_Line__c priorLine = new Installation_Line__c(
+            Name = 'Prior Overlap Line',
+            Installation__c = inst.Id,
+            Start_Date__c = inst.Contract__r.StartDate.addMonths(-12),
+            End_Date__c = inst.Contract__r.StartDate.addDays(3),
+            Net_Total__c = 999,
+            CurrencyIsoCode = inst.CurrencyIsoCode
+        );
+        insert priorLine;
+
+        Test.startTest();
+        InstallationsRenewalService.processRenewalInstallations(new List<Installation__c>{ inst });
+        Test.stopTest();
+
+        List<Sales_Order__c> generatedOrders = [
+            SELECT Id
+            FROM Sales_Order__c
+            WHERE Installation__c = :inst.Id
+        ];
+        System.assert(!generatedOrders.isEmpty(), 'Expected sales orders to be generated for renewal installation');
+
+        Integer priorLineItemCount = [
+            SELECT COUNT()
+            FROM Sales_Order_Item__c
+            WHERE Sales_Order__c IN :generatedOrders
+            AND Installation_Line__c = :priorLine.Id
+        ];
+        System.assertEquals(
+            0,
+            priorLineItemCount,
+            'Renewal sales orders should not include prior-period installation lines even when dates overlap'
+        );
+    }
+
+    @IsTest
     static void testProcessRenewalInstallationsWithoutSubscriptions() {
         Account acct = (Account)TestDataFactory.createSObject('Account', new Map<String, Object>{
             'Name' => 'No Subs Account'

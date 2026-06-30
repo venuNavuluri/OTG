@@ -20,6 +20,17 @@ public class QuoteTriggerHandler extends TriggerHandler {
     private static final String INSTALLATION_TERMINATED = 'Terminated';
     private static final Integer DEFAULT_SUBSCRIPTION_TERM = 12;
     private static final String RENEWAL_TYPE_NON_STANDARD = 'Non Standard Renewal';
+    @TestVisible private static Boolean approveQuoteActionInProgress = false;
+    @TestVisible private static Boolean enforceApproveQuoteActionInTests = false;
+
+    public static void setApproveQuoteActionInProgress(Boolean inProgress) {
+        approveQuoteActionInProgress = inProgress == true;
+    }
+
+    @TestVisible
+    private static void setEnforceApproveQuoteActionInTests(Boolean enforce) {
+        enforceApproveQuoteActionInTests = enforce == true;
+    }
     
     
     public override void beforeInsert() {
@@ -51,6 +62,7 @@ public class QuoteTriggerHandler extends TriggerHandler {
         VRConfiguration__c userSetting = VRConfiguration__c.getInstance(UserInfo.getUserId());
         Boolean isBypassEnabled = userSetting != null && userSetting.Quote_Ordered_Validation__c;
         
+        enforceApprovalThroughApproveQuoteAction((List<SBQQ__Quote__c>) Trigger.new, (Map<Id, SBQQ__Quote__c>) Trigger.oldMap);
         updateQuoteEndDate((List<SBQQ__Quote__c>) Trigger.new);
     }
     
@@ -96,6 +108,73 @@ public class QuoteTriggerHandler extends TriggerHandler {
                     
                 }
             }  
+
+    private void enforceApprovalThroughApproveQuoteAction(List<SBQQ__Quote__c> newQuotes, Map<Id, SBQQ__Quote__c> oldQuoteMap) {
+        if (approveQuoteActionInProgress) {
+            return;
+        }
+        if (Test.isRunningTest() && !enforceApproveQuoteActionInTests) {
+            return;
+        }
+
+        Set<Id> approvalCandidateIds = new Set<Id>();
+        for (SBQQ__Quote__c quote : newQuotes) {
+            SBQQ__Quote__c oldQuote = oldQuoteMap == null ? null : oldQuoteMap.get(quote.Id);
+            if (oldQuote != null &&
+                quote.SBQQ__Status__c == STATUS_APPROVED &&
+                oldQuote.SBQQ__Status__c != STATUS_APPROVED) {
+                approvalCandidateIds.add(quote.Id);
+            }
+        }
+
+        Map<Id, SBQQ__Quote__c> persistedQuotes = approvalCandidateIds.isEmpty()
+            ? new Map<Id, SBQQ__Quote__c>()
+            : new Map<Id, SBQQ__Quote__c>([
+                SELECT Id, SBQQ__Type__c, SBQQ__Uncalculated__c, Auto_Termination__c, Auto_Installation__c
+                FROM SBQQ__Quote__c
+                WHERE Id IN :approvalCandidateIds
+            ]);
+
+        for (SBQQ__Quote__c quote : newQuotes) {
+            SBQQ__Quote__c oldQuote = oldQuoteMap == null ? null : oldQuoteMap.get(quote.Id);
+            if (oldQuote == null || !approvalCandidateIds.contains(quote.Id)) {
+                continue;
+            }
+
+            if (!isAutoApprovalAndOrderUpdate(quote, oldQuote, persistedQuotes.get(quote.Id))) {
+                quote.SBQQ__Status__c.addError('Use the Approve Quote button to approve this quote.');
+            }
+        }
+    }
+
+    @TestVisible
+    private static Boolean isAutoApprovalAndOrderUpdate(
+        SBQQ__Quote__c quote,
+        SBQQ__Quote__c oldQuote,
+        SBQQ__Quote__c persistedQuote
+    ) {
+        String quoteType = firstString(quote.SBQQ__Type__c, oldQuote.SBQQ__Type__c, persistedQuote.SBQQ__Type__c);
+        Boolean uncalculated = firstBoolean(quote.SBQQ__Uncalculated__c, oldQuote.SBQQ__Uncalculated__c, persistedQuote.SBQQ__Uncalculated__c);
+        Boolean autoTermination = firstBoolean(quote.Auto_Termination__c, oldQuote.Auto_Termination__c, persistedQuote.Auto_Termination__c);
+        Boolean autoInstallation = firstBoolean(quote.Auto_Installation__c, oldQuote.Auto_Installation__c, persistedQuote.Auto_Installation__c);
+
+        return quote.SBQQ__Ordered__c == true &&
+            quoteType == QUOTE_TYPE_AMENDMENT &&
+            uncalculated != true &&
+            (autoTermination == true || autoInstallation == true);
+    }
+
+    private static String firstString(String firstValue, String secondValue, String thirdValue) {
+        if (firstValue != null) return firstValue;
+        if (secondValue != null) return secondValue;
+        return thirdValue;
+    }
+
+    private static Boolean firstBoolean(Boolean firstValue, Boolean secondValue, Boolean thirdValue) {
+        if (firstValue != null) return firstValue;
+        if (secondValue != null) return secondValue;
+        return thirdValue;
+    }
 
     private void updateRenewalTypeOnApproval(Map<Id, SBQQ__Quote__c> approvedQuotes)
     {

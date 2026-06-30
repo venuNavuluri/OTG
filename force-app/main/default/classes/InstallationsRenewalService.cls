@@ -24,6 +24,11 @@ public with sharing class InstallationsRenewalService {
                 insert allLinesToInsert;
             }
 
+            Set<Id> renewalLineIds = new Set<Id>();
+            for (Installation_Line__c line : allLinesToInsert) {
+                renewalLineIds.add(line.Id);
+            }
+
             for (Installation__c inst : installations) {
                 if (lineInstallations.contains(inst.Id)) {
                     validInstallationsForSO.add(inst);
@@ -31,7 +36,7 @@ public with sharing class InstallationsRenewalService {
             }
 
             if (!validInstallationsForSO.isEmpty()) {
-                SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true, false);
+                SalesOrderGeneratorService.generateSalesOrders(validInstallationsForSO, true, false, renewalLineIds);
             }
         } finally {
         }
@@ -73,7 +78,8 @@ public with sharing class InstallationsRenewalService {
         }
     
         List<SBQQ__Subscription__c> subs = [
-            SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c,SBQQ__StartDate__c, SBQQ__EndDate__c,
+            SELECT Id, Name, SBQQ__Product__c, SBQQ__Product__r.Name, SBQQ__NetPrice__c, Annual_Subscription_Value__c,
+                   SBQQ__StartDate__c, SBQQ__EndDate__c,
                    SBQQ__SegmentStartDate__c, SBQQ__SegmentEndDate__c, CurrencyIsoCode,
                    SBQQ__OrderProduct__c, SBQQ__QuoteLine__c
             FROM SBQQ__Subscription__c

@@ -217,6 +217,42 @@ public class CreateInstallationsControllerTest {
     }
 
     @IsTest
+    static void testCreateNewInstRecordAllowsTerminatedDuplicateVessel() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        InstallationTriggerHandler.setSuppressTerminationSalesOrderProcessing(true);
+        update new Installation__c(
+            Id = ctx.installation.Id,
+            Installation_Order_Status__c = 'Terminated'
+        );
+        InstallationTriggerHandler.setSuppressTerminationSalesOrderProcessing(false);
+
+        Installation__c replacement = new Installation__c(
+            Contract__c = ctx.packageRec.Contract__c,
+            Package__c = ctx.packageRec.Id,
+            Quote__c = ctx.qctx.quote.Id,
+            Vessel_Name__c = ctx.installation.Vessel_Name__c
+        );
+
+        SBQQMockHttpResponseGenerator.setQuoteId(ctx.qctx.quote.Id);
+
+        System.runAs(getBypassUser()) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new SBQQMockHttpResponseGenerator());
+            String result = CreateInstallationsController.createNewInstRecord(
+                false,
+                ctx.packageRec.Id,
+                ctx.packageRec.Contract__c,
+                replacement,
+                Date.today()
+            );
+            Test.stopTest();
+
+            System.assert(result.startsWith('SUCCESS'), 'Terminated installation should not block replacement');
+        }
+    }
+
+    @IsTest
     static void testCreateNewInstRecordTerminatePath() {
         TestDataFactory_OTG.OrderContext ctx = buildContext();
 
@@ -272,6 +308,28 @@ public class CreateInstallationsControllerTest {
         Test.stopTest();
 
         System.assert(hasDup, 'Expected duplicate detected for vessel');
+    }
+
+    @IsTest
+    static void testCheckDuplicatesIgnoresTerminatedVessel() {
+        TestDataFactory_OTG.OrderContext ctx = buildContext();
+
+        InstallationTriggerHandler.setSuppressTerminationSalesOrderProcessing(true);
+        update new Installation__c(
+            Id = ctx.installation.Id,
+            Installation_Order_Status__c = 'Terminated'
+        );
+        InstallationTriggerHandler.setSuppressTerminationSalesOrderProcessing(false);
+
+        Test.startTest();
+        Boolean hasDup = CreateInstallationsController.checkDuplicates(
+            ctx.packageRec.Contract__c,
+            ctx.installation.Vessel_Name__c,
+            null
+        );
+        Test.stopTest();
+
+        System.assert(!hasDup, 'Terminated vessel installation should not be treated as duplicate');
     }
 
     @IsTest

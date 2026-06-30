@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Block_Approval_If_Renewal_Processed</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+    TEXT(SBQQ__Status__c) = &apos;Approved&apos;,
+    TEXT(PRIORVALUE(SBQQ__Status__c)) = &apos;Draft&apos;,
+    TEXT(SBQQ__Type__c) = &apos;Amendment&apos;,
+    TEXT(SBQQ__MasterContract__r.SBQQ__RenewalOpportunity__r.SBQQ__PrimaryQuote__r.SBQQ__Type__c) = &apos;Renewal&apos;,
+    TEXT(SBQQ__MasterContract__r.SBQQ__RenewalOpportunity__r.SBQQ__PrimaryQuote__r.SBQQ__Status__c) = &apos;Approved&apos;
+)</errorConditionFormula>
+    <errorMessage>This Quote can’t be approved because a renewal has already been processed for this Contract.</errorMessage>
+</ValidationRule>

@@ -1,14 +1,66 @@
 public with sharing class InstallationCostCalculation {
+    public class QuoteLineGroupCalculation {
+        @AuraEnabled public Id quoteLineGroupId;
+        @AuraEnabled public String name;
+        @AuraEnabled public String currencyIsoCode;
+        @AuraEnabled public Decimal installationPrice;
+        @AuraEnabled public Decimal currentPrice;
+        @AuraEnabled public String products;
+        @AuraEnabled public String productChangeType;
+        @AuraEnabled public String installationChangeType;
+        @AuraEnabled public Boolean createdFromPackage;
+    }
 
     public static void updateInstallationPriceByQuotes(Set<Id> quoteIds) {
         updateInstallationPriceByQuotes(quoteIds, Date.today());
     }
 
     public static void updateInstallationPriceByQuotes(Set<Id> quoteIds, Date asOfDate) {
-        if (quoteIds == null || quoteIds.isEmpty()) return;
+        List<QuoteLineGroupCalculation> calculations = calculateQuoteLineGroups(quoteIds, asOfDate);
+
+        List<SBQQ__QuoteLineGroup__c> toUpdate = new List<SBQQ__QuoteLineGroup__c>();
+        for (QuoteLineGroupCalculation calc : calculations) {
+            SBQQ__QuoteLineGroup__c upd = new SBQQ__QuoteLineGroup__c(Id = calc.quoteLineGroupId);
+            upd.put('Installation_Price__c', calc.installationPrice);
+            upd.put('Products__c', calc.products);
+            upd.put('Current_Price__c', calc.currentPrice);
+            if (calc.productChangeType != null) {
+                upd.put('Product_Change_Type__c', calc.productChangeType);
+            }
+            toUpdate.add(upd);
+        }
+
+        if (!toUpdate.isEmpty()) {
+            update toUpdate;
+        }
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static List<QuoteLineGroupCalculation> previewQuoteLineGroupInstallationCosts(Id quoteId) {
+        if (quoteId == null) return new List<QuoteLineGroupCalculation>();
+        return calculateQuoteLineGroups(new Set<Id>{ quoteId }, resolveEffectiveDate(quoteId));
+    }
+
+    public static Date resolveEffectiveDate(Id quoteId) {
+        if (quoteId == null) return Date.today();
+
+        SBQQ__Quote__c q = [
+            SELECT SBQQ__Type__c, SBQQ__StartDate__c
+            FROM SBQQ__Quote__c
+            WHERE Id = :quoteId
+            LIMIT 1
+        ];
+
+        if (q.SBQQ__StartDate__c == null) return Date.today();
+        return (q.SBQQ__Type__c == 'Renewal' || q.SBQQ__StartDate__c >= Date.today())
+            ? q.SBQQ__StartDate__c
+            : Date.today();
+    }
+
+    private static List<QuoteLineGroupCalculation> calculateQuoteLineGroups(Set<Id> quoteIds, Date asOfDate) {
+        if (quoteIds == null || quoteIds.isEmpty()) return new List<QuoteLineGroupCalculation>();
         if (asOfDate == null) asOfDate = Date.today();
 
-        // A) Installation_Price__c: sum active lines today per Group
         List<SBQQ__QuoteLine__c> lines = [
             SELECT SBQQ__Group__c,
                    Annual_Subscription_Value__c,
@@ -49,10 +101,13 @@ public with sharing class InstallationCostCalculation {
             installByGroup.put(gId, installByGroup.get(gId).setScale(2));
         }
 
-        // B) QLGs with child lines → Products__c, Current_Price__c, Product_Change_Type__c
         List<SBQQ__QuoteLineGroup__c> groupsWithLines = [
             SELECT Id,
-                   Created_From_Package__c,                 // << added
+                   Name,
+                   CurrencyIsoCode,
+                   InstallationChangeType__c,
+                   Installation_Change_Type__c,
+                   Created_From_Package__c,
                    SBQQ__Quote__r.SBQQ__MasterContract__c,
                    SBQQ__Quote__r.SBQQ__Type__c,
                    SBQQ__Quote__r.SBQQ__StartDate__c,
@@ -130,29 +185,30 @@ public with sharing class InstallationCostCalculation {
             productChangeByGroup.put(g.Id, pct);
         }
 
-        // C) Apply updates
-        List<SBQQ__QuoteLineGroup__c> toUpdate = new List<SBQQ__QuoteLineGroup__c>();
+        List<QuoteLineGroupCalculation> calculations = new List<QuoteLineGroupCalculation>();
         for (SBQQ__QuoteLineGroup__c g : groupsWithLines) {
-            SBQQ__QuoteLineGroup__c upd = new SBQQ__QuoteLineGroup__c(Id = g.Id);
+            QuoteLineGroupCalculation calc = new QuoteLineGroupCalculation();
+            calc.quoteLineGroupId = g.Id;
+            calc.name = g.Name;
+            calc.currencyIsoCode = g.CurrencyIsoCode;
+            calc.createdFromPackage = g.Created_From_Package__c;
 
             Decimal install = installByGroup.containsKey(g.Id) ? installByGroup.get(g.Id) : 0;
-            upd.put('Installation_Price__c', install);
+            calc.installationPrice = install;
 
             String products = productsByGroup.containsKey(g.Id) ? productsByGroup.get(g.Id) : '';
-            upd.put('Products__c', products);
+            calc.products = products;
 
             Decimal curr = currentPriceByGroup.containsKey(g.Id) ? currentPriceByGroup.get(g.Id) : 0;
-            upd.put('Current_Price__c', curr.setScale(2));
+            calc.currentPrice = curr.setScale(2);
+            calc.productChangeType = productChangeByGroup.get(g.Id);
+            calc.installationChangeType = String.isNotBlank(g.InstallationChangeType__c)
+                ? g.InstallationChangeType__c
+                : g.Installation_Change_Type__c;
 
-            if (productChangeByGroup.containsKey(g.Id)) {
-                upd.put('Product_Change_Type__c', productChangeByGroup.get(g.Id));
-            }
-
-            toUpdate.add(upd);
+            calculations.add(calc);
         }
 
-        if (!toUpdate.isEmpty()) {
-            update toUpdate;
-        }
+        return calculations;
     }
 }

@@ -1,12 +1,24 @@
 public class SalesOrderGeneratorService {
 
     public static void generateSalesOrders(List<Installation__c> installations, Boolean isRenewal, Boolean isPackageChange) {
+        generateSalesOrders(installations, isRenewal, isPackageChange, null);
+    }
+
+    public static void generateSalesOrders(
+        List<Installation__c> installations,
+        Boolean isRenewal,
+        Boolean isPackageChange,
+        Set<Id> eligibleInstallationLineIds
+    ) {
         Savepoint sp = Database.setSavePoint();
         try {
             List<Installation__c> validInstallations = fetchInstallationsWithDetails(installations);
             if (validInstallations.isEmpty()) return;
 
-            Map<Id, List<Installation_Line__c>> lineMap = fetchInstallationLinesGrouped(validInstallations);
+            Map<Id, List<Installation_Line__c>> lineMap = fetchInstallationLinesGrouped(
+                validInstallations,
+                eligibleInstallationLineIds
+            );
             List<Sales_Order__c> salesOrders = new List<Sales_Order__c>();
 
             for (Installation__c inst : validInstallations) {
@@ -84,17 +96,34 @@ public class SalesOrderGeneratorService {
         ];
     }
 
-    private static Map<Id, List<Installation_Line__c>> fetchInstallationLinesGrouped(List<Installation__c> installations) {
+    private static Map<Id, List<Installation_Line__c>> fetchInstallationLinesGrouped(
+        List<Installation__c> installations,
+        Set<Id> eligibleInstallationLineIds
+    ) {
         Map<Id, List<Installation_Line__c>> lineMap = new Map<Id, List<Installation_Line__c>>();
         Set<Id> instIds = new Set<Id>();
         for (Installation__c inst : installations) instIds.add(inst.Id);
 
-        List<Installation_Line__c> lines = [
-            SELECT Id, Name, Installation__c, Subscription__c, Quote_Line__c,
-                   Product__c, CurrencyIsoCode, Net_Total__c, Start_Date__c, End_Date__c
-            FROM Installation_Line__c
-            WHERE Installation__c IN :instIds AND End_Date__c > :Date.today()
-        ];
+        List<Installation_Line__c> lines;
+        if (eligibleInstallationLineIds != null) {
+            if (eligibleInstallationLineIds.isEmpty()) {
+                return lineMap;
+            }
+            lines = [
+                SELECT Id, Name, Installation__c, Subscription__c, Quote_Line__c,
+                       Product__c, CurrencyIsoCode, Net_Total__c, Start_Date__c, End_Date__c
+                FROM Installation_Line__c
+                WHERE Installation__c IN :instIds
+                AND Id IN :eligibleInstallationLineIds
+            ];
+        } else {
+            lines = [
+                SELECT Id, Name, Installation__c, Subscription__c, Quote_Line__c,
+                       Product__c, CurrencyIsoCode, Net_Total__c, Start_Date__c, End_Date__c
+                FROM Installation_Line__c
+                WHERE Installation__c IN :instIds AND End_Date__c > :Date.today()
+            ];
+        }
 
         for (Installation_Line__c line : lines) {
             if (!lineMap.containsKey(line.Installation__c)) {

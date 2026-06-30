@@ -121,8 +121,7 @@ public class CreateInstallationsController
 
             if (!isTerminate) {
                 List<Contract> contracts = [
-                    SELECT Id, Name, CurrencyIsoCode, AccountId, 
-                        (SELECT Id FROM Installations__r WHERE Vessel_Name__c = :inst.Vessel_Name__c) 
+                    SELECT Id, Name, CurrencyIsoCode, AccountId
                     FROM Contract 
                     WHERE Id = :contrId 
                     LIMIT 1
@@ -135,7 +134,7 @@ public class CreateInstallationsController
 
                 Package__c pack = [SELECT Id, Name, Quote__c FROM Package__c WHERE Id = :packId LIMIT 1];
                 
-                if (inst.Vessel_Name__c != NULL && !contr.Installations__r.isEmpty()) {
+                if (hasDuplicateInstallation(contrId, inst.Vessel_Name__c, inst.Organisation_Name__c)) {
                     Database.rollback(sp);
                     return 'Duplicate_Error';
                 }
@@ -172,28 +171,65 @@ public class CreateInstallationsController
     {
         try
         {
-            List<Installation__c> instList;
-            if(vesId != NULL && vesId != '')
-            {
-                instList = [SELECT Id, Name, Vessel_Name__c, Organisation_Name__c FROM Installation__c WHERE Vessel_Name__c = :vesId AND Contract__c = :contrId];
-            }
-            else
-            {
-                instList = [SELECT Id, Name, Vessel_Name__c, Organisation_Name__c FROM Installation__c WHERE Organisation_Name__c = :orgId AND Contract__c = :contrId];
-            }
-            if(!instList.isEmpty())
-            {
-                return TRUE;
-            }
-            else
-            {
-                return FALSE;
-            }
+            return hasDuplicateInstallation(contrId, vesId, orgId);
         }
         catch (Exception ex)
         {
             throw new AuraHandledException(ex.getMessage());
         }
+    }
+
+    private static Boolean hasDuplicateInstallation(String contrId, String vesId, String orgId) {
+        if (String.isBlank(contrId)) {
+            return false;
+        }
+
+        if (!String.isBlank(vesId)) {
+            String vesselImo;
+            try {
+                Vessel__c vessel = [
+                    SELECT Vessel_IMO__c
+                    FROM Vessel__c
+                    WHERE Id = :vesId
+                    LIMIT 1
+                ];
+                vesselImo = vessel.Vessel_IMO__c;
+            } catch (Exception ex) {
+                vesselImo = null;
+            }
+
+            List<Installation__c> matchingInstallations = String.isBlank(vesselImo)
+                ? [
+                    SELECT Id
+                    FROM Installation__c
+                    WHERE Contract__c = :contrId
+                      AND Vessel_Name__c = :vesId
+                      AND Installation_Order_Status__c != :STATUS_TERMINATED
+                    LIMIT 1
+                ]
+                : [
+                    SELECT Id
+                    FROM Installation__c
+                    WHERE Contract__c = :contrId
+                      AND (Vessel_Name__c = :vesId OR Vessel_IMO__c = :vesselImo)
+                      AND Installation_Order_Status__c != :STATUS_TERMINATED
+                    LIMIT 1
+                ];
+            return !matchingInstallations.isEmpty();
+        }
+
+        if (!String.isBlank(orgId)) {
+            return ![
+                SELECT Id
+                FROM Installation__c
+                WHERE Contract__c = :contrId
+                  AND Organisation_Name__c = :orgId
+                  AND Installation_Order_Status__c != :STATUS_TERMINATED
+                LIMIT 1
+            ].isEmpty();
+        }
+
+        return false;
     }
     
     @AuraEnabled

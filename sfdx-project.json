@@ -3,10 +3,15 @@
     {
       "path": "force-app",
       "default": true
+    },
+    {
+      "path": "rathbones-poc",
+      "default": false
     }
   ],
   "name": "OTG",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "58.0"
+  "sourceApiVersion": "61.0",
+  "defaultdevhubusername": "poc-org"
 }

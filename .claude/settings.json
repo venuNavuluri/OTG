@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sf project *)",
+      "Bash(mkdir -p /tmp/rathbones-retrieve)",
+      "Read(//tmp/rathbones-retrieve/main/default/flexipages/**)",
+      "Bash(grep -rA2 \"template\" /Users/venunavuluri/Documents/GitHub/OTG/force-app/main/default/flexipages/Sales_UtilityBar.flexipage-meta.xml)"
+    ]
+  }
+}

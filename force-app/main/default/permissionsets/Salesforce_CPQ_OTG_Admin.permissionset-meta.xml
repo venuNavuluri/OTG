@@ -2857,6 +2857,10 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>ApproveQuoteController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>QuoteInstallationController</apexClass>
         <enabled>true</enabled>
     </classAccesses>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prevent_Ordered_Start_Date_Change</fullName>
+    <active>true</active>
+    <description>Prevents changing the quote start date after the quote has been ordered.</description>
+    <errorConditionFormula>AND(
+    SBQQ__Ordered__c = TRUE,
+    ISCHANGED(SBQQ__StartDate__c),
+    NOT($Setup.VRConfiguration__c.Quote_Ordered_Validation__c)
+)</errorConditionFormula>
+    <errorDisplayField>SBQQ__StartDate__c</errorDisplayField>
+    <errorMessage>You cannot change the Start Date because this Quote has been marked as Ordered.</errorMessage>
+</ValidationRule>

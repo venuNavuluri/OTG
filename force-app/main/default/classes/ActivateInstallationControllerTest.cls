@@ -242,8 +242,8 @@ private class ActivateInstallationControllerTest {
         System.assertEquals(0, newLineCount, 'No new installation lines expected without subscriptions');
     }
 
-    @IsTest
-    static void testBuildInstallationLinesSetsImplementationFields() {
+	    @IsTest
+	    static void testBuildInstallationLinesSetsImplementationFields() {
         TestDataFactory_OTG.OrderContext ctx =
             TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, false);
 
@@ -297,11 +297,86 @@ private class ActivateInstallationControllerTest {
         System.assertEquals(1, lines.size(), 'One installation line should be built.');
         System.assertEquals('Completed', lines[0].Implementation_Status__c);
         System.assertEquals('Standard', lines[0].Change_Action__c);
-        System.assertEquals(ctx.orderRec.Id, lines[0].Source_Subscription_Order__c);
-    }
+	        System.assertEquals(ctx.orderRec.Id, lines[0].Source_Subscription_Order__c);
+	    }
 
-    @IsTest
-    static void testActivateInstallationHandlesInvalidInstallation() {
+	    @IsTest
+	    static void testBuildInstallationLinesUsesAnnualSubscriptionValueBeforeNetPrice() {
+	        TestDataFactory_OTG.OrderContext ctx =
+	            TestDataFactory_OTG.buildOrderContext('Americas', 'Amendment', 'Draft', true, false);
+
+	        Contract contractRec = [
+	            SELECT Id, CurrencyIsoCode
+	            FROM Contract
+	            WHERE Id = :ctx.packageRec.Contract__c
+	            LIMIT 1
+	        ];
+
+	        Date segmentStart = Date.newInstance(2026, 4, 21);
+	        Date segmentEnd = Date.newInstance(2027, 4, 20);
+	        Date installStart = Date.newInstance(2026, 5, 28);
+	        Date installEnd = Date.newInstance(2027, 2, 16);
+
+	        update new Installation__c(
+	            Id = ctx.installation.Id,
+	            Contract__c = contractRec.Id,
+	            Order__c = ctx.orderRec.Id,
+	            Installation_Start_Date__c = installStart,
+	            Installation_End_Date__c = installEnd
+	        );
+	        Installation__c inst = [
+	            SELECT Id, Order__c, Installation_End_Date__c
+	            FROM Installation__c
+	            WHERE Id = :ctx.installation.Id
+	            LIMIT 1
+	        ];
+
+	        SBQQ__QuoteLine__c ql = TestDataFactory_OTG.createQuoteLine(
+	            ctx.qctx.quote.Id,
+	            ctx.qlg.Id,
+	            ctx.qctx.pbe.Id,
+	            1,
+	            null,
+	            2563.38,
+	            segmentStart,
+	            installEnd,
+	            null
+	        );
+	        Map<String, Object> productJson = new Map<String, Object>{
+	            'attributes' => new Map<String, Object>{ 'type' => 'Product2' },
+	            'Id' => ctx.qctx.product.Id,
+	            'Name' => ctx.qctx.product.Name
+	        };
+	        Map<String, Object> subscriptionJson = new Map<String, Object>{
+	            'attributes' => new Map<String, Object>{ 'type' => 'SBQQ__Subscription__c' },
+	            'SBQQ__Product__c' => ctx.qctx.product.Id,
+	            'SBQQ__Product__r' => productJson,
+	            'SBQQ__SegmentStartDate__c' => String.valueOf(segmentStart),
+	            'SBQQ__SegmentEndDate__c' => String.valueOf(segmentEnd),
+	            'SBQQ__NetPrice__c' => 2563.38,
+	            'Annual_Subscription_Value__c' => 3111,
+	            'SBQQ__Quantity__c' => 1,
+	            'CurrencyIsoCode' => contractRec.CurrencyIsoCode,
+	            'SBQQ__QuoteLine__c' => ql.Id
+	        };
+	        SBQQ__Subscription__c sub = (SBQQ__Subscription__c) JSON.deserialize(
+	            JSON.serialize(subscriptionJson),
+	            SBQQ__Subscription__c.class
+	        );
+
+	        List<Installation_Line__c> lines =
+	            ActivateInstallationController.buildInstallationLines(inst, new List<SBQQ__Subscription__c>{ sub }, installStart);
+
+	        System.assertEquals(1, lines.size(), 'One installation line should be built.');
+	        System.assertEquals(
+	            2258.67,
+	            lines[0].Net_Total__c.setScale(2),
+	            'Installation lines should prorate from annual subscription value, not already-prorated CPQ net price.'
+	        );
+	    }
+
+	    @IsTest
+	    static void testActivateInstallationHandlesInvalidInstallation() {
         try {
             ActivateInstallationController.activateInstallation(null, Date.today());
             System.assert(false, 'Expected activation to fail for a missing installation id.');

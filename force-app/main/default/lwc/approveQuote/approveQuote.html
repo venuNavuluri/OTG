@@ -1,0 +1,144 @@
+<template>
+  <header class="slds-modal__header">
+    <button
+      class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+      title="Close"
+      onclick={closeModal}
+    >
+      <lightning-icon
+        icon-name="utility:close"
+        alternative-text="Close"
+        variant="inverse"
+        size="small"
+      ></lightning-icon>
+      <span class="slds-assistive-text">Close</span>
+    </button>
+    <h2 class="slds-text-heading_medium slds-hyphenate">Approve Quote</h2>
+    <p class="slds-m-top_x-small slds-text-body_regular slds-text-color_weak">
+      Review calculated installation values before approving the quote.
+    </p>
+  </header>
+
+  <div class="slds-modal__content approve-content slds-p-around_large">
+    <template if:true={isLoading}>
+      <div class="loading-state">
+        <lightning-spinner alternative-text="Calculating installation values" size="medium"></lightning-spinner>
+      </div>
+    </template>
+
+    <template if:false={isLoading}>
+      <template if:true={hasError}>
+        <div class="message-panel message-panel_error">
+          <lightning-icon icon-name="utility:error" size="small" variant="error" alternative-text="Error"></lightning-icon>
+          <div>
+            <h3 class="slds-text-heading_small slds-m-bottom_x-small">Quote cannot be approved yet</h3>
+            <ul class="error-list">
+              <template for:each={messageLines} for:item="line">
+                <li key={line}>{line}</li>
+              </template>
+            </ul>
+          </div>
+        </div>
+      </template>
+
+      <template if:true={showSuccess}>
+        <div class="message-panel message-panel_success">
+          <lightning-icon icon-name="utility:success" size="small" variant="success" alternative-text="Success"></lightning-icon>
+          <div>
+            <h3 class="slds-text-heading_small slds-m-bottom_x-small">Quote approved</h3>
+            <p>{message}</p>
+          </div>
+        </div>
+      </template>
+
+      <template if:true={showReview}>
+        <section class="summary-strip">
+          <div>
+            <span class="summary-label">Quote</span>
+            <strong>{quoteName}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Effective Date</span>
+            <lightning-formatted-date-time value={effectiveDate} year="numeric" month="short" day="2-digit"></lightning-formatted-date-time>
+          </div>
+          <div>
+            <span class="summary-label">Groups</span>
+            <strong>{groupCount}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Total Annual Subscription Value</span>
+            <lightning-formatted-number
+              value={totalAnnualSubscriptionValue}
+              format-style="currency"
+              currency-code={quoteCurrency}
+              currency-display-as="code"
+            ></lightning-formatted-number>
+          </div>
+        </section>
+
+        <template if:true={blockingMessage}>
+          <div class="message-panel message-panel_warning slds-m-top_medium">
+            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Warning"></lightning-icon>
+            <p>{blockingMessage}</p>
+          </div>
+        </template>
+
+        <div class="message-panel message-panel_info slds-m-top_medium">
+          <lightning-icon icon-name="utility:info" size="small" alternative-text="Information"></lightning-icon>
+          <p>Approving this quote will run the existing approval automation, set this quote as primary, and reject other non-approved quotes on the same opportunity.</p>
+        </div>
+
+        <div class="table-wrap slds-m-top_medium">
+          <table class="slds-table slds-table_cell-buffer slds-table_bordered review-table">
+            <thead>
+              <tr>
+                <th scope="col"><div class="slds-truncate" title="Quote Line Group">Quote Line Group</div></th>
+                <th scope="col"><div class="slds-truncate" title="Installation Price">Installation Price</div></th>
+                <th scope="col"><div class="slds-truncate" title="Product Change">Product Change</div></th>
+                <th scope="col"><div class="slds-truncate" title="Installation Change">Installation Change</div></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={groups} for:item="group">
+                <tr key={group.quoteLineGroupId}>
+                  <td data-label="Quote Line Group">
+                    <div class="group-name" title={group.name}>{group.name}</div>
+                  </td>
+                  <td data-label="Installation Price">
+                    <lightning-formatted-number
+                      value={group.installationPrice}
+                      format-style="currency"
+                      currency-code={group.currencyIsoCode}
+                      currency-display-as="code"
+                    ></lightning-formatted-number>
+                  </td>
+                  <td data-label="Product Change">
+                    <span class={group.productBadgeClass}>{group.productChangeType}</span>
+                  </td>
+                  <td data-label="Installation Change">
+                    <span class={group.installBadgeClass}>{group.installationChangeType}</span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </template>
+  </div>
+
+  <footer class="slds-modal__footer">
+    <button class="slds-button slds-button_neutral" onclick={closeModal} title={closeButtonLabel}>
+      {closeButtonLabel}
+    </button>
+    <button
+      if:true={showApproveButton}
+      class="slds-button slds-button_brand"
+      onclick={approveQuote}
+      disabled={isApproving}
+      title="Approve Quote"
+    >
+      {approveButtonLabel}
+    </button>
+  </footer>
+</template>
